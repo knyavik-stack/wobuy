@@ -25,9 +25,9 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative w-full overflow-visible bg-[#0D0F14] px-4 pb-4 pt-24 text-slate-100 selection:bg-[#00FF87] selection:text-black md:px-8 lg:px-16">
-      <div className="pointer-events-none absolute left-[-10%] top-[-20%] h-[50%] w-[50%] overflow-hidden rounded-full bg-gradient-to-tr from-emerald-500/10 to-transparent blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[60%] w-[60%] overflow-hidden rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[150px]" />
+    <section className="relative w-full overflow-hidden bg-[#0D0F14] px-4 pb-4 pt-16 text-slate-100 selection:bg-[#00FF87] selection:text-black md:px-8 md:pt-18 lg:px-16">
+      <div className="pointer-events-none absolute left-[-10%] top-[-20%] h-[50%] w-[50%] rounded-full bg-gradient-to-tr from-emerald-500/10 to-transparent blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[60%] w-[60%] rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[150px]" />
       <header className="fixed left-0 right-0 top-0 z-50 flex min-h-16 items-center justify-between border-b border-white/5 bg-[#0D0F14]/95 px-4 py-3 shadow-lg shadow-black/10 backdrop-blur-xl md:px-8 lg:px-16">
         <Link href="/" className="text-2xl font-bold tracking-tight text-white">wobuy<span className="text-[#00FF87]">.</span></Link>
         <div className="flex items-center gap-4 md:gap-6">
@@ -39,8 +39,8 @@ export default function HeroSection() {
           <Link href="/login" className="rounded-xl border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10">Войти</Link>
         </div>
       </header>
-      <main className="relative z-10 mx-auto grid min-h-[calc(100svh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-6 py-6 lg:grid-cols-12 lg:gap-6">
-        <div className="col-span-1 flex flex-col justify-center space-y-5 lg:col-span-7">
+      <main className="relative z-10 mx-auto grid min-h-[calc(100svh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-5 py-3 lg:grid-cols-12 lg:gap-6">
+        <div className="col-span-1 flex flex-col justify-center space-y-4 lg:col-span-7">
           <div className="inline-flex self-start items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-[#00FF87]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#00FF87]" />Time-to-Best-Offer &lt; 3 минуты</div>
           <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-white md:text-6xl">Выбирает ИИ.<br /><span className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Покупаешь ты.</span></h1>
           <p className="max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">wobuy. анализирует предложения, отсекает фейковые отзывы, рассчитывает честный рейтинг и выдает лучшие варианты с человеческим объяснением.</p>
@@ -60,7 +60,7 @@ export default function HeroSection() {
             <p className="mt-1 text-xs italic text-slate-500">💡 {config.description}</p>
           </div>
         </div>
-        <div className="relative col-span-1 flex min-h-[380px] items-center justify-center lg:col-span-5">
+        <div className="relative col-span-1 flex min-h-[350px] items-center justify-center lg:col-span-5">
           <AnimatePresence mode="wait"><motion.div key={activeTab} initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -30, scale: 0.95 }} transition={{ duration: 0.4 }} className="relative w-full max-w-[380px] rounded-3xl border border-white/10 bg-[#13161C]/60 p-6 shadow-2xl backdrop-blur-xl">
             <div className="mb-4 flex items-start justify-between"><span className={`rounded-lg bg-gradient-to-r ${config.accentColor} px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white`}>Рекомендация ИИ</span><div className="relative flex h-12 w-12 items-center justify-center"><svg className="h-full w-full -rotate-90"><circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.05)" strokeWidth="4" fill="transparent" /><circle cx="24" cy="24" r="20" stroke="#00FF87" strokeWidth="4" fill="transparent" strokeDasharray="125" strokeDashoffset={125 - (125 * config.product.score) / 10} /></svg><span className="absolute text-sm font-extrabold text-white">{config.product.score}</span></div></div>
             <div className="mb-2 flex items-center gap-2 text-xs text-slate-400"><span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 font-medium text-white">{config.product.platform}</span><span className="flex items-center"><Truck className="mr-1 h-3.5 w-3.5 text-emerald-400" />{config.product.delivery}</span></div>
