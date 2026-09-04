@@ -1,167 +1,36 @@
 import Link from "next/link";
-import { Search, ShieldCheck, Sparkles, ExternalLink, Truck } from "lucide-react";
+import { Search, ShieldCheck, Sparkles, ExternalLink, Truck, Bookmark, BarChart3 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";
 
-function formatPrice(price: number | null, currency: string) {
-  if (price === null) return "Цена не указана";
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(price);
-}
+function formatPrice(price: number | null, currency: string) { if (price === null) return "Цена не указана"; return new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(price); }
 
-export default function SearchResults({
-  query,
-  products,
-}: {
-  query: string;
-  products: SearchProduct[];
-}) {
+export default async function SearchResults({ query, products, categories, category, sort }: { query: string; products: SearchProduct[]; categories: string[]; category: string; sort: string }) {
+  const allOffers = products.flatMap((product) => product.offers);
+  const prices = allOffers.map((offer) => offer.price).filter((price): price is number => price != null);
+  const ratings = allOffers.map((offer) => offer.rating).filter((rating): rating is number => rating != null);
+  const avgRating = ratings.length ? ratings.reduce((sum, value) => sum + value, 0) / ratings.length : 0;
+  const minPrice = prices.length ? Math.min(...prices) : null;
+  const maxPrice = prices.length ? Math.max(...prices) : null;
+
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#0D0F14] p-4 font-sans text-slate-100 selection:bg-[#00FF87] selection:text-black md:p-8">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] p-4 font-sans text-slate-100 selection:bg-[#00FF87] selection:text-black md:p-8">
       <div className="pointer-events-none absolute right-0 top-0 h-[400px] w-[400px] rounded-full bg-emerald-500/5 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-[400px] w-[400px] rounded-full bg-blue-500/5 blur-[120px]" />
-
       <header className="relative z-10 mx-auto mb-6 flex max-w-7xl flex-col justify-between gap-4 border-b border-white/5 pb-6 md:flex-row md:items-center">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <Link href="/" className="text-xl font-bold tracking-tight text-white">
-              wobuy<span className="text-[#00FF87]">.</span>
-            </Link>
-            <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-400">
-              Демо-каталог
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <span>Запрос:</span>
-            <span className="rounded bg-white/5 px-2 py-1 font-medium text-slate-200">
-              «{query || "все товары"}»
-            </span>
-          </div>
-        </div>
-        <form action="/search" className="relative w-full md:w-96">
-          <input
-            name="q"
-            defaultValue={query}
-            placeholder="Что ищем?"
-            className="w-full rounded-xl border border-white/10 bg-[#13161C] py-2.5 pl-10 pr-4 text-sm text-white outline-none transition-all placeholder:text-slate-500 focus:border-[#00FF87]/50 focus:ring-1 focus:ring-[#00FF87]/30"
-          />
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
-        </form>
+        <div><div className="mb-2 flex items-center gap-2"><Link href="/" className="text-xl font-bold tracking-tight text-white">wobuy<span className="text-[#00FF87]">.</span></Link><span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-400">Демо-каталог</span></div><div className="flex items-center gap-2 text-xs text-slate-400"><span>Запрос:</span><span className="rounded bg-white/5 px-2 py-1 font-medium text-slate-200">«{query || "все товары"}»</span></div></div>
+        <form action="/search" className="relative w-full md:w-96"><input name="q" defaultValue={query} placeholder="Что ищем?" className="w-full rounded-xl border border-white/10 bg-[#13161C] py-2.5 pl-10 pr-4 text-sm text-white outline-none transition-all placeholder:text-slate-500 focus:border-[#00FF87]/50 focus:ring-1 focus:ring-[#00FF87]/30" /><Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" /></form>
       </header>
-
       <main className="relative z-10 mx-auto max-w-7xl">
-        <div className="mb-4 rounded-xl border border-amber-400/10 bg-amber-400/5 px-4 py-3 text-xs leading-relaxed text-slate-400">
-          Демо-режим: товары и предложения сгенерированы для отладки интерфейса. После подключения
-          API маркетплейсов этот слой будет заменён реальными данными без изменения
-          пользовательского сценария.
-        </div>
-        <div className="mb-4 flex items-center justify-between px-1 text-xs text-slate-400">
-          <span>
-            Найдено товаров: <strong className="text-white">{products.length}</strong>
-          </span>
-          <span className="flex items-center gap-1.5 text-slate-500">
-            <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" /> Проверка каталога
-          </span>
-        </div>
-
-        {products.length === 0 ? (
-          <section className="rounded-2xl border border-white/10 bg-[#13161C]/50 p-8 text-center backdrop-blur-xl md:p-14">
-            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-[#00FF87]/20 bg-[#00FF87]/10">
-              <Sparkles className="h-5 w-5 text-[#00FF87]" />
-            </div>
-            <h1 className="text-xl font-extrabold tracking-tight text-white md:text-2xl">
-              Ничего не найдено
-            </h1>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
-              Попробуй изменить запрос. Демо-каталог содержит товары из нескольких категорий.
-            </p>
-          </section>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {products.map((product) => {
-              const offer = [...product.offers].sort(
-                (a, b) =>
-                  (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
-              )[0];
-              return (
-                <article
-                  key={product.id}
-                  className="overflow-hidden rounded-2xl border border-white/10 bg-[#13161C]/50 backdrop-blur-md transition-colors hover:border-white/20"
-                >
-                  <Link href={`/product/${product.id}`} className="block">
-                    <div className="flex h-48 items-center justify-center bg-[#0A0C11]">
-                      {product.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={product.imageUrl}
-                          alt={product.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <Sparkles className="h-8 w-8 text-slate-700" />
-                      )}
-                    </div>
-                  </Link>
-                  <div className="space-y-4 p-5">
-                    <Link href={`/product/${product.id}`} className="block">
-                      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
-                        {product.brand}
-                      </div>
-                      <h2 className="line-clamp-2 text-base font-bold text-white hover:text-[#00FF87]">
-                        {product.title}
-                      </h2>
-                      {product.category ? (
-                        <p className="mt-1 text-xs text-slate-500">{product.category}</p>
-                      ) : null}
-                    </Link>
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <div className="text-xl font-extrabold text-white">
-                          {formatPrice(offer?.price ?? null, offer?.currency ?? "RUB")}
-                        </div>
-                        {offer?.marketplace ? (
-                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
-                            {offer.marketplace}
-                          </div>
-                        ) : null}
-                      </div>
-                      {offer?.rating != null ? (
-                        <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-slate-200">
-                          ★ {Number(offer.rating).toFixed(1)}
-                        </div>
-                      ) : null}
-                    </div>
-                    {offer?.deliveryText ? (
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Truck className="h-3.5 w-3.5" />
-                        {offer.deliveryText}
-                      </div>
-                    ) : null}
-                    <Link
-                      href={`/product/${product.id}`}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-extrabold text-white transition-colors hover:bg-white/10"
-                    >
-                      Подробнее
-                    </Link>
-                    {offer?.url ? (
-                      <a
-                        href={offer.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00FF87] py-3 text-xs font-extrabold text-black transition-colors hover:bg-[#00E576]"
-                      >
-                        Открыть предложение <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+        <div className="mb-4 rounded-xl border border-amber-400/10 bg-amber-400/5 px-4 py-3 text-xs leading-relaxed text-slate-400">Демо-режим: товары и предложения сгенерированы для отладки интерфейса. Реальные API маркетплейсов подключим после стабилизации сценариев.</div>
+        <section className="mb-5 grid gap-3 md:grid-cols-4"><Metric label="Товаров" value={products.length.toString()} /><Metric label="Предложений" value={allOffers.length.toString()} /><Metric label="Средний рейтинг" value={avgRating ? avgRating.toFixed(1) : "—"} /><Metric label="Диапазон цен" value={minPrice != null ? `${formatPrice(minPrice, "RUB")} — ${formatPrice(maxPrice, "RUB")}` : "—"} /></section>
+        <section className="mb-6 rounded-2xl border border-white/10 bg-[#13161C]/70 p-4"><div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><BarChart3 className="h-4 w-4 text-[#00FF87]" />Демо-аналитика результата</div><div className="grid gap-2 text-xs text-slate-400 md:grid-cols-3"><div>Охват: <strong className="text-white">{allOffers.length} предложений</strong> из 3 маркетплейсов</div><div>Рейтинг: <strong className="text-white">{avgRating ? `${avgRating.toFixed(1)} / 5` : "нет данных"}</strong></div><div>Цены: <strong className="text-white">{minPrice != null ? `от ${formatPrice(minPrice, "RUB")}` : "нет данных"}</strong></div></div></section>
+        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#13161C]/70 p-4 md:flex-row md:items-center md:justify-between"><div className="flex flex-wrap gap-2"><Link href={`/search?q=${encodeURIComponent(query)}`} className={`rounded-lg px-3 py-2 text-xs font-semibold ${category === "all" ? "bg-[#00FF87] text-black" : "bg-white/5 text-slate-300"}`}>Все категории</Link>{categories.map((item) => <Link key={item} href={`/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(item)}&sort=${sort}`} className={`rounded-lg px-3 py-2 text-xs font-semibold ${category === item ? "bg-[#00FF87] text-black" : "bg-white/5 text-slate-300"}`}>{item}</Link>)}</div><div className="flex flex-wrap gap-2"><Link href={`/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=price_asc`} className={`rounded-lg px-3 py-2 text-xs font-semibold ${sort === "price_asc" ? "bg-white/15 text-white" : "bg-white/5 text-slate-400"}`}>Цена ↑</Link><Link href={`/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=price_desc`} className={`rounded-lg px-3 py-2 text-xs font-semibold ${sort === "price_desc" ? "bg-white/15 text-white" : "bg-white/5 text-slate-400"}`}>Цена ↓</Link><Link href={`/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}&sort=rating`} className={`rounded-lg px-3 py-2 text-xs font-semibold ${sort === "rating" ? "bg-white/15 text-white" : "bg-white/5 text-slate-400"}`}>Рейтинг</Link><Link href={`/search?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`} className={`rounded-lg px-3 py-2 text-xs font-semibold ${sort === "relevance" ? "bg-white/15 text-white" : "bg-white/5 text-slate-400"}`}>По названию</Link></div></div>
+        <div className="mb-4 flex items-center justify-between px-1 text-xs text-slate-400"><span>Найдено товаров: <strong className="text-white">{products.length}</strong></span><div className="flex items-center gap-3"><form action={saveSearch.bind(null, query)}><button type="submit" disabled={!query} className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 font-semibold text-slate-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"><Bookmark className="h-3.5 w-3.5" />Сохранить поиск</button></form><span className="flex items-center gap-1.5 text-slate-500"><ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" />Проверка каталога</span></div></div>
+        {products.length === 0 ? <section className="rounded-2xl border border-white/10 bg-[#13161C]/50 p-8 text-center backdrop-blur-xl md:p-14"><div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-[#00FF87]/20 bg-[#00FF87]/10"><Sparkles className="h-5 w-5 text-[#00FF87]" /></div><h1 className="text-xl font-extrabold tracking-tight text-white md:text-2xl">Ничего не найдено</h1><p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-400">Попробуй изменить запрос или фильтр. Демо-каталог содержит товары из нескольких категорий.</p></section> : <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{products.map((product) => { const offer = [...product.offers].sort((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER))[0]; return <article key={product.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#13161C]/50 backdrop-blur-md transition-colors hover:border-white/20"><Link href={`/product/${product.id}`} className="block"><div className="flex h-48 items-center justify-center bg-[#0A0C11]">{product.imageUrl ? <img src={product.imageUrl} alt={product.title} className="h-full w-full object-cover" /> : <Sparkles className="h-8 w-8 text-slate-700" />}</div></Link><div className="space-y-4 p-5"><Link href={`/product/${product.id}`} className="block"><div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">{product.brand}</div><h2 className="line-clamp-2 text-base font-bold text-white hover:text-[#00FF87]">{product.title}</h2><p className="mt-1 text-xs text-slate-500">{product.category}</p></Link><div className="flex items-end justify-between gap-3"><div><div className="text-xl font-extrabold text-white">{formatPrice(offer?.price ?? null, offer?.currency ?? "RUB")}</div>{offer?.marketplace ? <div className="mt-1 text-[10px] font-semibold text-slate-500">{offer.marketplace}</div> : null}</div>{offer?.rating != null ? <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-slate-200">★ {Number(offer.rating).toFixed(1)}</div> : null}</div>{offer?.deliveryText ? <div className="flex items-center gap-2 text-xs text-slate-500"><Truck className="h-3.5 w-3.5" />{offer.deliveryText}</div> : null}<Link href={`/product/${product.id}`} className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-extrabold text-white transition-colors hover:bg-white/10">Подробнее</Link>{offer?.url ? <a href={offer.url} target="_blank" rel="noreferrer" className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00FF87] py-3 text-xs font-extrabold text-black transition-colors hover:bg-[#00E576]">Открыть предложение <ExternalLink className="h-3.5 w-3.5" /></a> : null}</div></article>; })}</div>}
       </main>
     </div>
   );
 }
+function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-[#13161C]/70 p-4"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</div><div className="mt-2 truncate text-sm font-black text-white">{value}</div></div>; }
