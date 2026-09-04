@@ -7,7 +7,9 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Восстановление пароля</CardTitle>
-          <CardDescription>Укажи email — мы отправим безопасную ссылку для смены пароля.</CardDescription>
+          <CardDescription>
+            Укажи email — мы отправим безопасную ссылку для смены пароля.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ForgotPasswordForm />

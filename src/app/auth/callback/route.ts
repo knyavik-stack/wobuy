@@ -17,7 +17,10 @@ export async function GET(request: Request) {
 
   if (code) {
     const flowId = url.searchParams.get("sb_flow_id");
-    const { error } = await supabase.auth.exchangeCodeForSession(code, flowId ? { flowId } : undefined);
+    const { error } = await supabase.auth.exchangeCodeForSession(
+      code,
+      flowId ? { flowId } : undefined,
+    );
     if (!error) return NextResponse.redirect(`${origin}${nextPath}`);
   }
 

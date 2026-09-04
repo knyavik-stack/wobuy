@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-09-04
+
 - Создан базовый каркас WOBuy на Next.js 15 с App Router.
 - Добавлены TypeScript, Tailwind CSS, ESLint и Prettier.
 - Добавлена чистая структура `src/app`, `src/components`, `src/lib`, `public`.

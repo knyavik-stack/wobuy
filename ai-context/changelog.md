@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-09-04
+
 - Создан базовый каркас WOBuy на Next.js 15 с App Router.
 - Добавлены TypeScript, Tailwind CSS, ESLint и Prettier.
 - Добавлена чистая структура `src/app`, `src/components`, `src/lib`, `public`.
@@ -10,6 +11,7 @@
 - Секреты, токены и API-ключи не добавлялись.
 
 ## Supabase Auth
+
 - Подключены официальные `@supabase/ssr` 0.12.5 и `@supabase/supabase-js` 2.115.0.
 - Добавлены browser/server-клиенты Supabase для Next.js App Router.
 - Добавлен `src/middleware.ts` для обновления и проверки cookie-сессии через `auth.getClaims()`.
@@ -24,6 +26,7 @@
 - Service Role Key, токены и другие секреты в репозиторий не добавлялись.
 
 ## Восстановление пароля и выход
+
 - Добавлена кнопка «Выйти» на `/dashboard` через `supabase.auth.signOut()`.
 - Добавлена публичная страница `/forgot-password` с `resetPasswordForEmail()`.
 - Добавлена публичная страница `/reset-password` для установки нового пароля через `updateUser()` после успешного recovery-сеанса.
@@ -33,6 +36,7 @@
 - Добавлены русские состояния загрузки, успеха и ошибок для logout/recovery.
 
 ## CI/CD
+
 - Добавлен `.github/workflows/ci.yml` для автоматической проверки push и pull request в `main`.
 - CI выполняет `npm install`, `npm run typecheck`, `npm run lint`, `npm run format:check` и `npm run build` на Node.js 22.
 - Используется `npm install`, поскольку `package-lock.json` в репозитории отсутствует; `npm ci` и npm cache не используются.
@@ -40,6 +44,7 @@
 - Commit с рабочей конфигурацией CI: `1d664b6b834760ace96a804e6bc65750643e963a`.
 
 ## Проверка
+
 - Проект не запускается локально; целевой способ проверки — Vercel Preview.
 - После добавления CI реальный результат нового GitHub Actions run должен быть проверен отдельно; до завершения run нельзя считать сборку подтверждённой.
 - Для email confirmation и password recovery необходимо настроить Supabase Auth URL Configuration и Email provider.

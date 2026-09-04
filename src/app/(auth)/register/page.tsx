@@ -9,7 +9,9 @@ export default function RegisterPage() {
           <CardTitle>Создай аккаунт</CardTitle>
           <CardDescription>Зарегистрируйся в WOBuy с помощью email и пароля.</CardDescription>
         </CardHeader>
-        <CardContent><RegisterForm /></CardContent>
+        <CardContent>
+          <RegisterForm />
+        </CardContent>
       </Card>
     </main>
   );

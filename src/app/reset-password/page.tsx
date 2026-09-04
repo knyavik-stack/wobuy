@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function ResetPasswordPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return (
@@ -13,10 +15,17 @@ export default async function ResetPasswordPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Ссылка недействительна</CardTitle>
-            <CardDescription>Ссылка для смены пароля устарела или уже была использована.</CardDescription>
+            <CardDescription>
+              Ссылка для смены пароля устарела или уже была использована.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-neutral-950 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800" href="/forgot-password">Запросить новую ссылку</Link>
+            <Link
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-neutral-950 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-neutral-800"
+              href="/forgot-password"
+            >
+              Запросить новую ссылку
+            </Link>
           </CardContent>
         </Card>
       </main>

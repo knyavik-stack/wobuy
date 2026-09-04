@@ -9,7 +9,9 @@ export default function LoginPage() {
           <CardTitle>С возвращением</CardTitle>
           <CardDescription>Войди в свой аккаунт WOBuy, чтобы продолжить.</CardDescription>
         </CardHeader>
-        <CardContent><LoginForm /></CardContent>
+        <CardContent>
+          <LoginForm />
+        </CardContent>
       </Card>
     </main>
   );
