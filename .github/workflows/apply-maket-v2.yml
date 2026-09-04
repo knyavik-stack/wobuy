@@ -27,17 +27,19 @@ jobs:
           cp maket/ResetPasswordPage-v2.tsx maket/ResetPasswordPage.tsx
           python - <<'PY'
           from pathlib import Path
-          import re
           for path in Path('maket').glob('*.tsx'):
               text = path.read_text()
               text = text.replace('catch (err: any)', 'catch (err: unknown)')
               text = text.replace("err.message ||", "(err instanceof Error ? err.message : '') ||")
-              text = text.replace(', Flame, ShoppingBag, Zap, Star', '')
-              text = text.replace('ArrowUpDown, ', '')
-              text = text.replace('ChevronRight, ', '')
-              text = text.replace('Filter, ', '')
-              text = text.replace('ShieldCheck, ', '')
-              text = text.replace(' as any)', " as 'score' | 'price_asc' | 'price_desc')")
+              if path.name == 'HeroSection.tsx':
+                  text = text.replace(', Flame, ShoppingBag, Zap, Star', '')
+              if path.name == 'SearchResults.tsx':
+                  text = text.replace('ArrowUpDown, ', '')
+                  text = text.replace('ChevronRight, ', '')
+                  text = text.replace('Filter, ', '')
+                  text = text.replace(' as any)', " as 'score' | 'price_asc' | 'price_desc')")
+              if path.name in {'LoginPage.tsx', 'LoginPage-v2.tsx'}:
+                  text = text.replace(', ShieldCheck,', ',')
               path.write_text(text)
           PY
       - name: Форматирование
