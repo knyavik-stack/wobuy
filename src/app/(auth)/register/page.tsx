@@ -1,11 +1,16 @@
-import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RegisterForm } from "@/components/auth/auth-form";
 
 export default function RegisterPage() {
   return (
-    <main>
-      <h1>Регистрация</h1>
-      <p>Страница регистрации WOBuy подготовлена. Форма создания аккаунта будет добавлена следующим этапом.</p>
-      <Link href="/login">Уже есть аккаунт? Войти</Link>
+    <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-10">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Создай аккаунт</CardTitle>
+          <CardDescription>Зарегистрируйся в WOBuy с помощью email и пароля.</CardDescription>
+        </CardHeader>
+        <CardContent><RegisterForm /></CardContent>
+      </Card>
     </main>
   );
 }
