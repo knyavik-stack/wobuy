@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, Search, ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, ShieldCheck, Sparkles, Truck, X } from "lucide-react";
 
 type Archetype = "urgent" | "perfectionist" | "budget" | "parents";
 
@@ -14,14 +14,31 @@ const ARCHETYPES: Record<Archetype, { label: string; emoji: string; placeholder:
   parents: { label: "Мама / Папа", emoji: "👶", placeholder: "Безопасная детская палатка-домик...", description: "Приоритет на безопасность и надежность материалов", accentColor: "from-purple-500 to-pink-500", glowColor: "rgba(168, 85, 247, 0.15)", product: { title: "Детский игровой домик-палатка «Лесная сказка»", score: 9.5, price: "2 890 ₽", oldPrice: "3 500 ₽", platform: "Wildberries", delivery: "Завтра", reasons: ["Натуральный хлопок", "Безопасные опоры из бука", "Плотный чехол для хранения"], antiFake: "Проверено ИИ: реальные отзывы" } },
 };
 
+const NAV_ITEMS = [
+  { id: "features", label: "Как это работает" },
+  { id: "pricing", label: "Тарифы" },
+  { id: "about", label: "О нас" },
+];
+
 export default function HeroSection() {
   const [activeTab, setActiveTab] = useState<Archetype>("perfectionist");
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const config = ARCHETYPES[activeTab];
+
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = searchQuery.trim();
     window.location.assign(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+  };
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const headerOffset = 80;
+    const top = element.getBoundingClientRect().top + window.scrollY - headerOffset;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -30,14 +47,20 @@ export default function HeroSection() {
       <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[60%] w-[60%] rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[150px]" />
       <header className="fixed left-0 right-0 top-0 z-50 flex min-h-16 items-center justify-between border-b border-white/5 bg-[#0D0F14]/95 px-4 py-3 shadow-lg shadow-black/10 backdrop-blur-xl md:px-8 lg:px-16">
         <Link href="/" className="text-2xl font-bold tracking-tight text-white">wobuy<span className="text-[#00FF87]">.</span></Link>
-        <div className="flex items-center gap-4 md:gap-6">
-          <nav className="hidden items-center gap-5 text-sm font-medium text-slate-400 md:flex lg:gap-7">
-            <a href="#features" className="transition-colors hover:text-white">Как это работает</a>
-            <a href="#pricing" className="transition-colors hover:text-white">Тарифы</a>
-            <a href="#about" className="transition-colors hover:text-white">О нас</a>
+        <div className="flex items-center gap-2 md:gap-6">
+          <nav className="hidden items-center gap-5 text-sm font-medium text-slate-400 md:flex lg:gap-7" aria-label="Основная навигация">
+            {NAV_ITEMS.map((item) => <button key={item.id} type="button" onClick={() => scrollToSection(item.id)} className="transition-colors hover:text-white">{item.label}</button>)}
           </nav>
-          <Link href="/login" className="rounded-xl border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10">Войти</Link>
+          <Link href="/login" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10 md:px-5">Войти</Link>
+          <button type="button" onClick={() => setMobileMenuOpen((open) => !open)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white md:hidden" aria-label={mobileMenuOpen ? "Закрыть меню" : "Открыть меню"} aria-expanded={mobileMenuOpen}>
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </button>
         </div>
+        <AnimatePresence>
+          {mobileMenuOpen ? <motion.nav initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute left-4 right-4 top-[calc(100%+8px)] rounded-2xl border border-white/10 bg-[#13161C]/98 p-2 shadow-2xl backdrop-blur-xl md:hidden" aria-label="Мобильная навигация">
+            {NAV_ITEMS.map((item) => <button key={item.id} type="button" onClick={() => scrollToSection(item.id)} className="flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-300 transition-colors hover:bg-white/5 hover:text-white">{item.label}</button>)}
+          </motion.nav> : null}
+        </AnimatePresence>
       </header>
       <main className="relative z-10 mx-auto grid min-h-[calc(100svh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-5 py-3 lg:grid-cols-12 lg:gap-6">
         <div className="col-span-1 flex flex-col justify-center space-y-4 lg:col-span-7">
@@ -73,9 +96,9 @@ export default function HeroSection() {
           </motion.div></AnimatePresence>
         </div>
       </main>
-      <section id="features" className="relative z-10 mx-auto max-w-7xl [scroll-margin-top:96px] border-t border-white/5 py-6"><div className="grid gap-4 md:grid-cols-3"><div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><Sparkles className="mb-3 h-6 w-6 text-[#00FF87]" /><h2 className="text-lg font-bold text-white">Собираем предложения</h2><p className="mt-2 text-sm leading-relaxed text-slate-400">Сейчас это демо-каталог с эмуляцией Ozon, Wildberries и Яндекс Маркета.</p></div><div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><ShieldCheck className="mb-3 h-6 w-6 text-[#00FF87]" /><h2 className="text-lg font-bold text-white">Проверяем качество</h2><p className="mt-2 text-sm leading-relaxed text-slate-400">Показываем рейтинг, отзывы, доставку и аргументы, чтобы сравнение было понятным.</p></div><div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><Truck className="mb-3 h-6 w-6 text-[#00FF87]" /><h2 className="text-lg font-bold text-white">Показываем лучшее</h2><p className="mt-2 text-sm leading-relaxed text-slate-400">Переходи в карточку товара, сравнивай предложения и открывай нужное предложение.</p></div></div></section>
-      <section id="pricing" className="relative z-10 mx-auto max-w-7xl [scroll-margin-top:96px] border-t border-white/5 py-6"><div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center md:p-8"><span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">Тарифы</span><h2 className="mt-2 text-3xl font-extrabold text-white">На этапе демо — бесплатно</h2><p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">Сначала доводим пользовательский сценарий и механику до рабочего состояния. Монетизацию подключим после проверки продукта.</p></div></section>
-      <section id="about" className="relative z-10 mx-auto max-w-7xl [scroll-margin-top:96px] border-t border-white/5 py-6"><div className="max-w-2xl"><span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">О нас</span><h2 className="mt-2 text-3xl font-extrabold text-white">wobuy. — сервис осознанного выбора</h2><p className="mt-3 text-sm leading-relaxed text-slate-400">Мы строим интерфейс, в котором сложный анализ покупок превращается в понятную рекомендацию. Сейчас продукт работает в демо-режиме на подготовленных данных.</p></div></section>
+      <section id="features" className="relative z-10 mx-auto max-w-7xl scroll-mt-20 border-t border-white/5 py-6"><div className="grid gap-4 md:grid-cols-3"><div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><Sparkles className="mb-3 h-6 w-6 text-[#00FF87]" /><h2 className="text-lg font-bold text-white">Собираем предложения</h2><p className="mt-2 text-sm leading-relaxed text-slate-400">Сейчас это демо-каталог с эмуляцией Ozon, Wildberries и Яндекс Маркета.</p></div><div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><ShieldCheck className="mb-3 h-6 w-6 text-[#00FF87]" /><h2 className="text-lg font-bold text-white">Проверяем качество</h2><p className="mt-2 text-sm leading-relaxed text-slate-400">Показываем рейтинг, отзывы, доставку и аргументы, чтобы сравнение было понятным.</p></div><div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><Truck className="mb-3 h-6 w-6 text-[#00FF87]" /><h2 className="text-lg font-bold text-white">Показываем лучшее</h2><p className="mt-2 text-sm leading-relaxed text-slate-400">Переходи в карточку товара, сравнивай предложения и открывай нужное предложение.</p></div></div></section>
+      <section id="pricing" className="relative z-10 mx-auto max-w-7xl scroll-mt-20 border-t border-white/5 py-6"><div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center md:p-8"><span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">Тарифы</span><h2 className="mt-2 text-3xl font-extrabold text-white">На этапе демо — бесплатно</h2><p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">Сначала доводим пользовательский сценарий и механику до рабочего состояния. Монетизацию подключим после проверки продукта.</p></div></section>
+      <section id="about" className="relative z-10 mx-auto max-w-7xl scroll-mt-20 border-t border-white/5 py-6"><div className="max-w-2xl"><span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">О нас</span><h2 className="mt-2 text-3xl font-extrabold text-white">wobuy. — сервис осознанного выбора</h2><p className="mt-3 text-sm leading-relaxed text-slate-400">Мы строим интерфейс, в котором сложный анализ покупок превращается в понятную рекомендацию. Сейчас продукт работает в демо-режиме на подготовленных данных.</p></div></section>
       <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-2 border-t border-white/5 pb-1 pt-4 text-xs text-slate-500 md:flex-row md:items-center md:justify-between"><div>© 2026 wobuy. — Умный ИИ-помощник для покупок.</div><div className="flex flex-wrap items-center gap-4"><Link href="/privacy" className="hover:text-white">Конфиденциальность</Link><Link href="/terms" className="hover:text-white">Условия</Link><Link href="/register" className="hover:text-white">Создать аккаунт</Link></div></footer>
     </section>
   );
