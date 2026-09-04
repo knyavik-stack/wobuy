@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Search, ShieldCheck, Sparkles, ExternalLink, Truck, Bookmark, BarChart3 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";
 
