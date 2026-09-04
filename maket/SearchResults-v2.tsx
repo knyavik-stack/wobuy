@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, Bookmark, ExternalLink, List, Search, Sparkles, Truck, Grid3X3, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Bookmark, ExternalLink, List, Search, Sparkles, Truck, Grid3X3, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";
 
