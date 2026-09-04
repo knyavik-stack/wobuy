@@ -32,7 +32,14 @@
 - Middleware по-прежнему защищает `/dashboard`, а auth-страницы остаются публичными.
 - Добавлены русские состояния загрузки, успеха и ошибок для logout/recovery.
 
+## CI/CD
+- Добавлен `.github/workflows/ci.yml` для автоматической проверки push и pull request в `main`.
+- CI выполняет `npm install`, `npm run typecheck`, `npm run lint`, `npm run format:check` и `npm run build` на Node.js 22.
+- Используется `npm install`, поскольку `package-lock.json` в репозитории отсутствует; `npm ci` и npm cache не используются.
+- Первый запуск пустого workflow завершился ошибкой; после этого workflow заменён на полноценную CI-конфигурацию.
+- Commit с рабочей конфигурацией CI: `1d664b6b834760ace96a804e6bc65750643e963a`.
+
 ## Проверка
 - Проект не запускается локально; целевой способ проверки — Vercel Preview.
-- Реальные `npm install`, `build`, `lint` и `typecheck` через удалённый GitHub-коннектор не выполнялись; CI-сборка не заявляется как подтверждённая.
+- После добавления CI реальный результат нового GitHub Actions run должен быть проверен отдельно; до завершения run нельзя считать сборку подтверждённой.
 - Для email confirmation и password recovery необходимо настроить Supabase Auth URL Configuration и Email provider.
