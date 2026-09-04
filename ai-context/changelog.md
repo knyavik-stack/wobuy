@@ -10,10 +10,11 @@
 - Секреты, токены и API-ключи не добавлялись.
 
 ## Supabase Auth
-- Подключены официальные `@supabase/ssr` и `@supabase/supabase-js`.
+- Подключены официальные `@supabase/ssr` 0.12.5 и `@supabase/supabase-js` 2.115.0.
 - Добавлены browser/server-клиенты Supabase для Next.js App Router.
 - Добавлен `src/middleware.ts` для безопасного обновления cookie-сессии через `auth.getClaims()`.
 - Подготовлены маршруты `/login` и `/register`.
 - Добавлен `.env.example` только с `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - Добавлена базовая документация `supabase/README.md` по RLS и будущим миграциям.
+- Минимальная версия Node.js обновлена до `22.0.0`, поскольку актуальный Supabase SDK больше не поддерживает Node.js 20.
 - Не добавлялись Service Role Key, токены или другие секреты.
