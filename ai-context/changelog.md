@@ -41,10 +41,13 @@
 - CI выполняет `npm install`, `npm run typecheck`, `npm run lint`, `npm run format:check` и `npm run build` на Node.js 22.
 - Используется `npm install`, поскольку `package-lock.json` в репозитории отсутствует; `npm ci` и npm cache не используются.
 - Первый запуск пустого workflow завершился ошибкой; после этого workflow заменён на полноценную CI-конфигурацию.
-- Commit с рабочей конфигурацией CI: `1d664b6b834760ace96a804e6bc65750643e963a`.
+- Исправлена конфигурация ESLint 9 для Next.js и TypeScript.
+- Исправлен `postcss.config.mjs` под текущую конфигурацию Tailwind.
+- Исправлены форматирование и структура 26 файлов, выявленных `prettier --check`.
+- Одноразовый workflow автоматического форматирования удалён после успешного применения изменений.
 
 ## Проверка
 
 - Проект не запускается локально; целевой способ проверки — Vercel Preview.
-- После добавления CI реальный результат нового GitHub Actions run должен быть проверен отдельно; до завершения run нельзя считать сборку подтверждённой.
+- После форматирования требуется финальный полный GitHub Actions CI-запуск на актуальном коммите.
 - Для email confirmation и password recovery необходимо настроить Supabase Auth URL Configuration и Email provider.
