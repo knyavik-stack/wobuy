@@ -14,10 +14,10 @@ const eslintConfig = [
       ...nextPlugin.configs["core-web-vitals"].rules,
     },
   },
-  {
-    files: ["**/*.{ts,tsx,mts,cts}"],
-    ...tseslint.configs.recommended,
-  },
+  ...tseslint.configs.recommended.map((config) => ({
+    ...config,
+    files: config.files ?? ["**/*.{ts,tsx,mts,cts}"],
+  })),
 ];
 
 export default eslintConfig;
