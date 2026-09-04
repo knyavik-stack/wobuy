@@ -3,6 +3,8 @@ import { Search, ShieldCheck, Sparkles, ExternalLink, Truck, Bookmark, BarChart3
 import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";
 
+/* eslint-disable @next/next/no-img-element */
+
 function formatPrice(price: number | null, currency: string) { if (price === null) return "Цена не указана"; return new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(price); }
 
 export default async function SearchResults({ query, products, categories, category, sort }: { query: string; products: SearchProduct[]; categories: string[]; category: string; sort: string }) {
