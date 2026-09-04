@@ -46,7 +46,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <div className="flex min-h-[360px] items-center justify-center bg-[#0A0C11]">
             {product.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.image_url} alt={product.canonical_name} className="h-full w-full object-cover" />
+              <img
+                src={product.image_url}
+                alt={product.canonical_name}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span className="text-slate-600">Нет изображения</span>
             )}
@@ -82,14 +86,18 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {offers.map((offer) => (
-              <article key={offer.id} className="rounded-2xl border border-white/10 bg-[#13161C] p-5">
+              <article
+                key={offer.id}
+                className="rounded-2xl border border-white/10 bg-[#13161C] p-5"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-bold text-white">
                     {offer.marketplace}
                   </span>
                   {offer.rating != null ? (
                     <span className="flex items-center gap-1 text-xs font-bold text-slate-300">
-                      <Star className="h-3.5 w-3.5 fill-current" /> {Number(offer.rating).toFixed(1)}
+                      <Star className="h-3.5 w-3.5 fill-current" />{" "}
+                      {Number(offer.rating).toFixed(1)}
                     </span>
                   ) : null}
                 </div>
@@ -101,7 +109,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   <Truck className="h-3.5 w-3.5" /> {offer.delivery_text || "Уточняется"}
                 </div>
                 {offer.review_count != null ? (
-                  <div className="mt-1 text-xs text-slate-500">{offer.review_count.toLocaleString("ru-RU")} отзывов</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {offer.review_count.toLocaleString("ru-RU")} отзывов
+                  </div>
                 ) : null}
                 <a
                   href={offer.url}

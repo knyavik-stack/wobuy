@@ -35,7 +35,9 @@ export default function SearchResults({
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <span>Запрос:</span>
-            <span className="rounded bg-white/5 px-2 py-1 font-medium text-slate-200">«{query || "все товары"}»</span>
+            <span className="rounded bg-white/5 px-2 py-1 font-medium text-slate-200">
+              «{query || "все товары"}»
+            </span>
           </div>
         </div>
         <form action="/search" className="relative w-full md:w-96">
@@ -51,49 +53,108 @@ export default function SearchResults({
 
       <main className="relative z-10 mx-auto max-w-7xl">
         <div className="mb-4 rounded-xl border border-amber-400/10 bg-amber-400/5 px-4 py-3 text-xs leading-relaxed text-slate-400">
-          Демо-режим: товары и предложения сгенерированы для отладки интерфейса. После подключения API маркетплейсов этот слой будет заменён реальными данными без изменения пользовательского сценария.
+          Демо-режим: товары и предложения сгенерированы для отладки интерфейса. После подключения
+          API маркетплейсов этот слой будет заменён реальными данными без изменения
+          пользовательского сценария.
         </div>
         <div className="mb-4 flex items-center justify-between px-1 text-xs text-slate-400">
-          <span>Найдено товаров: <strong className="text-white">{products.length}</strong></span>
-          <span className="flex items-center gap-1.5 text-slate-500"><ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" /> Проверка каталога</span>
+          <span>
+            Найдено товаров: <strong className="text-white">{products.length}</strong>
+          </span>
+          <span className="flex items-center gap-1.5 text-slate-500">
+            <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" /> Проверка каталога
+          </span>
         </div>
 
         {products.length === 0 ? (
           <section className="rounded-2xl border border-white/10 bg-[#13161C]/50 p-8 text-center backdrop-blur-xl md:p-14">
-            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-[#00FF87]/20 bg-[#00FF87]/10"><Sparkles className="h-5 w-5 text-[#00FF87]" /></div>
-            <h1 className="text-xl font-extrabold tracking-tight text-white md:text-2xl">Ничего не найдено</h1>
-            <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-400">Попробуй изменить запрос. Демо-каталог содержит товары из нескольких категорий.</p>
+            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-[#00FF87]/20 bg-[#00FF87]/10">
+              <Sparkles className="h-5 w-5 text-[#00FF87]" />
+            </div>
+            <h1 className="text-xl font-extrabold tracking-tight text-white md:text-2xl">
+              Ничего не найдено
+            </h1>
+            <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
+              Попробуй изменить запрос. Демо-каталог содержит товары из нескольких категорий.
+            </p>
           </section>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => {
-              const offer = [...product.offers].sort((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER))[0];
+              const offer = [...product.offers].sort(
+                (a, b) =>
+                  (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
+              )[0];
               return (
-                <article key={product.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#13161C]/50 backdrop-blur-md transition-colors hover:border-white/20">
+                <article
+                  key={product.id}
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-[#13161C]/50 backdrop-blur-md transition-colors hover:border-white/20"
+                >
                   <Link href={`/product/${product.id}`} className="block">
                     <div className="flex h-48 items-center justify-center bg-[#0A0C11]">
                       {product.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={product.imageUrl} alt={product.title} className="h-full w-full object-cover" />
-                      ) : <Sparkles className="h-8 w-8 text-slate-700" />}
+                        <img
+                          src={product.imageUrl}
+                          alt={product.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Sparkles className="h-8 w-8 text-slate-700" />
+                      )}
                     </div>
                   </Link>
                   <div className="space-y-4 p-5">
                     <Link href={`/product/${product.id}`} className="block">
-                      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">{product.brand}</div>
-                      <h2 className="line-clamp-2 text-base font-bold text-white hover:text-[#00FF87]">{product.title}</h2>
-                      {product.category ? <p className="mt-1 text-xs text-slate-500">{product.category}</p> : null}
+                      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
+                        {product.brand}
+                      </div>
+                      <h2 className="line-clamp-2 text-base font-bold text-white hover:text-[#00FF87]">
+                        {product.title}
+                      </h2>
+                      {product.category ? (
+                        <p className="mt-1 text-xs text-slate-500">{product.category}</p>
+                      ) : null}
                     </Link>
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <div className="text-xl font-extrabold text-white">{formatPrice(offer?.price ?? null, offer?.currency ?? "RUB")}</div>
-                        {offer?.marketplace ? <div className="mt-1 text-[10px] font-semibold text-slate-500">{offer.marketplace}</div> : null}
+                        <div className="text-xl font-extrabold text-white">
+                          {formatPrice(offer?.price ?? null, offer?.currency ?? "RUB")}
+                        </div>
+                        {offer?.marketplace ? (
+                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                            {offer.marketplace}
+                          </div>
+                        ) : null}
                       </div>
-                      {offer?.rating != null ? <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-slate-200">★ {Number(offer.rating).toFixed(1)}</div> : null}
+                      {offer?.rating != null ? (
+                        <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-slate-200">
+                          ★ {Number(offer.rating).toFixed(1)}
+                        </div>
+                      ) : null}
                     </div>
-                    {offer?.deliveryText ? <div className="flex items-center gap-2 text-xs text-slate-500"><Truck className="h-3.5 w-3.5" />{offer.deliveryText}</div> : null}
-                    <Link href={`/product/${product.id}`} className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-extrabold text-white transition-colors hover:bg-white/10">Подробнее</Link>
-                    {offer?.url ? <a href={offer.url} target="_blank" rel="noreferrer" className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00FF87] py-3 text-xs font-extrabold text-black transition-colors hover:bg-[#00E576]">Открыть предложение <ExternalLink className="h-3.5 w-3.5" /></a> : null}
+                    {offer?.deliveryText ? (
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Truck className="h-3.5 w-3.5" />
+                        {offer.deliveryText}
+                      </div>
+                    ) : null}
+                    <Link
+                      href={`/product/${product.id}`}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3 text-xs font-extrabold text-white transition-colors hover:bg-white/10"
+                    >
+                      Подробнее
+                    </Link>
+                    {offer?.url ? (
+                      <a
+                        href={offer.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00FF87] py-3 text-xs font-extrabold text-black transition-colors hover:bg-[#00E576]"
+                      >
+                        Открыть предложение <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    ) : null}
                   </div>
                 </article>
               );
