@@ -1,14 +1,23 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
+  ShieldCheck,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function RegisterPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -19,13 +28,13 @@ export default function RegisterPage() {
     setErrorMessage(null);
 
     if (password !== confirmPassword) {
-      setErrorMessage('Пароли не совпадают');
+      setErrorMessage("Пароли не совпадают");
       setIsLoading(false);
       return;
     }
 
     if (!agreeToTerms) {
-      setErrorMessage('Необходимо согласиться с политикой конфиденциальности');
+      setErrorMessage("Необходимо согласиться с политикой конфиденциальности");
       setIsLoading(false);
       return;
     }
@@ -33,9 +42,11 @@ export default function RegisterPage() {
     try {
       // Имитация задержки авторизации Supabase
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Регистрация успешна:', { name, email });
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Ошибка регистрации нового пользователя');
+      console.log("Регистрация успешна:", { name, email });
+    } catch (err: unknown) {
+      setErrorMessage(
+        (err instanceof Error ? err.message : "") || "Ошибка регистрации нового пользователя",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -43,14 +54,12 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0D0F14] text-slate-100 flex overflow-hidden font-sans selection:bg-[#00FF87] selection:text-black">
-      
       {/* ЛЕВАЯ ЧАСТЬ: Кинематографичный промо-блок */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-[#090B11] border-r border-white/5 flex-col justify-between p-16 overflow-hidden">
-        
         {/* Фоновое свечение в стиле оптической призмы */}
         <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] rounded-full bg-gradient-to-tr from-[#00FF87]/10 to-transparent blur-[150px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[150px] pointer-events-none" />
-        
+
         {/* Шапка логотипа */}
         <div className="relative z-10 flex items-center space-x-2">
           <span className="text-2xl font-bold tracking-tight text-white">
@@ -69,21 +78,26 @@ export default function RegisterPage() {
               Сэкономь до 90% времени<span className="text-[#00FF87]">.</span>
             </h1>
             <p className="text-base text-slate-400 leading-relaxed">
-              Создай бесплатный аккаунт, чтобы сохранять свои любимые товары, настраивать автоматические ИИ-оповещения о скидках и отсекать фейковые отзывы в один клик.
+              Создай бесплатный аккаунт, чтобы сохранять свои любимые товары, настраивать
+              автоматические ИИ-оповещения о скидках и отсекать фейковые отзывы в один клик.
             </p>
           </div>
 
           {/* Интерактивная карточка в стиле "Quiet Luxury" */}
           <div className="bg-[#13161C]/40 border border-white/10 rounded-2xl p-6 backdrop-blur-xl relative overflow-hidden group hover:border-white/15 transition-colors">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00FF87]/10 to-transparent rounded-bl-full pointer-events-none" />
-            
+
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-8 h-8 rounded-lg bg-[#00FF87]/10 border border-[#00FF87]/20 flex items-center justify-center">
                 <ShieldCheck className="w-4.5 h-4.5 text-[#00FF87]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Безопасный старт</h4>
-                <p className="text-[10px] text-slate-500">Защита пользовательских данных на уровне ядра</p>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Безопасный старт
+                </h4>
+                <p className="text-[10px] text-slate-500">
+                  Защита пользовательских данных на уровне ядра
+                </p>
               </div>
             </div>
 
@@ -109,12 +123,10 @@ export default function RegisterPage() {
           <span>© 2026 wobuy.ru</span>
           <span>Zero-Budget AI Platform</span>
         </div>
-
       </div>
 
       {/* ПРАВАЯ ЧАСТЬ: Премиальная форма регистрации */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 md:p-16 relative">
-        
         {/* Световые эффекты для мобильных */}
         <div className="absolute inset-0 bg-[#0D0F14]" />
         <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full bg-gradient-to-bl from-blue-600/5 to-transparent blur-[120px] pointer-events-none lg:hidden" />
@@ -130,7 +142,7 @@ export default function RegisterPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
           className="w-full max-w-[400px] z-10 py-12"
         >
           {/* Заголовок */}
@@ -148,10 +160,9 @@ export default function RegisterPage() {
             <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-[#00FF87]/40 to-transparent" />
 
             <form onSubmit={handleRegister} className="space-y-4">
-              
               <AnimatePresence mode="wait">
                 {errorMessage && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -249,11 +260,14 @@ export default function RegisterPage() {
                   disabled={isLoading}
                   className="mt-1 w-4 h-4 rounded border-white/10 bg-[#0D0F14]/80 text-[#00FF87] focus:ring-[#00FF87]/40 outline-none cursor-pointer"
                 />
-                <label htmlFor="terms" className="text-xs text-slate-400 leading-normal select-none cursor-pointer">
-                  Согласен с обработкой{' '}
+                <label
+                  htmlFor="terms"
+                  className="text-xs text-slate-400 leading-normal select-none cursor-pointer"
+                >
+                  Согласен с обработкой{" "}
                   <a href="/privacy" className="text-[#00FF87] hover:underline font-semibold">
                     персональных данных
-                  </a>{' '}
+                  </a>{" "}
                   и правилами платформы.
                 </label>
               </div>
@@ -281,15 +295,13 @@ export default function RegisterPage() {
 
           {/* Ссылка на авторизацию */}
           <p className="text-center text-xs text-slate-400 mt-6 font-medium">
-            Уже зарегистрирован?{' '}
+            Уже зарегистрирован?{" "}
             <a href="/auth/login" className="text-[#00FF87] hover:underline font-bold">
               Войти в свой кабинет
             </a>
           </p>
-
         </motion.div>
       </div>
-
     </div>
   );
 }

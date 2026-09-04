@@ -1,20 +1,30 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle, ShieldCheck, CheckCircle2, ChevronLeft } from 'lucide-react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
+  ShieldCheck,
+  CheckCircle2,
+  ChevronLeft,
+} from "lucide-react";
 
 export default function ResetPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Имитируем режим сброса. 
+  // Имитируем режим сброса.
   // В реальном Next.js/Supabase мы определяем его по наличию access_token/hash в URL
-  const isResettingMode = typeof window !== 'undefined' && window.location.hash.includes('type=recovery');
+  const isResettingMode =
+    typeof window !== "undefined" && window.location.hash.includes("type=recovery");
 
   const handleResetRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,9 +35,9 @@ export default function ResetPasswordPage() {
       // Имитация отправки ссылки
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setIsSuccess(true);
-      console.log('Ссылка отправлена на:', email);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Ошибка отправки ссылки сброса');
+      console.log("Ссылка отправлена на:", email);
+    } catch (err: unknown) {
+      setErrorMessage((err instanceof Error ? err.message : "") || "Ошибка отправки ссылки сброса");
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +49,7 @@ export default function ResetPasswordPage() {
     setErrorMessage(null);
 
     if (password !== confirmPassword) {
-      setErrorMessage('Пароли не совпадают');
+      setErrorMessage("Пароли не совпадают");
       setIsLoading(false);
       return;
     }
@@ -48,9 +58,9 @@ export default function ResetPasswordPage() {
       // Имитация сброса
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setIsSuccess(true);
-      console.log('Пароль успешно обновлен');
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Ошибка обновления пароля');
+      console.log("Пароль успешно обновлен");
+    } catch (err: unknown) {
+      setErrorMessage((err instanceof Error ? err.message : "") || "Ошибка обновления пароля");
     } finally {
       setIsLoading(false);
     }
@@ -58,14 +68,12 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#0D0F14] text-slate-100 flex overflow-hidden font-sans selection:bg-[#00FF87] selection:text-black">
-      
       {/* ЛЕВАЯ ЧАСТЬ: Кинематографичный промо-блок */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-[#090B11] border-r border-white/5 flex-col justify-between p-16 overflow-hidden">
-        
         {/* Фоновое свечение в стиле оптической призмы */}
         <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] rounded-full bg-gradient-to-tr from-[#00FF87]/10 to-transparent blur-[150px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[150px] pointer-events-none" />
-        
+
         {/* Шапка логотипа */}
         <div className="relative z-10 flex items-center space-x-2">
           <span className="text-2xl font-bold tracking-tight text-white">
@@ -84,21 +92,26 @@ export default function ResetPasswordPage() {
               твоего доступа<span className="text-[#00FF87]">.</span>
             </h1>
             <p className="text-base text-slate-400 leading-relaxed">
-              Мы используем беспарольные сессии и безопасные ссылки-токены. Твой личный кабинет надежно изолирован и защищен сквозным шифрованием.
+              Мы используем беспарольные сессии и безопасные ссылки-токены. Твой личный кабинет
+              надежно изолирован и защищен сквозным шифрованием.
             </p>
           </div>
 
           {/* Интерактивная карточка в стиле "Quiet Luxury" */}
           <div className="bg-[#13161C]/40 border border-white/10 rounded-2xl p-6 backdrop-blur-xl relative overflow-hidden group hover:border-white/15 transition-colors">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00FF87]/10 to-transparent rounded-bl-full pointer-events-none" />
-            
+
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-8 h-8 rounded-lg bg-[#00FF87]/10 border border-[#00FF87]/20 flex items-center justify-center">
                 <ShieldCheck className="w-4.5 h-4.5 text-[#00FF87]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Стандарты защиты</h4>
-                <p className="text-[10px] text-slate-500">Шифрование сессий на уровне Supabase Auth</p>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Стандарты защиты
+                </h4>
+                <p className="text-[10px] text-slate-500">
+                  Шифрование сессий на уровне Supabase Auth
+                </p>
               </div>
             </div>
 
@@ -124,12 +137,10 @@ export default function ResetPasswordPage() {
           <span>© 2026 wobuy.ru</span>
           <span>Security & Isolation Standard</span>
         </div>
-
       </div>
 
       {/* ПРАВАЯ ЧАСТЬ: Форма сброса пароля */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 md:p-16 relative">
-        
         {/* Световые эффекты для мобильных */}
         <div className="absolute inset-0 bg-[#0D0F14]" />
         <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full bg-gradient-to-bl from-blue-600/5 to-transparent blur-[120px] pointer-events-none lg:hidden" />
@@ -145,11 +156,14 @@ export default function ResetPasswordPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
           className="w-full max-w-[400px] z-10"
         >
           {/* Ссылка Назад */}
-          <a href="/auth/login" className="inline-flex items-center space-x-1 text-xs font-semibold text-slate-400 hover:text-white mb-6 transition-colors">
+          <a
+            href="/auth/login"
+            className="inline-flex items-center space-x-1 text-xs font-semibold text-slate-400 hover:text-white mb-6 transition-colors"
+          >
             <ChevronLeft className="w-3.5 h-3.5" />
             <span>Назад на страницу входа</span>
           </a>
@@ -157,12 +171,12 @@ export default function ResetPasswordPage() {
           {/* Заголовок */}
           <div className="mb-6">
             <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-              {isResettingMode ? 'Новый пароль' : 'Восстановление'}
+              {isResettingMode ? "Новый пароль" : "Восстановление"}
             </h2>
             <p className="text-xs md:text-sm text-slate-400 mt-1.5 leading-relaxed">
-              {isResettingMode 
-                ? 'Придумай надежный новый пароль для своего личного кабинета' 
-                : 'Введи email, и мы отправим ссылку для сброса старого пароля'}
+              {isResettingMode
+                ? "Придумай надежный новый пароль для своего личного кабинета"
+                : "Введи email, и мы отправим ссылку для сброса старого пароля"}
             </p>
           </div>
 
@@ -171,7 +185,7 @@ export default function ResetPasswordPage() {
             <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-[#00FF87]/40 to-transparent" />
 
             {isSuccess ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center py-6 space-y-4"
@@ -181,11 +195,11 @@ export default function ResetPasswordPage() {
                 </div>
                 <h3 className="text-base font-bold text-white">Запрос успешно отправлен!</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  {isResettingMode 
-                    ? 'Ваш пароль успешно обновлен. Теперь вы можете войти в систему с новыми данными.'
+                  {isResettingMode
+                    ? "Ваш пароль успешно обновлен. Теперь вы можете войти в систему с новыми данными."
                     : `Мы отправили письмо с дальнейшими инструкциями на адрес: \n\n ${email}. \n\n Проверьте папку «Спам», если письмо не пришло.`}
                 </p>
-                
+
                 {isResettingMode && (
                   <a
                     href="/auth/login"
@@ -197,11 +211,13 @@ export default function ResetPasswordPage() {
                 )}
               </motion.div>
             ) : (
-              <form onSubmit={isResettingMode ? handleNewPasswordSubmit : handleResetRequest} className="space-y-4">
-                
+              <form
+                onSubmit={isResettingMode ? handleNewPasswordSubmit : handleResetRequest}
+                className="space-y-4"
+              >
                 <AnimatePresence mode="wait">
                   {errorMessage && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
@@ -286,7 +302,7 @@ export default function ResetPasswordPage() {
                     </>
                   ) : (
                     <>
-                      <span>{isResettingMode ? 'Обновить пароль' : 'Отправить ссылку'}</span>
+                      <span>{isResettingMode ? "Обновить пароль" : "Отправить ссылку"}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -294,10 +310,8 @@ export default function ResetPasswordPage() {
               </form>
             )}
           </div>
-
         </motion.div>
       </div>
-
     </div>
   );
 }
