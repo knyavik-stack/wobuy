@@ -83,7 +83,8 @@ export default function SearchResults({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => {
               const offer = [...product.offers].sort(
-                (a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
+                (a, b) =>
+                  (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
               )[0];
 
               return (
@@ -108,7 +109,9 @@ export default function SearchResults({
                       <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
                         {product.brand}
                       </div>
-                      <h2 className="line-clamp-2 text-base font-bold text-white">{product.title}</h2>
+                      <h2 className="line-clamp-2 text-base font-bold text-white">
+                        {product.title}
+                      </h2>
                       {product.category ? (
                         <p className="mt-1 text-xs text-slate-500">{product.category}</p>
                       ) : null}
