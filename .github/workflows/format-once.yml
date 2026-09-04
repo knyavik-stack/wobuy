@@ -1,0 +1,26 @@
+name: Одноразовое форматирование
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Получение кода
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Установка зависимостей
+        run: npm install
+      - name: Форматирование
+        run: npx prettier --write maket/ResetPasswordPage-v2.tsx
+      - name: Сохранение изменений
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add maket/ResetPasswordPage-v2.tsx
+          git diff --cached --quiet || git commit -m "fix: отформатировать reset password v2"
+          git push
