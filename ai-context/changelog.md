@@ -8,14 +8,17 @@
 - Добавлены SSR-клиенты Supabase и middleware-защита `/dashboard`.
 - Секреты и Service Role Key в репозиторий не добавлялись.
 - Настроен GitHub Actions CI: install, typecheck, lint, format:check и production build.
-- Исправлены конфигурации ESLint/PostCSS и форматирование 26 файлов.
-- Финальный CI run #28 прошёл полностью успешно; Vercel deployment актуального коммита также успешен.
-- Добавлен `framer-motion`.
-- Дизайн `maket/HeroSection.tsx` интегрирован в `src/components/landing/hero-section.tsx`.
-- Главная страница `/` переведена на новый landing-дизайн; кнопка входа связана с `/login`.
+- CI run #60 после auth V2 — полностью успешен.
+- Node.js для проекта закреплён на `22.x`, чтобы убрать автоматический major upgrade на Vercel.
+- Временные workflow автоматизации исправлений удалены.
+- `/forgot-password` и `/reset-password` переведены на V2-дизайн и реальный Supabase recovery flow.
+- Удалены старые макетные auth-страницы первой версии.
+- Добавлены совместимые auth redirect-маршруты для устранения 404.
+- Landing-дизайн интегрирован в приложение.
 
 ## Следующий этап
 
-- Проверить полный auth flow на Vercel Preview.
+- Проверить последний Vercel Preview после auth V2.
 - Реализовать поиск и страницу результатов по `maket/SearchResults.tsx`.
-- Подготовить архитектуру сбора данных и AI-агентов.
+- Подготовить архитектуру схемы данных, сбора и нормализации товаров.
+- После нормализованного слоя данных подключить AI-агентов.
