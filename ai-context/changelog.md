@@ -8,3 +8,12 @@
 - В `package.json` задано имя `wobuy`.
 - Проверено наличие полного набора документов `/ai-context/`.
 - Секреты, токены и API-ключи не добавлялись.
+
+## Supabase Auth
+- Подключены официальные `@supabase/ssr` и `@supabase/supabase-js`.
+- Добавлены browser/server-клиенты Supabase для Next.js App Router.
+- Добавлен `src/middleware.ts` для безопасного обновления cookie-сессии через `auth.getClaims()`.
+- Подготовлены маршруты `/login` и `/register`.
+- Добавлен `.env.example` только с `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- Добавлена базовая документация `supabase/README.md` по RLS и будущим миграциям.
+- Не добавлялись Service Role Key, токены или другие секреты.
