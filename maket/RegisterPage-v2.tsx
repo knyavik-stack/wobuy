@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Mail,
-  Lock,
-  User,
-  ArrowRight,
-  Loader2,
-  AlertCircle,
-  ShieldCheck,
-  CheckCircle2,
-} from "lucide-react";
+import Link from "next/link";
+import { useState, type FormEvent } from "react";
+import { AlertCircle, ArrowRight, CheckCircle2, Loader2, Lock, Mail, ShieldCheck, User } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+function translateError(message: string) {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("already registered") || normalized.includes("already been registered")) return "Этот email уже зарегистрирован. Войди в аккаунт или восстанови пароль.";
+  if (normalized.includes("password") && normalized.includes("at least")) return "Пароль должен содержать не менее 6 символов.";
+  if (normalized.includes("rate limit")) return "Слишком много попыток. Попробуй позже.";
+  if (normalized.includes("invalid email")) return "Проверь формат электронной почты.";
+  return "Не удалось создать аккаунт. Проверь данные и попробуй ещё раз.";
+}
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -20,288 +21,74 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+    if (password !== confirmPassword) return setErrorMessage("Пароли не совпадают.");
+    if (password.length < 6) return setErrorMessage("Пароль должен содержать не менее 6 символов.");
+    if (!agreeToTerms) return setErrorMessage("Необходимо согласиться с политикой конфиденциальности и правилами платформы.");
+
     setIsLoading(true);
-    setErrorMessage(null);
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { display_name: name.trim() } },
+    });
 
-    if (password !== confirmPassword) {
-      setErrorMessage("Пароли не совпадают");
+    if (error) {
+      setErrorMessage(translateError(error.message));
       setIsLoading(false);
       return;
     }
 
-    if (!agreeToTerms) {
-      setErrorMessage("Необходимо согласиться с политикой конфиденциальности");
-      setIsLoading(false);
+    if (data.session) {
+      window.location.assign("/dashboard");
       return;
     }
 
-    try {
-      // Имитация задержки авторизации Supabase
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log("Регистрация успешна:", { name, email });
-    } catch (err: unknown) {
-      setErrorMessage(
-        (err instanceof Error ? err.message : "") || "Ошибка регистрации нового пользователя",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setSuccess(true);
+    setIsLoading(false);
+  }
 
   return (
-    <div className="min-h-screen w-full bg-[#0D0F14] text-slate-100 flex overflow-hidden font-sans selection:bg-[#00FF87] selection:text-black">
-      {/* ЛЕВАЯ ЧАСТЬ: Кинематографичный промо-блок */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#090B11] border-r border-white/5 flex-col justify-between p-16 overflow-hidden">
-        {/* Фоновое свечение в стиле оптической призмы */}
-        <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] rounded-full bg-gradient-to-tr from-[#00FF87]/10 to-transparent blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[150px] pointer-events-none" />
-
-        {/* Шапка логотипа */}
-        <div className="relative z-10 flex items-center space-x-2">
-          <span className="text-2xl font-bold tracking-tight text-white">
-            wobuy<span className="text-[#00FF87] animate-pulse">.</span>
-          </span>
-          <span className="text-[10px] bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-            ИИ-Ассистент
-          </span>
+    <main className="flex min-h-screen w-full bg-[#0D0F14] text-slate-100 selection:bg-[#00FF87] selection:text-black">
+      <section className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-r border-white/5 bg-[#090B11] p-16 lg:flex">
+        <div className="pointer-events-none absolute left-[-10%] top-[-20%] h-[80%] w-[80%] rounded-full bg-gradient-to-tr from-[#00FF87]/10 to-transparent blur-[150px]" />
+        <Link href="/" className="relative z-10 text-2xl font-bold tracking-tight text-white">wobuy<span className="text-[#00FF87]">.</span></Link>
+        <div className="relative z-10 max-w-lg space-y-8">
+          <div><h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white">Покупай с умом.<br />Экономь время<span className="text-[#00FF87]">.</span></h1><p className="mt-4 text-base leading-relaxed text-slate-400">Сохраняй товары, историю просмотров и результаты поиска. Демо-каталог уже готов для проверки сценария.</p></div>
+          <div className="rounded-2xl border border-white/10 bg-[#13161C]/50 p-6 backdrop-blur-xl"><div className="mb-4 flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-[#00FF87]" /><span className="text-xs font-bold uppercase tracking-wider text-white">Безопасный старт</span></div><div className="space-y-3 text-xs text-slate-300"><div className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-[#00FF87]" />Пароли хранит Supabase Auth</div><div className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-[#00FF87]" />Данные пользователя защищены RLS</div><div className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-[#00FF87]" />Подтверждение email поддерживается</div></div></div>
         </div>
+        <div className="relative z-10 text-xs text-slate-500">© 2026 wobuy. · Бесплатный демо-режим</div>
+      </section>
 
-        {/* Промо-виджет */}
-        <div className="relative z-10 my-auto max-w-lg space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-4xl font-extrabold text-white tracking-tight leading-tight">
-              Покупай с умом. <br />
-              Сэкономь до 90% времени<span className="text-[#00FF87]">.</span>
-            </h1>
-            <p className="text-base text-slate-400 leading-relaxed">
-              Создай бесплатный аккаунт, чтобы сохранять свои любимые товары, настраивать
-              автоматические ИИ-оповещения о скидках и отсекать фейковые отзывы в один клик.
-            </p>
-          </div>
-
-          {/* Интерактивная карточка в стиле "Quiet Luxury" */}
-          <div className="bg-[#13161C]/40 border border-white/10 rounded-2xl p-6 backdrop-blur-xl relative overflow-hidden group hover:border-white/15 transition-colors">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#00FF87]/10 to-transparent rounded-bl-full pointer-events-none" />
-
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-[#00FF87]/10 border border-[#00FF87]/20 flex items-center justify-center">
-                <ShieldCheck className="w-4.5 h-4.5 text-[#00FF87]" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                  Безопасный старт
-                </h4>
-                <p className="text-[10px] text-slate-500">
-                  Защита пользовательских данных на уровне ядра
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-slate-300">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#00FF87]" />
-                <span>Изолированное хранение паролей (Supabase Auth)</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#00FF87]" />
-                <span>Включенные политики безопасности Row Level Security</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#00FF87]" />
-                <span>0 рублей за обслуживание и скрытые платежи</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Подвал */}
-        <div className="relative z-10 flex justify-between text-xs text-slate-500">
-          <span>© 2026 wobuy.ru</span>
-          <span>Zero-Budget AI Platform</span>
-        </div>
-      </div>
-
-      {/* ПРАВАЯ ЧАСТЬ: Премиальная форма регистрации */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 md:p-16 relative">
-        {/* Световые эффекты для мобильных */}
+      <section className="relative flex w-full items-center justify-center overflow-hidden p-6 md:p-16 lg:w-1/2">
         <div className="absolute inset-0 bg-[#0D0F14]" />
-        <div className="absolute top-[-10%] right-[-10%] w-[70%] h-[70%] rounded-full bg-gradient-to-bl from-blue-600/5 to-transparent blur-[120px] pointer-events-none lg:hidden" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-gradient-to-tr from-[#00FF87]/5 to-transparent blur-[120px] pointer-events-none lg:hidden" />
-
-        {/* Адаптивный верх для мобильных */}
-        <div className="absolute top-8 left-8 z-10 lg:hidden">
-          <span className="text-2xl font-bold tracking-tight text-white">
-            wobuy<span className="text-[#00FF87]">.</span>
-          </span>
+        <div className="relative z-10 w-full max-w-[420px] py-12">
+          <Link href="/" className="mb-8 inline-flex text-2xl font-bold tracking-tight text-white lg:hidden">wobuy<span className="text-[#00FF87]">.</span></Link>
+          <div className="mb-6"><h2 className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">Создать аккаунт</h2><p className="mt-2 text-sm leading-relaxed text-slate-400">Зарегистрируйся, чтобы начать умный шопинг без накруток.</p></div>
+          <div className="rounded-2xl border border-white/10 bg-[#13161C]/60 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+            {success ? (
+              <div className="space-y-4 py-8 text-center"><CheckCircle2 className="mx-auto h-12 w-12 text-[#00FF87]" /><h3 className="text-lg font-bold text-white">Проверь email</h3><p className="text-sm leading-relaxed text-slate-400">Мы отправили письмо для подтверждения адреса. После подтверждения войди в личный кабинет.</p><Link href="/login" className="flex items-center justify-center gap-2 rounded-xl bg-[#00FF87] py-3 text-sm font-extrabold text-black hover:bg-[#00E576]">Перейти ко входу <ArrowRight className="h-4 w-4" /></Link></div>
+            ) : (
+              <form onSubmit={handleRegister} className="space-y-4">
+                {errorMessage ? <div role="alert" className="flex gap-2.5 rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-xs font-semibold text-red-400"><AlertCircle className="h-4 w-4 shrink-0" /><span>{errorMessage}</span></div> : null}
+                <label className="block space-y-2"><span className="text-xs font-bold uppercase tracking-wider text-slate-400">Имя</span><div className="relative"><input required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" disabled={isLoading} placeholder="Александр" className="w-full rounded-xl border border-white/10 bg-[#0D0F14]/70 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#00FF87]/50 disabled:opacity-50" /><User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" /></div></label>
+                <label className="block space-y-2"><span className="text-xs font-bold uppercase tracking-wider text-slate-400">Электронная почта</span><div className="relative"><input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" disabled={isLoading} placeholder="name@example.com" className="w-full rounded-xl border border-white/10 bg-[#0D0F14]/70 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#00FF87]/50 disabled:opacity-50" /><Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" /></div></label>
+                <label className="block space-y-2"><span className="text-xs font-bold uppercase tracking-wider text-slate-400">Пароль</span><div className="relative"><input required minLength={6} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" disabled={isLoading} placeholder="••••••••" className="w-full rounded-xl border border-white/10 bg-[#0D0F14]/70 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#00FF87]/50 disabled:opacity-50" /><Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" /></div></label>
+                <label className="block space-y-2"><span className="text-xs font-bold uppercase tracking-wider text-slate-400">Подтверждение пароля</span><div className="relative"><input required minLength={6} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" disabled={isLoading} placeholder="••••••••" className="w-full rounded-xl border border-white/10 bg-[#0D0F14]/70 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#00FF87]/50 disabled:opacity-50" /><Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" /></div></label>
+                <label className="flex items-start gap-2.5 pt-2 text-xs leading-relaxed text-slate-400"><input type="checkbox" checked={agreeToTerms} onChange={(e) => setAgreeToTerms(e.target.checked)} disabled={isLoading} className="mt-0.5 h-4 w-4" /> <span>Согласен с <Link href="/privacy" className="font-semibold text-[#00FF87] hover:underline">политикой конфиденциальности</Link> и правилами платформы.</span></label>
+                <button type="submit" disabled={isLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00FF87] py-3.5 text-sm font-extrabold text-black hover:bg-[#00E576] disabled:cursor-not-allowed disabled:opacity-50">{isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Создание...</> : <>Начать бесплатно <ArrowRight className="h-4 w-4" /></>}</button>
+              </form>
+            )}
+          </div>
+          {!success ? <p className="mt-6 text-center text-xs font-medium text-slate-400">Уже зарегистрирован? <Link href="/login" className="font-bold text-[#00FF87] hover:underline">Войти в кабинет</Link></p> : null}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="w-full max-w-[400px] z-10 py-12"
-        >
-          {/* Заголовок */}
-          <div className="mb-6">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-              Создать аккаунт
-            </h2>
-            <p className="text-xs md:text-sm text-slate-400 mt-1.5 leading-relaxed">
-              Зарегистрируйся, чтобы начать умный шопинг без накруток
-            </p>
-          </div>
-
-          {/* Карта регистрации (Glassmorphism 2.0) */}
-          <div className="bg-[#13161C]/50 border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-xl shadow-2xl relative">
-            <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-[#00FF87]/40 to-transparent" />
-
-            <form onSubmit={handleRegister} className="space-y-4">
-              <AnimatePresence mode="wait">
-                {errorMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex items-start space-x-2.5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold"
-                  >
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>{errorMessage}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Имя */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                  Имя
-                </label>
-                <div className="relative group">
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Александр"
-                    disabled={isLoading}
-                    className="w-full bg-[#0D0F14]/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-600 outline-none focus:border-[#00FF87]/50 focus:ring-1 focus:ring-[#00FF87]/20 transition-all disabled:opacity-50"
-                  />
-                  <User className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-slate-500 group-focus-within:text-[#00FF87] transition-colors" />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                  Электронная почта
-                </label>
-                <div className="relative group">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    disabled={isLoading}
-                    className="w-full bg-[#0D0F14]/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-600 outline-none focus:border-[#00FF87]/50 focus:ring-1 focus:ring-[#00FF87]/20 transition-all disabled:opacity-50"
-                  />
-                  <Mail className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-slate-500 group-focus-within:text-[#00FF87] transition-colors" />
-                </div>
-              </div>
-
-              {/* Пароль */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                  Пароль
-                </label>
-                <div className="relative group">
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    disabled={isLoading}
-                    className="w-full bg-[#0D0F14]/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-600 outline-none focus:border-[#00FF87]/50 focus:ring-1 focus:ring-[#00FF87]/20 transition-all disabled:opacity-50"
-                  />
-                  <Lock className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-slate-500 group-focus-within:text-[#00FF87] transition-colors" />
-                </div>
-              </div>
-
-              {/* Подтверждение пароля */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                  Подтверждение пароля
-                </label>
-                <div className="relative group">
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    disabled={isLoading}
-                    className="w-full bg-[#0D0F14]/70 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm text-white placeholder-slate-600 outline-none focus:border-[#00FF87]/50 focus:ring-1 focus:ring-[#00FF87]/20 transition-all disabled:opacity-50"
-                  />
-                  <Lock className="absolute left-3.5 top-3.5 w-4.5 h-4.5 text-slate-500 group-focus-within:text-[#00FF87] transition-colors" />
-                </div>
-              </div>
-
-              {/* Чекбокс */}
-              <div className="flex items-start space-x-2.5 pt-2">
-                <input
-                  type="checkbox"
-                  id="terms"
-                  checked={agreeToTerms}
-                  onChange={(e) => setAgreeToTerms(e.target.checked)}
-                  disabled={isLoading}
-                  className="mt-1 w-4 h-4 rounded border-white/10 bg-[#0D0F14]/80 text-[#00FF87] focus:ring-[#00FF87]/40 outline-none cursor-pointer"
-                />
-                <label
-                  htmlFor="terms"
-                  className="text-xs text-slate-400 leading-normal select-none cursor-pointer"
-                >
-                  Согласен с обработкой{" "}
-                  <a href="/privacy" className="text-[#00FF87] hover:underline font-semibold">
-                    персональных данных
-                  </a>{" "}
-                  и правилами платформы.
-                </label>
-              </div>
-
-              {/* Кнопка отправки */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-4 py-3.5 rounded-xl bg-[#00FF87] hover:bg-[#00E576] disabled:bg-emerald-800 disabled:opacity-50 text-black font-extrabold text-sm transition-all shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 flex items-center justify-center space-x-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Создание...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Начать бесплатно</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Ссылка на авторизацию */}
-          <p className="text-center text-xs text-slate-400 mt-6 font-medium">
-            Уже зарегистрирован?{" "}
-            <a href="/auth/login" className="text-[#00FF87] hover:underline font-bold">
-              Войти в свой кабинет
-            </a>
-          </p>
-        </motion.div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
