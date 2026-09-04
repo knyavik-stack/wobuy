@@ -45,13 +45,13 @@ jobs:
               path.write_text(text)
           PY
       - name: Форматирование
-        run: npx prettier --write maket src/app/'(auth)' src/app/forgot-password src/app/reset-password
+        run: npx prettier --write .
       - name: Проверка ESLint
         run: npm run lint
       - name: Сохранение
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add maket
-          git diff --cached --quiet || git commit -m "fix: исправить ошибки макетов v2"
+          git add .
+          git diff --cached --quiet || git commit -m "fix: исправить форматирование проекта"
           git push
