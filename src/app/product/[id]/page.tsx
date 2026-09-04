@@ -18,7 +18,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   if (error || !product) notFound();
 
   if (user) {
-    await supabase.from("product_view_history").insert({ user_id: user.id, product_id: product.id });
+    const { data: latestView } = await supabase.from("product_view_history").select("viewed_at").eq("user_id", user.id).eq("product_id", product.id).order("viewed_at", { ascending: false }).limit(1).maybeSingle();
+    const latestTimestamp = latestView?.viewed_at ? new Date(latestView.viewed_at).getTime() : 0;
+    if (!latestTimestamp || Date.now() - latestTimestamp > 30 * 60 * 1000) {
+      await supabase.from("product_view_history").insert({ user_id: user.id, product_id: product.id });
+    }
   }
   const { data: favorite } = user ? await supabase.from("user_favorites").select("product_id").eq("user_id", user.id).eq("product_id", product.id).maybeSingle() : { data: null };
   const offers = [...(product.product_offers ?? [])].sort((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER));
