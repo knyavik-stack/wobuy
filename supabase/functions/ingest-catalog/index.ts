@@ -194,7 +194,12 @@ Deno.serve(async (request) => {
     const message = error instanceof Error ? error.message.slice(0, 1000) : "Неизвестная ошибка.";
     await adminClient
       .from("ingestion_runs")
-      .update({ status: "failed", items_upserted: upserted, error_message: message, finished_at: new Date().toISOString() })
+      .update({
+        status: "failed",
+        items_upserted: upserted,
+        error_message: message,
+        finished_at: new Date().toISOString(),
+      })
       .eq("id", run.id);
 
     return new Response(JSON.stringify({ error: "Загрузка каталога завершилась ошибкой." }), {
