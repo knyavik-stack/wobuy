@@ -20,6 +20,7 @@ import { toggleFavorite } from "@/app/dashboard/actions";
 import { getDemoProductById } from "@/lib/catalog/demo-data";
 import { computeProductAiMetrics } from "@/lib/catalog/search";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 function formatPrice(price: number | null, currency: string) {
   if (price === null) return "Цена не указана";
@@ -229,12 +230,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="text-lg font-bold tracking-tight text-white transition hover:opacity-80"
-            >
-              wobuy<span className="text-[#00FF87]">.</span>
-            </Link>
+            <BrandLogo size="sm" />
           </div>
         </div>
 

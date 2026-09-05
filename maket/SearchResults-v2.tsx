@@ -20,6 +20,7 @@ import {
 import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 function formatPrice(value: number | null, currency = "RUB") {
   if (value == null) return "Цена не указана";
@@ -300,9 +301,7 @@ export default function SearchResults({
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0D0F14]/90 px-4 py-3.5 backdrop-blur-xl md:px-8 md:py-4">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center justify-between">
-            <Link href="/" className="group flex items-center text-2xl font-black tracking-tight text-white">
-              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
-            </Link>
+            <BrandLogo size="md" />
 
             {/* AI статус на мобильных экранах */}
             <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300 md:hidden">

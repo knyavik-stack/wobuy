@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, ArrowRight, ArrowLeft, Sparkles, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 function authError(message: string) {
   const normalized = message.toLowerCase();
@@ -39,9 +40,7 @@ export default function LoginPage() {
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-r border-white/5 bg-[#090B11] p-8 lg:flex lg:px-10 lg:py-6">
         <div className="pointer-events-none absolute left-[-10%] top-[-20%] h-[80%] w-[80%] rounded-full bg-gradient-to-tr from-[#00FF87]/10 to-transparent blur-[150px]" />
         <div className="relative z-10 flex items-center space-x-2">
-          <Link href="/" className="text-2xl font-bold tracking-tight text-white">
-            wobuy<span className="text-[#00FF87]">.</span>
-          </Link>
+          <BrandLogo size="md" />
           <span className="rounded-full border border-[#00FF87]/20 bg-[#00FF87]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
             ИИ-Ассистент
           </span>
@@ -97,9 +96,7 @@ export default function LoginPage() {
         <div className="relative z-10 w-full max-w-[400px]">
           {/* Мобильная шапка с брендом wobuy. и кнопкой возврата */}
           <div className="mb-6 flex w-full items-center justify-between lg:hidden">
-            <Link href="/" className="text-2xl font-black tracking-tight text-white">
-              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
-            </Link>
+            <BrandLogo size="md" />
             <Link
               href="/"
               className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"

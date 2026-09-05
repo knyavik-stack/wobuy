@@ -14,6 +14,7 @@ import {
   User,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 function translateError(message: string) {
   const normalized = message.toLowerCase();
@@ -73,9 +74,9 @@ export default function RegisterPage() {
     <main className="flex min-h-screen w-full bg-[#0D0F14] text-slate-100 selection:bg-[#00FF87] selection:text-black">
       <section className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-r border-white/5 bg-[#090B11] p-16 lg:flex">
         <div className="pointer-events-none absolute left-[-10%] top-[-20%] h-[80%] w-[80%] rounded-full bg-gradient-to-tr from-[#00FF87]/10 to-transparent blur-[150px]" />
-        <Link href="/" className="relative z-10 text-2xl font-bold tracking-tight text-white">
-          wobuy<span className="text-[#00FF87]">.</span>
-        </Link>
+        <div className="relative z-10">
+          <BrandLogo size="md" />
+        </div>
         <div className="relative z-10 max-w-lg space-y-8">
           <div>
             <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white">
@@ -120,12 +121,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-[#0D0F14]" />
         <div className="relative z-10 w-full max-w-[420px] py-12">
           <div className="mb-8 flex items-center justify-between lg:hidden">
-            <Link
-              href="/"
-              className="text-2xl font-black tracking-tight text-white"
-            >
-              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
-            </Link>
+            <BrandLogo size="md" />
             <Link
               href="/"
               className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"

@@ -1,13 +1,14 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export default function NotFound() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0D0F14] px-4 text-center text-slate-100">
       <div className="pointer-events-none absolute left-1/2 top-1/3 h-80 w-80 -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[110px]" />
       <div className="relative z-10 w-full max-w-lg rounded-3xl border border-white/10 bg-[#13161C]/80 p-8 shadow-2xl backdrop-blur-xl md:p-12">
-        <Link href="/" className="text-xl font-bold tracking-tight text-white">
-          wobuy<span className="text-[#00FF87]">.</span>
-        </Link>
+        <div className="flex justify-center">
+          <BrandLogo size="md" />
+        </div>
         <div className="mt-10 text-7xl font-black tracking-tight text-[#00FF87] md:text-8xl">
           404
         </div>

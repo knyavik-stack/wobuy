@@ -21,6 +21,7 @@ import { deleteHistoryItem, deleteSavedSearch } from "./actions";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { getDemoProductById } from "@/lib/catalog/demo-data";
 import { computeProductAiMetrics } from "@/lib/catalog/search";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 type HistoryProduct = {
   id: string;
@@ -117,12 +118,7 @@ export default async function DashboardPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <Link
-                  href="/"
-                  className="text-2xl font-black tracking-tight text-white transition hover:opacity-80"
-                >
-                  wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
-                </Link>
+                <BrandLogo size="md" />
                 <span className="rounded-full border border-[#00FF87]/30 bg-[#00FF87]/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-[#00FF87]">
                   Кабинет
                 </span>

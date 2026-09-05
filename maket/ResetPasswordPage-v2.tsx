@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 function translateError(message: string) {
   const normalized = message.toLowerCase();
@@ -105,16 +106,12 @@ export default function ResetPasswordPage() {
       <div className="relative hidden flex-col justify-between overflow-hidden border-r border-white/5 bg-[#090B11] p-8 lg:flex lg:w-1/2 lg:px-10 lg:py-6">
         <div className="pointer-events-none absolute left-[-10%] top-[-20%] h-[80%] w-[80%] rounded-full bg-gradient-to-tr from-[#00FF87]/10 to-transparent blur-[150px]" />
         <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[60%] w-[60%] rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[150px]" />
-        <Link
-          href="/"
-          aria-label="На главную wobuy."
-          className="relative z-10 flex w-fit items-center gap-2 text-2xl font-bold tracking-tight text-white"
-        >
-          wobuy<span className="text-[#00FF87]">.</span>
+        <div className="relative z-10 flex w-fit items-center gap-2">
+          <BrandLogo size="md" />
           <span className="rounded-full border border-[#00FF87]/20 bg-[#00FF87]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
             ИИ-Ассистент
           </span>
-        </Link>
+        </div>
         <div className="relative z-10 my-auto max-w-lg space-y-8">
           <div className="space-y-4">
             <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white">
@@ -161,13 +158,9 @@ export default function ResetPasswordPage() {
       <div className="relative flex w-full items-center justify-center overflow-hidden p-6 md:p-16 lg:w-1/2">
         <div className="absolute inset-0 bg-[#0D0F14]" />
         <div className="pointer-events-none absolute bottom-[-10%] left-[-10%] h-[70%] w-[70%] rounded-full bg-gradient-to-tr from-[#00FF87]/5 to-transparent blur-[120px] lg:hidden" />
-        <Link
-          href="/"
-          aria-label="На главную wobuy."
-          className="absolute left-6 top-6 z-10 text-2xl font-bold tracking-tight text-white lg:hidden"
-        >
-          wobuy<span className="text-[#00FF87]">.</span>
-        </Link>
+        <div className="absolute left-6 top-6 z-10 lg:hidden">
+          <BrandLogo size="md" />
+        </div>
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}

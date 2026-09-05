@@ -18,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 type Archetype = "urgent" | "perfectionist" | "budget" | "antifake";
 
@@ -168,9 +169,7 @@ export default function HeroSection() {
 
       {/* Верхний Header */}
       <header className="fixed left-0 right-0 top-0 z-50 flex min-h-16 items-center justify-between border-b border-white/5 bg-[#0D0F14]/95 px-4 py-3 shadow-lg shadow-black/20 backdrop-blur-xl md:px-8 lg:px-16">
-        <Link href="/" className="text-2xl font-black tracking-tight text-white">
-          wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
-        </Link>
+        <BrandLogo size="md" />
         <div className="flex items-center gap-2 md:gap-6">
           <nav
             className="hidden items-center gap-5 text-sm font-medium text-slate-400 md:flex lg:gap-7"
@@ -302,12 +301,12 @@ export default function HeroSection() {
             )}
           </div>
 
-          {/* Селектор архетипов с горизонтальным скроллом на мобильных */}
-          <div className="space-y-2 pt-2">
+          {/* Селектор архетипов: 2x2 сетка на мобильных, flex на планшетах/десктопе */}
+          <div className="space-y-2.5 pt-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Выбери свой фокус ИИ-анализа:
             </span>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none sm:flex-wrap">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               {(Object.keys(ARCHETYPES) as Archetype[]).map((key) => {
                 const item = ARCHETYPES[key];
                 const selected = activeTab === key;
@@ -316,14 +315,14 @@ export default function HeroSection() {
                     key={key}
                     type="button"
                     onClick={() => setActiveTab(key)}
-                    className={`relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
+                    className={`relative flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all sm:w-auto sm:justify-start sm:px-3.5 sm:text-sm ${
                       selected
                         ? "border border-white/20 bg-white/10 text-white"
                         : "border border-transparent bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    <span>{item.emoji}</span>
-                    <span>{item.label}</span>
+                    <span className="shrink-0">{item.emoji}</span>
+                    <span className="truncate">{item.label}</span>
                     {selected ? (
                       <motion.div
                         layoutId="activeGlow"
@@ -455,8 +454,10 @@ export default function HeroSection() {
           <span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">
             Механика сервиса
           </span>
-          <h2 className="mt-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
-            Как wobuy. экономит твои часы и деньги
+          <h2 className="mt-2 flex flex-wrap items-baseline gap-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
+            <span>Как</span>
+            <BrandLogo size="lg" className="inline-flex" />
+            <span>экономит твои часы и деньги</span>
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
             Всего 3 прозрачных шага к идеальной покупке без риска нарваться на подделку или завышенную цену.
@@ -505,8 +506,9 @@ export default function HeroSection() {
           <span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">
             Наши принципы
           </span>
-          <h2 className="mt-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
-            Почему покупатели доверяют wobuy.
+          <h2 className="mt-2 flex flex-wrap items-baseline gap-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
+            <span>Почему покупатели доверяют</span>
+            <BrandLogo size="lg" className="inline-flex" />
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
             Мы не продаём товары и не берем комиссию от продавцов за продвижение. Наш клиент — ты.
@@ -609,7 +611,10 @@ export default function HeroSection() {
               <div className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Скоро в релизе
               </div>
-              <h3 className="mt-4 text-2xl font-extrabold text-white">wobuy. PRO</h3>
+              <h3 className="mt-4 flex items-baseline gap-1.5 text-2xl font-extrabold text-white">
+                <BrandLogo size="sm" />
+                <span>PRO</span>
+              </h3>
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="text-4xl font-black text-slate-300">290 ₽</span>
                 <span className="text-xs text-slate-500">/ месяц</span>
@@ -644,22 +649,35 @@ export default function HeroSection() {
         </div>
       </section>
 
-      {/* Секция: О нас */}
+      {/* Секция: О нас (Манифест) */}
       <section
         id="about"
         className="relative z-10 mx-auto max-w-7xl scroll-mt-24 border-t border-white/5 py-14"
       >
-        <div className="max-w-3xl">
+        <div className="rounded-3xl border border-white/10 bg-[#13161C]/50 p-8 backdrop-blur-xl sm:p-12">
           <span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">Манифест</span>
-          <h2 className="mt-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
-            wobuy. — сервис осознанного выбора
+          <h2 className="mt-3 flex flex-wrap items-baseline gap-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
+            <BrandLogo size="lg" className="inline-flex" />
+            <span className="text-slate-200">— сервис осознанного выбора</span>
           </h2>
-          <p className="mt-4 text-sm leading-relaxed text-slate-300 md:text-base">
-            Мы создали wobuy., потому что устали от бесконечных рекламных плашек, накрученных пятизвёздочных оценок и фальшивых «скидок» на маркетплейсах.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400 md:text-base">
-            Наша цель — вернуть покупателю контроль над своими деньгами и временем. Искусственный интеллект должен работать на тебя, отсеивая информационный шум и находя действительно честные и качественные вещи.
-          </p>
+          <div className="mt-6 grid gap-6 md:grid-cols-2">
+            <div className="space-y-3 text-sm leading-relaxed text-slate-300">
+              <p>
+                Мы создали <BrandLogo size="sm" className="inline-flex" />, потому что устали от бесконечных рекламных плашек, накрученных пятизвёздочных оценок и фальшивых «скидок» на маркетплейсах.
+              </p>
+              <p className="text-slate-400">
+                В современном онлайн-шопинге покупатель вынужден тратить часы на чтение сотен однотипных отзывов, пытаясь отделить реальный опыт использования от заказного маркетинга продавцов.
+              </p>
+            </div>
+            <div className="space-y-3 text-sm leading-relaxed text-slate-300">
+              <p>
+                Наша цель — вернуть покупателю контроль над своими деньгами и временем. Искусственный интеллект должен работать на тебя, отсеивая информационный шум и находя действительно честные и качественные вещи.
+              </p>
+              <p className="text-[#00FF87] font-medium">
+                Никаких скрытых спонсорских позиций. Место товара в рейтинге определяется исключительно фактами, качеством и выгодой.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
