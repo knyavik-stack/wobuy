@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { DEMO_PRODUCTS } from "./demo-data";
 import { aggregateMarketplaceSearch } from "@/lib/parsers/aggregator";
 import { CanonicalProductData } from "@/lib/parsers/types";
+import { searchProductsSemantically, upsertProductWithEmbedding } from "./semantic-search";
 
 export type SearchProduct = {
   id: string;
@@ -195,24 +196,76 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
   const normalizedQuery = normalize(query);
   const lowerQuery = normalizedQuery.toLowerCase();
 
-  // 1. Запуск реального парсинга Wildberries и Ozon
-  let liveResults: SearchProduct[] = [];
+  // 1. Полнотекстовый и семантический анализ намерения (pgvector)
+  let semanticMatches: SearchProduct[] = [];
+  let effectiveQuery = normalizedQuery;
+  let maxPriceFilter: number | undefined;
+
   if (normalizedQuery) {
     try {
-      const liveData = await aggregateMarketplaceSearch(normalizedQuery);
+      const semResult = await searchProductsSemantically(normalizedQuery);
+      if (semResult.products.length > 0) {
+        semanticMatches = semResult.products;
+      }
+      if (semResult.intent.cleanQuery && semResult.intent.cleanQuery !== normalizedQuery) {
+        effectiveQuery = semResult.intent.cleanQuery;
+      }
+      maxPriceFilter = semResult.intent.maxPrice;
+    } catch (err) {
+      console.warn("[Search Service] Ошибка семантического анализа:", err);
+    }
+  }
+
+  // 2. Запуск реального парсинга Wildberries и Ozon по нормализованному ключу
+  let liveResults: SearchProduct[] = [];
+  if (effectiveQuery) {
+    try {
+      const liveData = await aggregateMarketplaceSearch(effectiveQuery);
       if (liveData && liveData.length > 0) {
         liveResults = liveData.map(mapCanonicalToSearchProduct);
-        // Сохраняем в кэш для доступа по прямому URL
+        // Сохраняем в сессионный кэш для прямого перехода
         for (const prod of liveResults) {
           LIVE_PRODUCTS_STORE.set(prod.id, prod);
         }
+
+        // Асинхронно синхронизируем топ-3 горячих товара в Supabase без блокировки UI
+        (async () => {
+          for (const item of liveData.slice(0, 3)) {
+            await upsertProductWithEmbedding({
+              canonicalName: item.canonicalName,
+              brand: item.brand,
+              category: item.category,
+              description: item.description,
+              imageUrl: item.imageUrl,
+              offers: item.offers.map((o) => ({
+                marketplace: o.marketplace,
+                title: o.title,
+                url: o.url,
+                price: o.price,
+                rating: o.rating,
+                reviewCount: o.reviewCount,
+              })),
+            });
+          }
+        })().catch(() => {});
       }
     } catch (err) {
       console.warn("[Search Service] Ошибка парсинга маркетплейсов:", err);
     }
   }
 
-  // 2. Поиск в Supabase
+  // Применяем фильтр по максимальной цене (если был в семантике запроса)
+  if (maxPriceFilter && liveResults.length > 0) {
+    const filtered = liveResults.filter((p) => {
+      const best = Math.min(...p.offers.map((o) => o.price || 999999));
+      return best <= (maxPriceFilter as number);
+    });
+    if (filtered.length > 0) {
+      liveResults = filtered;
+    }
+  }
+
+  // 3. Поиск в Supabase
   let dbResults: SearchProduct[] = [];
   try {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -242,7 +295,7 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
     console.warn("Поиск Supabase недоступен, используется резервный демо-каталог:", err);
   }
 
-  // 3. Резервный поиск в демо-каталоге
+  // 4. Резервный поиск в демо-каталоге
   let demoList = DEMO_PRODUCTS.filter((p) => p.is_active);
   if (lowerQuery) {
     demoList = demoList.filter(
@@ -255,20 +308,31 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
   }
   const fallbackResults = demoList.map(mapProduct);
 
-  // 4. Приоритетное объединение: реальные спарсенные товары -> БД -> Демо-каталог
-  if (liveResults.length > 0) {
-    // Если есть точные совпадения из БД или демо, добавляем их в конец для полноты
-    const combined = [...liveResults];
-    for (const item of [...dbResults, ...fallbackResults]) {
-      if (!combined.some((c) => c.title.toLowerCase() === item.title.toLowerCase())) {
-        combined.push(item);
-      }
-    }
-    return combined;
+  // 5. Иерархическое объединение: Векторные совпадения + Парсинг маркетплейсов -> БД -> Демо
+  const combinedMap = new Map<string, SearchProduct>();
+
+  // Векторные совпадения
+  for (const item of semanticMatches) {
+    combinedMap.set(item.title.toLowerCase(), item);
   }
 
-  if (dbResults.length > 0) {
-    return dbResults;
+  // Распарсенные с маркетплейсов
+  for (const item of liveResults) {
+    if (!combinedMap.has(item.title.toLowerCase())) {
+      combinedMap.set(item.title.toLowerCase(), item);
+    }
+  }
+
+  // БД и Демо
+  for (const item of [...dbResults, ...fallbackResults]) {
+    if (!combinedMap.has(item.title.toLowerCase())) {
+      combinedMap.set(item.title.toLowerCase(), item);
+    }
+  }
+
+  const finalResults = Array.from(combinedMap.values());
+  if (finalResults.length > 0) {
+    return finalResults;
   }
 
   return fallbackResults;

@@ -20,6 +20,7 @@ import { toggleFavorite } from "@/app/dashboard/actions";
 import { getDemoProductById } from "@/lib/catalog/demo-data";
 import { computeProductAiMetrics, getStoredLiveProduct } from "@/lib/catalog/search";
 import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
+import { generateProductAnalysis } from "@/lib/ai/analyzer";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
@@ -217,8 +218,17 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   const oldPrice = Math.round(bestPrice * (1 + aiMetrics.discountPercent / 100));
 
+  // Динамический анализ 4 ИИ-агентов (Groq / Gemini) с мгновенным fallback
+  const dynamicAiAnalysis = await generateProductAnalysis(
+    product.canonical_name,
+    product.brand,
+    product.category,
+    bestPrice,
+    offers.map((o) => ({ marketplace: o.marketplace, price: o.price, rating: o.rating })),
+  );
+
   // Разбор 4 ИИ-агентов
-  const agentPerspectives = [
+  const agentPerspectives = dynamicAiAnalysis?.perspectives || [
     {
       archetype: "Перфекционист",
       emoji: "💎",
@@ -387,10 +397,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                 </div>
 
                 {/* Подсказка нейросети */}
-                {product.ai_summary && (
+                {(dynamicAiAnalysis?.summary || product.ai_summary) && (
                   <div className="mt-4 rounded-xl border border-[#00FF87]/20 bg-[#00FF87]/5 p-3 text-xs leading-relaxed text-slate-300">
-                    <span className="font-bold text-[#00FF87]">Вывод ИИ: </span>
-                    {product.ai_summary}
+                    <span className="font-bold text-[#00FF87]">Вывод ИИ ({dynamicAiAnalysis?.verdict || "Брать"}): </span>
+                    {dynamicAiAnalysis?.summary || product.ai_summary}
                   </div>
                 )}
               </div>

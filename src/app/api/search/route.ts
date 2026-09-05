@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { aggregateMarketplaceSearch } from "@/lib/parsers/aggregator";
+import { searchProducts } from "@/lib/catalog/search";
+import { extractSearchIntent } from "@/lib/ai/embeddings";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() || "";
-  const limit = parseInt(searchParams.get("limit") || "20", 10);
-  const forceRefresh = searchParams.get("refresh") === "true";
 
   if (!q) {
     return NextResponse.json(
@@ -15,13 +14,14 @@ export async function GET(req: NextRequest) {
   }
 
   const startTime = Date.now();
-  const products = await aggregateMarketplaceSearch(q, {
-    limit,
-    forceRefresh,
-  });
+  const [intent, products] = await Promise.all([
+    extractSearchIntent(q),
+    searchProducts(q),
+  ]);
 
   return NextResponse.json({
     query: q,
+    intent,
     count: products.length,
     tookMs: Date.now() - startTime,
     products,
