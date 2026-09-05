@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_PRODUCTS } from "./demo-data";
+import { aggregateMarketplaceSearch } from "@/lib/parsers/aggregator";
+import { CanonicalProductData } from "@/lib/parsers/types";
 
 export type SearchProduct = {
   id: string;
@@ -26,6 +28,9 @@ export type SearchProduct = {
     availability: string;
   }>;
 };
+
+// Хранилище сессионных распарсенных товаров для прямого открытия по id
+const LIVE_PRODUCTS_STORE = new Map<string, SearchProduct>();
 
 function normalize(value: string | null | undefined) {
   return value?.trim() ?? "";
@@ -159,9 +164,56 @@ function mapProduct(product: {
   };
 }
 
-export async function searchProducts(query: string): Promise<SearchProduct[]> {
-  const normalizedQuery = normalize(query).toLowerCase();
+function mapCanonicalToSearchProduct(item: CanonicalProductData): SearchProduct {
+  return {
+    id: item.id,
+    title: item.canonicalName,
+    brand: item.brand,
+    category: item.category,
+    description: item.description,
+    imageUrl: item.imageUrl,
+    aiScore: item.aiScore,
+    antiFakePercent: item.antiFakePercent,
+    aiTags: item.aiTags,
+    priceSparkline: item.priceSparkline,
+    discountPercent: item.discountPercent,
+    offers: item.offers,
+  };
+}
 
+/**
+ * Получить товар по id (поддерживает как статические/БД id, так и распарсенные live-id)
+ */
+export function getStoredLiveProduct(id: string): SearchProduct | undefined {
+  return LIVE_PRODUCTS_STORE.get(id);
+}
+
+/**
+ * Основная функция поиска товаров с поддержкой реального конвейера парсинга Wildberries и Ozon
+ */
+export async function searchProducts(query: string): Promise<SearchProduct[]> {
+  const normalizedQuery = normalize(query);
+  const lowerQuery = normalizedQuery.toLowerCase();
+
+  // 1. Запуск реального парсинга Wildberries и Ozon
+  let liveResults: SearchProduct[] = [];
+  if (normalizedQuery) {
+    try {
+      const liveData = await aggregateMarketplaceSearch(normalizedQuery);
+      if (liveData && liveData.length > 0) {
+        liveResults = liveData.map(mapCanonicalToSearchProduct);
+        // Сохраняем в кэш для доступа по прямому URL
+        for (const prod of liveResults) {
+          LIVE_PRODUCTS_STORE.set(prod.id, prod);
+        }
+      }
+    } catch (err) {
+      console.warn("[Search Service] Ошибка парсинга маркетплейсов:", err);
+    }
+  }
+
+  // 2. Поиск в Supabase
+  let dbResults: SearchProduct[] = [];
   try {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       const supabase = await createClient();
@@ -173,8 +225,8 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
         .eq("is_active", true)
         .limit(40);
 
-      if (normalizedQuery) {
-        const pattern = `%${normalizedQuery}%`;
+      if (lowerQuery) {
+        const pattern = `%${lowerQuery}%`;
         productsQuery = productsQuery.or(
           `canonical_name.ilike.${pattern},brand.ilike.${pattern},category.ilike.${pattern},description.ilike.${pattern}`,
         );
@@ -183,23 +235,41 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
       const { data, error } = await productsQuery;
 
       if (!error && data && data.length > 0) {
-        return data.map(mapProduct);
+        dbResults = data.map(mapProduct);
       }
     }
   } catch (err) {
     console.warn("Поиск Supabase недоступен, используется резервный демо-каталог:", err);
   }
 
-  let list = DEMO_PRODUCTS.filter((p) => p.is_active);
-  if (normalizedQuery) {
-    list = list.filter(
+  // 3. Резервный поиск в демо-каталоге
+  let demoList = DEMO_PRODUCTS.filter((p) => p.is_active);
+  if (lowerQuery) {
+    demoList = demoList.filter(
       (p) =>
-        p.canonical_name.toLowerCase().includes(normalizedQuery) ||
-        p.brand.toLowerCase().includes(normalizedQuery) ||
-        p.category.toLowerCase().includes(normalizedQuery) ||
-        p.description.toLowerCase().includes(normalizedQuery),
+        p.canonical_name.toLowerCase().includes(lowerQuery) ||
+        p.brand.toLowerCase().includes(lowerQuery) ||
+        p.category.toLowerCase().includes(lowerQuery) ||
+        p.description.toLowerCase().includes(lowerQuery),
     );
   }
+  const fallbackResults = demoList.map(mapProduct);
 
-  return list.map(mapProduct);
+  // 4. Приоритетное объединение: реальные спарсенные товары -> БД -> Демо-каталог
+  if (liveResults.length > 0) {
+    // Если есть точные совпадения из БД или демо, добавляем их в конец для полноты
+    const combined = [...liveResults];
+    for (const item of [...dbResults, ...fallbackResults]) {
+      if (!combined.some((c) => c.title.toLowerCase() === item.title.toLowerCase())) {
+        combined.push(item);
+      }
+    }
+    return combined;
+  }
+
+  if (dbResults.length > 0) {
+    return dbResults;
+  }
+
+  return fallbackResults;
 }

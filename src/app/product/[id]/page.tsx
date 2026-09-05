@@ -18,7 +18,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { toggleFavorite } from "@/app/dashboard/actions";
 import { getDemoProductById } from "@/lib/catalog/demo-data";
-import { computeProductAiMetrics } from "@/lib/catalog/search";
+import { computeProductAiMetrics, getStoredLiveProduct } from "@/lib/catalog/search";
+import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
@@ -136,6 +137,64 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   if (!product) {
     product = getDemoProductById(id);
+  }
+
+  // Если товар из живого поиска (live-...)
+  if (!product) {
+    const liveItem = getStoredLiveProduct(id);
+    if (liveItem) {
+      product = {
+        id: liveItem.id,
+        canonical_name: liveItem.title,
+        brand: liveItem.brand,
+        category: liveItem.category,
+        description: liveItem.description,
+        image_url: liveItem.imageUrl,
+        ai_summary: null,
+        product_offers: liveItem.offers.map((o) => ({
+          id: o.id,
+          marketplace: o.marketplace,
+          title: o.title,
+          url: o.url,
+          price: o.price,
+          currency: o.currency,
+          rating: o.rating,
+          review_count: o.reviewCount,
+          delivery_text: o.deliveryText,
+          availability: o.availability,
+        })),
+      };
+    }
+  }
+
+  // Если передан артикул Wildberries (только цифры)
+  if (!product && /^\d{6,11}$/.test(id)) {
+    const wbItem = await getWildberriesProductDetail(id);
+    if (wbItem) {
+      product = {
+        id: `wb-${wbItem.externalId}`,
+        canonical_name: wbItem.title,
+        brand: wbItem.brand,
+        category: "Электроника и товары",
+        description: wbItem.description || `Товар с Wildberries (артикул ${id})`,
+        image_url: wbItem.imageUrl,
+        ai_summary: null,
+        product_offers: [
+          {
+            id: wbItem.id,
+            marketplace: wbItem.marketplace,
+            title: wbItem.title,
+            url: wbItem.url,
+            price: wbItem.price,
+            currency: wbItem.currency,
+            rating: wbItem.rating,
+            review_count: wbItem.reviewCount,
+            delivery_text: wbItem.deliveryText || "Доставка WB 1-2 дня",
+            availability: wbItem.availability || "В наличии",
+          },
+        ],
+      };
+    }
   }
 
   if (!product) notFound();
