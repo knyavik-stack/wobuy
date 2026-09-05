@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/auth/auth-form";
 import ProfileSettings from "@/components/dashboard/profile-settings";
 import { deleteHistoryItem, deleteSavedSearch } from "./actions";
+import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 
 type HistoryProduct = {
   id: string;
@@ -74,7 +75,7 @@ export default async function DashboardPage() {
     typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "";
 
   return (
-    <main className="min-h-screen bg-[#0D0F14] px-4 py-6 text-slate-100 md:px-8 md:py-10">
+    <main className="min-h-screen bg-[#0D0F14] px-4 pb-24 pt-6 text-slate-100 sm:pb-16 md:px-8 md:py-10">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex flex-col gap-5 border-b border-white/10 pb-6 md:flex-row md:items-center md:justify-between">
           <div>
@@ -242,6 +243,7 @@ export default async function DashboardPage() {
           <ProfileSettings initialName={displayName} email={user.email ?? ""} />
         </section>
       </div>
+      <MobileBottomNav />
     </main>
   );
 }

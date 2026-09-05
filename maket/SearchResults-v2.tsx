@@ -1,20 +1,27 @@
 /* eslint-disable @next/next/no-img-element */
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import {
   Bookmark,
-  ExternalLink,
   List,
   Search,
   Sparkles,
-  Truck,
   Grid3X3,
   SlidersHorizontal,
   ChevronDown,
+  CheckCircle2,
+  ShoppingCart,
+  Bot,
+  Truck,
+  ArrowRight,
 } from "lucide-react";
 import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";
+import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 
-function price(value: number | null, currency = "RUB") {
+function formatPrice(value: number | null, currency = "RUB") {
   if (value == null) return "Цена не указана";
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
@@ -23,7 +30,7 @@ function price(value: number | null, currency = "RUB") {
   }).format(value);
 }
 
-function href(query: string, category: string, sort: string, view: string) {
+function buildSearchUrl(query: string, category: string, sort: string, view: string) {
   const p = new URLSearchParams();
   if (query) p.set("q", query);
   if (category !== "all") p.set("category", category);
@@ -32,7 +39,229 @@ function href(query: string, category: string, sort: string, view: string) {
   return `/search?${p.toString()}`;
 }
 
-export default async function SearchResults({
+// Круговой индикатор AI Score в точности как на мокапе
+function AiScoreGauge({ score }: { score: number }) {
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.min(10, Math.max(0, score));
+  const progress = clamped / 10;
+  const strokeDashoffset = circumference - progress * circumference;
+
+  return (
+    <div className="flex shrink-0 flex-col items-center justify-center">
+      <div className="relative flex h-20 w-20 items-center justify-center">
+        <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 76 76">
+          <circle
+            cx="38"
+            cy="38"
+            r={radius}
+            className="stroke-white/10"
+            strokeWidth="4.5"
+            fill="transparent"
+          />
+          <circle
+            cx="38"
+            cy="38"
+            r={radius}
+            className="stroke-[#00FF87] transition-all duration-700 ease-out"
+            strokeWidth="5"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            fill="transparent"
+            style={{
+              filter: "drop-shadow(0 0 6px rgba(0, 255, 135, 0.65))",
+            }}
+          />
+        </svg>
+        <div className="absolute flex flex-col items-center justify-center text-center">
+          <span className="text-xl font-black tracking-tight text-white">
+            {score.toFixed(1)}
+          </span>
+          <span className="text-[8px] font-black tracking-widest text-[#00FF87]">
+            AI SCORE
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Мини-график «Динамика цен» для карточки
+function CardPriceSparkline({
+  sparkline,
+  currentPrice,
+  currency = "RUB",
+}: {
+  sparkline: number[];
+  currentPrice: number;
+  currency?: string;
+}) {
+  const data = sparkline.length ? sparkline : [35000, 34000, 33200, currentPrice];
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const width = 140;
+  const height = 26;
+
+  const points = data
+    .map((val, idx) => {
+      const x = (idx / (data.length - 1)) * width;
+      const y = height - ((val - min) / range) * (height - 8) - 4;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  return (
+    <div className="w-full">
+      <div className="mb-1 flex items-center justify-between text-[11px]">
+        <span className="text-slate-400">Динамика цен</span>
+        <span className="font-semibold text-[#00FF87]">{formatPrice(currentPrice, currency)}</span>
+      </div>
+      <div className="relative h-7 w-full overflow-hidden">
+        <svg
+          className="h-full w-full"
+          viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="none"
+        >
+          <polyline
+            fill="none"
+            stroke="#00FF87"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={points}
+            style={{
+              filter: "drop-shadow(0 0 5px rgba(0, 255, 135, 0.5))",
+            }}
+          />
+        </svg>
+      </div>
+      <div className="mt-1 flex justify-between text-[9px] font-medium text-slate-500">
+        <span>Ноя.</span>
+        <span>Дек.</span>
+        <span>Янв.</span>
+        <span>Фев.</span>
+      </div>
+    </div>
+  );
+}
+
+// Блок общей рыночной аналитики в стиле мокапа
+function MarketAnalyticsSection() {
+  const months = [
+    "Янв.",
+    "Фев.",
+    "Мар.",
+    "Апр.",
+    "Май",
+    "Июн.",
+    "Июл.",
+    "Авг.",
+    "Сен.",
+    "Окт.",
+    "Ноя.",
+    "Дек.",
+  ];
+
+  return (
+    <section
+      id="market-analytics"
+      className="relative mb-8 overflow-hidden rounded-3xl border border-white/10 bg-[#12151B]/90 p-5 shadow-2xl backdrop-blur-md md:p-7"
+    >
+      {/* Зеленый световой акцент в шапке блока */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-1 w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#00FF87] to-transparent opacity-80 blur-xs" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-24 w-96 -translate-x-1/2 bg-[#00FF87]/10 blur-[60px]" />
+
+      <div className="relative z-10 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-sm font-extrabold uppercase tracking-widest text-white sm:text-base">
+            Аналитика рынка
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Исторический тренд цен и лучшее окно покупки по данным ИИ
+          </p>
+        </div>
+
+        {/* Легенда */}
+        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#00FF87] shadow-[0_0_6px_#00FF87]" />
+            Цена
+          </span>
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#38BDF8]" />
+            Средняя цена
+          </span>
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#FBBF24]" />
+            Лучше купить
+          </span>
+        </div>
+      </div>
+
+      {/* SVG график с кривыми и бейджами скачков */}
+      <div className="relative z-10 h-44 w-full sm:h-52">
+        <svg
+          viewBox="0 0 1000 200"
+          className="h-full w-full overflow-visible"
+          preserveAspectRatio="none"
+        >
+          {/* Горизонтальные сетки */}
+          <line x1="0" y1="50" x2="1000" y2="50" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+          <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+          <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
+
+          {/* Синяя линия — средняя цена */}
+          <path
+            d="M 0 130 C 150 140, 250 110, 400 120 C 550 130, 650 115, 800 105 C 900 100, 950 110, 1000 100"
+            fill="none"
+            stroke="#38BDF8"
+            strokeWidth="2.5"
+            strokeOpacity="0.8"
+          />
+
+          {/* Зеленая линия — фактическая цена с неоновым свечением */}
+          <path
+            d="M 0 140 C 100 120, 250 160, 420 70 C 500 30, 600 150, 720 140 C 820 130, 920 80, 1000 70"
+            fill="none"
+            stroke="#00FF87"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            style={{
+              filter: "drop-shadow(0 0 6px rgba(0, 255, 135, 0.6))",
+            }}
+          />
+
+          {/* Желтые точки — окно лучшей покупки */}
+          <circle cx="250" cy="160" r="5" fill="#FBBF24" stroke="#0D0F14" strokeWidth="2" />
+          <circle cx="680" cy="148" r="5" fill="#FBBF24" stroke="#0D0F14" strokeWidth="2" />
+          <circle cx="920" cy="80" r="5" fill="#FBBF24" stroke="#0D0F14" strokeWidth="2" />
+        </svg>
+
+        {/* Бейджи изменений, как на мокапе */}
+        <div className="pointer-events-none absolute left-[40%] top-2 -translate-x-1/2 rounded-full border border-emerald-400/40 bg-emerald-950/80 px-2.5 py-0.5 text-[11px] font-bold text-[#00FF87] shadow-lg backdrop-blur-md">
+          +50.0%
+        </div>
+        <div className="pointer-events-none absolute left-[64%] top-[60%] -translate-x-1/2 rounded-full border border-cyan-400/40 bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-bold text-cyan-300 shadow-lg backdrop-blur-md">
+          -9.2%
+        </div>
+        <div className="pointer-events-none absolute left-[88%] top-[25%] -translate-x-1/2 rounded-full border border-amber-400/40 bg-amber-950/80 px-2.5 py-0.5 text-[11px] font-bold text-amber-300 shadow-lg backdrop-blur-md">
+          +10.5%
+        </div>
+      </div>
+
+      {/* Месяцы по оси X */}
+      <div className="mt-4 flex justify-between text-[10px] font-medium text-slate-500 sm:text-xs">
+        {months.map((m) => (
+          <span key={m}>{m}</span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default function SearchResults({
   query,
   products,
   categories,
@@ -47,12 +276,8 @@ export default async function SearchResults({
   sort: string;
   view: "grid" | "list";
 }) {
-  const offers = products.flatMap((p) => p.offers);
-  const prices = offers.map((o) => o.price).filter((v): v is number => v != null);
-  const ratings = offers.map((o) => o.rating).filter((v): v is number => v != null);
-  const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
-  const min = prices.length ? Math.min(...prices) : null;
-  const max = prices.length ? Math.max(...prices) : null;
+  const [filterOpen, setFilterOpen] = useState(false);
+
   const activeCategory = category === "all" ? "Все категории" : category;
   const sortLabels: Record<string, string> = {
     relevance: "По названию",
@@ -61,236 +286,372 @@ export default async function SearchResults({
     rating: "По рейтингу",
   };
   const activeSort = sortLabels[sort] ?? "По названию";
+
   const filterBase =
-    "rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:bg-white/[0.07]";
+    "rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:border-[#00FF87]/40 hover:bg-white/[0.08]";
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#0D0F14] px-4 py-5 font-sans text-slate-100 md:px-8 md:py-7">
-      <div className="pointer-events-none fixed right-0 top-0 h-96 w-96 rounded-full bg-emerald-500/5 blur-[120px]" />
-      <header className="relative z-10 mx-auto mb-5 flex max-w-7xl flex-col gap-4 border-b border-white/5 pb-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <Link href="/" className="text-xl font-bold text-white">
-              wobuy<span className="text-[#00FF87]">.</span>
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] pb-24 font-sans text-slate-100 sm:pb-16">
+      {/* Неоновый рассеянный фон */}
+      <div className="pointer-events-none fixed right-0 top-0 h-[450px] w-[450px] rounded-full bg-[#00FF87]/5 blur-[140px]" />
+      <div className="pointer-events-none fixed -left-20 top-80 h-[350px] w-[350px] rounded-full bg-cyan-500/5 blur-[130px]" />
+
+      {/* Шапка поиска в стиле wobuy. */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0D0F14]/90 px-4 py-3.5 backdrop-blur-xl md:px-8 md:py-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="group flex items-center text-2xl font-black tracking-tight text-white">
+              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
             </Link>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-              Демо-каталог
-            </span>
+
+            {/* AI статус на мобильных экранах */}
+            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300 md:hidden">
+              <Bot className="h-3.5 w-3.5 text-[#00FF87]" />
+              <span>{products.length} найдено</span>
+            </div>
           </div>
-          <div className="text-xs text-slate-500">
-            Запрос: <span className="text-slate-300">«{query || "все товары"}»</span>
-          </div>
-        </div>
-        <form action="/search" className="relative w-full md:w-[420px]">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
-          <input
-            name="q"
-            defaultValue={query}
-            placeholder="Что ищем?"
-            className="w-full rounded-xl border border-white/10 bg-[#13161C] py-2.5 pl-10 pr-4 text-sm text-white outline-none focus:border-[#00FF87]/50"
-          />
-        </form>
-      </header>
-      <main className="relative z-10 mx-auto max-w-7xl">
-        <section className="mb-4 grid gap-2 md:grid-cols-4">
-          <Metric label="Товаров" value={`${products.length}`} />
-          <Metric label="Предложений" value={`${offers.length}`} />
-          <Metric label="Средний рейтинг" value={avg ? avg.toFixed(1) : "—"} />
-          <Metric label="Цены" value={min != null ? `${price(min)} — ${price(max)}` : "—"} />
-        </section>
-        <section className="mb-4 rounded-2xl border border-white/10 bg-[#13161C]/80 p-2.5 shadow-xl shadow-black/10">
-          <details className="group">
-            <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl px-3 py-2.5 transition hover:bg-white/[0.04] [&::-webkit-details-marker]:hidden">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00FF87]/10 text-[#00FF87]">
-                  <SlidersHorizontal className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <div className="text-sm font-bold text-white">Фильтры</div>
-                  <div className="truncate text-[11px] text-slate-500">
-                    {activeCategory} · {activeSort}
-                  </div>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="hidden text-[11px] font-semibold text-slate-500 sm:inline">
-                  Настроить
-                </span>
-                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
-              </div>
-            </summary>
-            <div className="mt-2 border-t border-white/5 px-3 pb-2 pt-4">
-              <div className="grid gap-5 md:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                    Категория
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={href(query, "all", sort, view)}
-                      className={`${filterBase} ${category === "all" ? "border-[#00FF87]/30 bg-[#00FF87]/10 text-[#00FF87]" : ""}`}
-                    >
-                      Все
-                    </Link>
-                    {categories.map((c) => (
-                      <Link
-                        key={c}
-                        href={href(query, c, sort, view)}
-                        className={`${filterBase} ${category === c ? "border-[#00FF87]/30 bg-[#00FF87]/10 text-[#00FF87]" : ""}`}
-                      >
-                        {c}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-                <div className="md:min-w-[330px]">
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                    Сортировка
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      ["relevance", "По названию"],
-                      ["price_asc", "Дешевле"],
-                      ["price_desc", "Дороже"],
-                      ["rating", "Рейтинг"],
-                    ].map(([s, label]) => (
-                      <Link
-                        key={s}
-                        href={href(query, category, s, view)}
-                        className={`${filterBase} ${sort === s ? "border-[#00FF87]/30 bg-white/10 text-white" : ""}`}
-                      >
-                        {label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+
+          {/* Строка поиска */}
+          <form action="/search" className="relative flex-1 md:max-w-xl">
+            <Search className="absolute left-4 top-3 h-4 w-4 text-slate-400" />
+            <input
+              name="q"
+              defaultValue={query}
+              placeholder="Что ищем? Например, наушники Sony"
+              className="w-full rounded-full border border-white/10 bg-[#13161C] py-2.5 pl-11 pr-24 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-[#00FF87] focus:ring-1 focus:ring-[#00FF87]"
+            />
+            <button
+              type="submit"
+              className="absolute right-1.5 top-1.5 rounded-full bg-[#00FF87] px-4 py-1.5 text-xs font-bold text-black transition hover:bg-[#00E576]"
+            >
+              Найти
+            </button>
+          </form>
+
+          {/* AI Ассистент баннер на десктопе */}
+          <div className="hidden items-center gap-3 rounded-full border border-emerald-500/30 bg-[#12151B]/90 px-4 py-1.5 shadow-lg md:flex">
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-[#00FF87] to-cyan-400 p-0.5">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0D0F14]">
+                <Bot className="h-4 w-4 text-[#00FF87]" />
               </div>
             </div>
-          </details>
-        </section>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-xs text-slate-500">
-            Найдено <strong className="text-white">{products.length}</strong> товаров
+            <div className="text-xs text-slate-300">
+              {products.length > 0 ? (
+                <span>
+                  ИИ подобрал <strong className="text-white">{products.length}</strong> лучших товаров
+                </span>
+              ) : (
+                <span>ИИ готов к подбору товаров</span>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+        </div>
+      </header>
+
+      {/* Основной контент */}
+      <main className="mx-auto max-w-7xl px-4 pt-5 md:px-8">
+        {/* Горизонтальная лента быстрых фильтров */}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none sm:flex-wrap sm:pb-0">
+            <Link
+              href={buildSearchUrl(query, "all", sort, view)}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                category === "all"
+                  ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)]"
+                  : "border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10"
+              }`}
+            >
+              Все товары
+            </Link>
+            {categories.slice(0, 5).map((c) => (
+              <Link
+                key={c}
+                href={buildSearchUrl(query, c, sort, view)}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  category === c
+                    ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)]"
+                    : "border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10"
+                }`}
+              >
+                {c}
+              </Link>
+            ))}
+
+            {/* Кнопка открытия всех фильтров */}
+            <button
+              type="button"
+              onClick={() => setFilterOpen(!filterOpen)}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:bg-white/10"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5 text-[#00FF87]" />
+              <span>Фильтры</span>
+              <ChevronDown
+                className={`h-3 w-3 text-slate-400 transition-transform ${
+                  filterOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Инструменты: Сохранить и переключение сетки */}
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
             <form action={saveSearch.bind(null, query)}>
               <button
                 type="submit"
                 disabled={!query}
-                className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.08] disabled:opacity-40"
+                aria-label="Сохранить запрос в кабинет"
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 disabled:opacity-40"
               >
                 <Bookmark className="h-3.5 w-3.5" />
-                Сохранить
+                <span className="inline">Сохранить</span>
               </button>
             </form>
-            <div className="flex rounded-xl border border-white/10 bg-[#13161C] p-1">
+
+            <div className="flex rounded-full border border-white/10 bg-[#13161C] p-0.5">
               <Link
-                aria-label="Карточки"
-                href={href(query, category, sort, "grid")}
-                className={`rounded-lg p-2 ${view === "grid" ? "bg-white/10 text-[#00FF87]" : "text-slate-500"}`}
+                aria-label="Вид сеткой"
+                href={buildSearchUrl(query, category, sort, "grid")}
+                className={`rounded-full p-1.5 transition ${
+                  view === "grid" ? "bg-[#00FF87] text-black" : "text-slate-400 hover:text-white"
+                }`}
               >
                 <Grid3X3 className="h-4 w-4" />
               </Link>
               <Link
-                aria-label="Список"
-                href={href(query, category, sort, "list")}
-                className={`rounded-lg p-2 ${view === "list" ? "bg-white/10 text-[#00FF87]" : "text-slate-500"}`}
+                aria-label="Вид списком"
+                href={buildSearchUrl(query, category, sort, "list")}
+                className={`rounded-full p-1.5 transition ${
+                  view === "list" ? "bg-[#00FF87] text-black" : "text-slate-400 hover:text-white"
+                }`}
               >
                 <List className="h-4 w-4" />
               </Link>
             </div>
           </div>
         </div>
+
+        {/* Раскрывающаяся панель расширенных фильтров */}
+        {filterOpen && (
+          <div className="mb-6 rounded-2xl border border-white/10 bg-[#13161C] p-4 sm:p-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Все категории ({activeCategory})
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={buildSearchUrl(query, "all", sort, view)}
+                    className={`${filterBase} ${category === "all" ? "border-[#00FF87] bg-[#00FF87]/15 text-[#00FF87]" : ""}`}
+                  >
+                    Все
+                  </Link>
+                  {categories.map((c) => (
+                    <Link
+                      key={c}
+                      href={buildSearchUrl(query, c, sort, view)}
+                      className={`${filterBase} ${category === c ? "border-[#00FF87] bg-[#00FF87]/15 text-[#00FF87]" : ""}`}
+                    >
+                      {c}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Сортировка ({activeSort})
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ["relevance", "По названию"],
+                    ["price_asc", "Сначала дешевле"],
+                    ["price_desc", "Сначала дороже"],
+                    ["rating", "По рейтингу"],
+                  ].map(([s, label]) => (
+                    <Link
+                      key={s}
+                      href={buildSearchUrl(query, category, s, view)}
+                      className={`${filterBase} ${sort === s ? "border-[#00FF87] bg-white/10 text-white" : ""}`}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Пустое состояние */}
         {products.length === 0 ? (
-          <section className="rounded-2xl border border-white/10 bg-[#13161C] p-12 text-center">
-            <Sparkles className="mx-auto mb-4 h-7 w-7 text-[#00FF87]" />
-            <h1 className="text-xl font-extrabold text-white">Ничего не найдено</h1>
-            <p className="mt-2 text-sm text-slate-500">Измени запрос или фильтр.</p>
+          <section className="my-12 rounded-3xl border border-white/10 bg-[#13161C] p-12 text-center">
+            <Sparkles className="mx-auto mb-4 h-9 w-9 text-[#00FF87]" />
+            <h1 className="text-xl font-black text-white">Ничего не найдено</h1>
+            <p className="mt-2 text-sm text-slate-400">
+              Попробуйте ввести другой запрос (например, «наушники» или «палатка»).
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link
+                href="/search?q=наушники"
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
+              >
+                Искать «наушники»
+              </Link>
+              <Link
+                href="/search"
+                className="rounded-full bg-[#00FF87] px-4 py-2 text-xs font-bold text-black hover:bg-[#00E576]"
+              >
+                Сбросить поиск
+              </Link>
+            </div>
           </section>
         ) : (
+          /* Сетка / Список карточек товаров */
           <div
             className={
-              view === "grid" ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-3"
+              view === "grid"
+                ? "mb-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+                : "mb-10 space-y-4"
             }
           >
             {products.map((product) => {
-              const offer = [...product.offers].sort(
+              const sortedOffers = [...product.offers].sort(
                 (a, b) =>
                   (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
-              )[0];
+              );
+              const bestOffer = sortedOffers[0];
+              const bestPrice = bestOffer?.price ?? 0;
+
               return (
                 <article
                   key={product.id}
-                  className={`overflow-hidden rounded-2xl border border-white/10 bg-[#13161C]/70 transition hover:border-white/20 ${view === "list" ? "flex flex-col md:flex-row" : ""}`}
+                  className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[#00FF87]/25 bg-[#12151B] p-4.5 sm:p-5 shadow-[0_0_20px_rgba(0,255,135,0.05)] transition-all duration-300 hover:border-[#00FF87]/60 hover:shadow-[0_0_30px_rgba(0,255,135,0.12)] ${
+                    view === "list" ? "md:flex-row md:gap-6" : ""
+                  }`}
                 >
-                  <Link
-                    href={`/product/${product.id}`}
-                    className={view === "list" ? "h-48 shrink-0 md:h-auto md:w-56" : "block"}
+                  {/* Верхняя секция: Картинка слева + AI Score круг и теги справа */}
+                  <div
+                    className={`flex flex-col gap-3.5 sm:flex-row ${
+                      view === "list" ? "md:w-3/5" : ""
+                    }`}
                   >
-                    <div
-                      className={`flex items-center justify-center bg-[#0A0C11] ${view === "list" ? "h-48 md:h-full" : "h-48"}`}
+                    {/* Контейнер изображения товара */}
+                    <Link
+                      href={`/product/${product.id}`}
+                      className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-2xl bg-[#0D0F14] p-3 sm:h-36 sm:w-36 sm:shrink-0"
                     >
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.title}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
                         />
                       ) : (
-                        <Sparkles className="h-8 w-8 text-slate-700" />
+                        <Sparkles className="h-10 w-10 text-slate-700" />
                       )}
+
+                      {/* Бейдж маркетплейса лучшей цены */}
+                      {bestOffer?.marketplace && (
+                        <span className="absolute bottom-2 left-2 rounded-md bg-[#13161C]/90 px-2 py-0.5 text-[10px] font-bold text-slate-300 backdrop-blur-xs">
+                          {bestOffer.marketplace}
+                        </span>
+                      )}
+                    </Link>
+
+                    {/* AI Score индикатор + 4 ключевых преимущества */}
+                    <div className="flex flex-1 min-w-0 flex-col justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <AiScoreGauge score={product.aiScore} />
+
+                        {/* Теги валидации ИИ */}
+                        <div className="flex flex-1 min-w-0 flex-col gap-1 overflow-hidden">
+                          {product.aiTags.slice(0, 4).map((tag, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
+                              <span className="truncate">{tag}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Спарклайн динамики цен */}
+                      <div className="mt-2.5">
+                        <CardPriceSparkline
+                          sparkline={product.priceSparkline}
+                          currentPrice={bestPrice}
+                          currency={bestOffer?.currency || "RUB"}
+                        />
+                      </div>
                     </div>
-                  </Link>
+                  </div>
+
+                  {/* Нижняя секция карточки: Название, Цена со скидкой и Кнопки */}
                   <div
-                    className={`flex flex-1 flex-col gap-3 p-5 ${view === "list" ? "md:justify-center" : ""}`}
+                    className={`mt-5 flex flex-col justify-end border-t border-white/5 pt-4 ${
+                      view === "list" ? "md:mt-0 md:w-2/5 md:border-l md:border-t-0 md:pl-6 md:pt-0" : ""
+                    }`}
                   >
-                    <Link href={`/product/${product.id}`}>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
+                    <Link href={`/product/${product.id}`} className="block">
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
                         {product.brand}
                       </div>
-                      <h2 className="mt-1 line-clamp-2 text-base font-bold text-white hover:text-[#00FF87]">
+                      <h3 className="mt-0.5 line-clamp-2 text-base font-black text-white transition group-hover:text-[#00FF87]">
                         {product.title}
-                      </h2>
-                      <p className="mt-1 text-xs text-slate-500">{product.category}</p>
+                      </h3>
                     </Link>
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <div className="text-xl font-extrabold text-white">
-                          {price(offer?.price ?? null, offer?.currency ?? "RUB")}
-                        </div>
-                        <div className="mt-1 text-[10px] font-semibold text-slate-500">
-                          {offer?.marketplace ?? ""}
-                        </div>
-                      </div>
-                      {offer?.rating != null && (
-                        <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold">
-                          ★ {Number(offer.rating).toFixed(1)}
-                        </div>
+
+                    {/* Цена и размер выгоды */}
+                    <div className="mt-3 flex items-baseline gap-2.5">
+                      <span className="text-xl font-black text-white sm:text-2xl">
+                        {formatPrice(bestPrice, bestOffer?.currency || "RUB")}
+                      </span>
+                      {product.discountPercent > 0 && (
+                        <span className="rounded-md bg-[#00FF87]/15 px-2 py-0.5 text-xs font-bold text-[#00FF87]">
+                          -{product.discountPercent}%
+                        </span>
                       )}
                     </div>
-                    {offer?.deliveryText && (
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Truck className="h-3.5 w-3.5" />
-                        {offer.deliveryText}
+
+                    {bestOffer?.deliveryText && (
+                      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                        <Truck className="h-3.5 w-3.5 text-emerald-400" />
+                        <span>{bestOffer.deliveryText}</span>
                       </div>
                     )}
-                    <div className="mt-auto flex gap-2">
-                      <Link
-                        href={`/product/${product.id}`}
-                        className="flex flex-1 items-center justify-center rounded-xl bg-white/5 py-3 text-xs font-extrabold text-white hover:bg-white/10"
-                      >
-                        Подробнее
-                      </Link>
-                      {offer?.url && (
+
+                    {/* Кнопки действий */}
+                    <div className="mt-4 flex items-center gap-2">
+                      {bestOffer?.url ? (
                         <a
-                          href={offer.url}
+                          href={bestOffer.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#00FF87] py-3 text-xs font-extrabold text-black hover:bg-[#00E576]"
+                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[#00FF87] bg-transparent px-4 text-xs font-bold text-[#00FF87] transition hover:bg-[#00FF87] hover:text-black hover:shadow-[0_0_15px_rgba(0,255,135,0.4)]"
                         >
-                          Открыть <ExternalLink className="h-3.5 w-3.5" />
+                          <span>Купить сейчас</span>
+                          <ShoppingCart className="h-4 w-4" />
                         </a>
+                      ) : (
+                        <Link
+                          href={`/product/${product.id}`}
+                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[#00FF87] bg-transparent px-4 text-xs font-bold text-[#00FF87] transition hover:bg-[#00FF87] hover:text-black"
+                        >
+                          <span>Сравнить цены</span>
+                          <ShoppingCart className="h-4 w-4" />
+                        </Link>
                       )}
+
+                      <Link
+                        href={`/product/${product.id}`}
+                        aria-label="Подробнее о товаре"
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
                     </div>
                   </div>
                 </article>
@@ -298,15 +659,13 @@ export default async function SearchResults({
             })}
           </div>
         )}
+
+        {/* Секция «АНАЛИТИКА РЫНКА» внизу страницы в соответствии с мокапом */}
+        <MarketAnalyticsSection />
       </main>
-    </div>
-  );
-}
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-[#13161C]/70 p-3">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600">{label}</div>
-      <div className="mt-1 truncate text-sm font-black text-white">{value}</div>
+
+      {/* Мобильная нижняя панель навигации (под большой палец) */}
+      <MobileBottomNav />
     </div>
   );
 }

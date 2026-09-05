@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, ArrowRight, Sparkles, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, ArrowLeft, Sparkles, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 function authError(message: string) {
@@ -95,6 +95,20 @@ export default function LoginPage() {
       <div className="relative flex w-full flex-col items-center justify-center p-6 md:p-16 lg:w-1/2">
         <div className="pointer-events-none absolute inset-0 bg-[#0D0F14]" />
         <div className="relative z-10 w-full max-w-[400px]">
+          {/* Мобильная шапка с брендом wobuy. и кнопкой возврата */}
+          <div className="mb-6 flex w-full items-center justify-between lg:hidden">
+            <Link href="/" className="text-2xl font-black tracking-tight text-white">
+              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+            </Link>
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>На главную</span>
+            </Link>
+          </div>
+
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}

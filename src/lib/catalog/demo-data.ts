@@ -408,6 +408,96 @@ export const DEMO_PRODUCTS: DemoProduct[] = [
       },
     ],
   },
+  {
+    id: "prod-13",
+    canonical_name: "Sennheiser Momentum 4 Wireless",
+    brand: "Sennheiser",
+    category: "Электроника",
+    description:
+      "Премиальные аудиофильские беспроводные наушники с рекордной автономностью до 60 часов. Адаптивное гибридное шумоподавление, фирменные 42-мм излучатели, поддержка aptX Adaptive.",
+    image_url:
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+    ai_summary:
+      "ИИ-анализ: Анти-Фейк 98%. Исторически лучшая цена за 90 дней. Лучшая детализация в среднем и высоком регистре частот. 99% рекомендаций покупателей.",
+    is_active: true,
+    product_offers: [
+      {
+        id: "off-18",
+        marketplace: "Ozon",
+        title: "Беспроводные наушники Sennheiser Momentum 4 Wireless Black",
+        url: "https://ozon.ru",
+        price: 32990,
+        currency: "RUB",
+        rating: 4.9,
+        review_count: 512,
+        delivery_text: "Завтра",
+        availability: "В наличии",
+      },
+      {
+        id: "off-19",
+        marketplace: "Яндекс Маркет",
+        title: "Наушники полноразмерные Sennheiser Momentum 4 Wireless",
+        url: "https://market.yandex.ru",
+        price: 34990,
+        currency: "RUB",
+        rating: 4.9,
+        review_count: 280,
+        delivery_text: "Сегодня",
+        availability: "В наличии",
+      },
+      {
+        id: "off-20",
+        marketplace: "Wildberries",
+        title: "Sennheiser Momentum 4 Wireless черные",
+        url: "https://wildberries.ru",
+        price: 36490,
+        currency: "RUB",
+        rating: 4.8,
+        review_count: 190,
+        delivery_text: "2 дня",
+        availability: "В наличии",
+      },
+    ],
+  },
+  {
+    id: "prod-14",
+    canonical_name: "Bowers & Wilkins Px8",
+    brand: "Bowers & Wilkins",
+    category: "Электроника",
+    description:
+      "Флагманские беспроводные наушники класса люкс. Корпус из литого алюминия, отделка тончайшей кожей наппа, карбоновые диффузоры 40 мм под наклоном для сверхточной сцены.",
+    image_url:
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&auto=format&fit=crop&q=80",
+    ai_summary:
+      "ИИ-анализ: Анти-Фейк 91%. Премиум материалы и бескомпромиссное звучание. Проверена подлинность партии у авторизованного дистрибьютора.",
+    is_active: true,
+    product_offers: [
+      {
+        id: "off-21",
+        marketplace: "Ozon",
+        title: "Наушники беспроводные Bowers & Wilkins Px8 Royal Burgundy/Gold",
+        url: "https://ozon.ru",
+        price: 65990,
+        currency: "RUB",
+        rating: 4.9,
+        review_count: 140,
+        delivery_text: "Послезавтра",
+        availability: "В наличии",
+      },
+      {
+        id: "off-22",
+        marketplace: "Яндекс Маркет",
+        title: "Bowers & Wilkins Px8 флагманские наушники",
+        url: "https://market.yandex.ru",
+        price: 69990,
+        currency: "RUB",
+        rating: 4.8,
+        review_count: 85,
+        delivery_text: "3 дня",
+        availability: "В наличии",
+      },
+    ],
+  },
 ];
 
 export function getDemoProductById(id: string): DemoProduct | null {

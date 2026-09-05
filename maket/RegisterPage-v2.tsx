@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Loader2,
@@ -118,12 +119,21 @@ export default function RegisterPage() {
       <section className="relative flex w-full items-center justify-center overflow-hidden p-6 md:p-16 lg:w-1/2">
         <div className="absolute inset-0 bg-[#0D0F14]" />
         <div className="relative z-10 w-full max-w-[420px] py-12">
-          <Link
-            href="/"
-            className="mb-8 inline-flex text-2xl font-bold tracking-tight text-white lg:hidden"
-          >
-            wobuy<span className="text-[#00FF87]">.</span>
-          </Link>
+          <div className="mb-8 flex items-center justify-between lg:hidden">
+            <Link
+              href="/"
+              className="text-2xl font-black tracking-tight text-white"
+            >
+              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+            </Link>
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>На главную</span>
+            </Link>
+          </div>
           <div className="mb-6">
             <h2 className="text-2xl font-extrabold tracking-tight text-white md:text-3xl">
               Создать аккаунт
