@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ExternalLink, Heart, ShieldCheck, Star, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { toggleFavorite } from "@/app/dashboard/actions";
+import { getDemoProductById } from "@/lib/catalog/demo-data";
 
 function formatPrice(price: number | null, currency: string) {
   if (price === null) return "Цена не указана";
@@ -12,19 +13,59 @@ function formatPrice(price: number | null, currency: string) {
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: product, error } = await supabase.from("products").select("id, canonical_name, brand, category, description, image_url, ai_summary, product_offers(id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability)").eq("id", id).eq("is_active", true).maybeSingle();
-  if (error || !product) notFound();
+  let user = null;
+  let product = null;
+  let favorite = null;
 
-  if (user) {
-    const { data: latestView } = await supabase.from("product_view_history").select("viewed_at").eq("user_id", user.id).eq("product_id", product.id).order("viewed_at", { ascending: false }).limit(1).maybeSingle();
-    const latestTimestamp = latestView?.viewed_at ? new Date(latestView.viewed_at).getTime() : 0;
-    if (!latestTimestamp || Date.now() - latestTimestamp > 30 * 60 * 1000) {
-      await supabase.from("product_view_history").insert({ user_id: user.id, product_id: product.id });
+  try {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      const supabase = await createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      user = userData?.user ?? null;
+
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, canonical_name, brand, category, description, image_url, ai_summary, product_offers(id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability)")
+        .eq("id", id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!error && data) {
+        product = data;
+      }
+
+      if (user && product) {
+        const { data: latestView } = await supabase
+          .from("product_view_history")
+          .select("viewed_at")
+          .eq("user_id", user.id)
+          .eq("product_id", product.id)
+          .order("viewed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const latestTimestamp = latestView?.viewed_at ? new Date(latestView.viewed_at).getTime() : 0;
+        if (!latestTimestamp || Date.now() - latestTimestamp > 30 * 60 * 1000) {
+          await supabase.from("product_view_history").insert({ user_id: user.id, product_id: product.id });
+        }
+        const { data: favData } = await supabase
+          .from("user_favorites")
+          .select("product_id")
+          .eq("user_id", user.id)
+          .eq("product_id", product.id)
+          .maybeSingle();
+        favorite = favData;
+      }
     }
+  } catch (err) {
+    console.warn("Ошибка подключения к Supabase в карточке товара:", err);
   }
-  const { data: favorite } = user ? await supabase.from("user_favorites").select("product_id").eq("user_id", user.id).eq("product_id", product.id).maybeSingle() : { data: null };
+
+  if (!product) {
+    product = getDemoProductById(id);
+  }
+
+  if (!product) notFound();
+
   const offers = [...(product.product_offers ?? [])].sort((a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER));
 
   return (

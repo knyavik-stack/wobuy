@@ -1,0 +1,8 @@
+{
+  "name": "wobuy",
+  "description": "Умный поиск товаров, сравнение цен на маркетплейсах и подбор лучших предложений с ИИ-помощником.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

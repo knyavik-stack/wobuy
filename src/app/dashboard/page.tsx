@@ -7,16 +7,44 @@ import { LogoutButton } from "@/components/auth/auth-form";
 import ProfileSettings from "@/components/dashboard/profile-settings";
 import { deleteHistoryItem, deleteSavedSearch } from "./actions";
 
+type HistoryProduct = {
+  id: string;
+  canonical_name: string;
+  brand: string;
+  category: string;
+  image_url: string | null;
+};
+
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null;
+  let supabase = null;
+  try {
+    supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data?.user ?? null;
+  } catch {
+    user = null;
+  }
   if (!user) redirect("/login");
 
-  const [{ data: favorites }, { data: searches }, { data: history }] = await Promise.all([
-    supabase.from("user_favorites").select("product_id, created_at, products(id, canonical_name, brand, category, image_url)").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("saved_searches").select("id, query, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
-    supabase.from("product_view_history").select("id, viewed_at, products(id, canonical_name, brand, category, image_url)").eq("user_id", user.id).order("viewed_at", { ascending: false }).limit(20),
-  ]);
+  let favorites: Array<{ product_id: string; created_at: string; products: HistoryProduct | HistoryProduct[] | null }> | null = null;
+  let searches: Array<{ id: string; query: string; created_at: string }> | null = null;
+  let history: Array<{ id: string; viewed_at: string; products: HistoryProduct | HistoryProduct[] | null }> | null = null;
+
+  try {
+    if (supabase) {
+      const [favRes, searchRes, histRes] = await Promise.all([
+        supabase.from("user_favorites").select("product_id, created_at, products(id, canonical_name, brand, category, image_url)").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("saved_searches").select("id, query, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("product_view_history").select("id, viewed_at, products(id, canonical_name, brand, category, image_url)").eq("user_id", user.id).order("viewed_at", { ascending: false }).limit(20),
+      ]);
+      favorites = favRes.data;
+      searches = searchRes.data;
+      history = histRes.data;
+    }
+  } catch (err) {
+    console.warn("Ошибка загрузки данных кабинета:", err);
+  }
 
   const displayName = typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "";
 
