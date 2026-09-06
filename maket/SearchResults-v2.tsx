@@ -16,8 +16,6 @@ import {
   Bot,
   Truck,
   ArrowRight,
-  TrendingDown,
-  Flame,
 } from "lucide-react";
 import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";

@@ -4,16 +4,12 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   CheckCircle2,
-  Clock,
   ExternalLink,
   Heart,
   RotateCcw,
   ShieldCheck,
-  ShoppingCart,
   Sparkles,
   Star,
-  TrendingDown,
-  Truck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { toggleFavorite } from "@/app/dashboard/actions";
@@ -265,7 +261,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       textColor: "text-amber-400",
       title: "Скорость доставки",
       points: [
-        bestOffer?.deliveryText || "Быстрая доставка до пункта выдачи заказов",
+        bestOffer?.delivery_text || "Быстрая доставка до пункта выдачи заказов",
         "Отгрузка со складов маркетплейса",
         "Удобный возврат при получении без ожидания экспертизы",
       ],

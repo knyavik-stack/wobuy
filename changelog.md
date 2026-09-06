@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-06
+
+- **Исправление сборки на Vercel (Next.js production build & typecheck)**:
+  - Удалены неиспользуемые импорты `Clock`, `ShoppingCart`, `TrendingDown`, `Truck` в `src/app/product/[id]/page.tsx` и `maket/SearchResults-v2.tsx`.
+  - Исправлена ошибка доступа к полю `bestOffer?.deliveryText` -> `bestOffer?.delivery_text` в соответствии со схемой `ProductOffer`.
+  - Проведена проверка `eslint .` и чистая компиляция `next build` без предупреждений и ошибок.
+
 ## 2026-09-05
 
 - **Внедрение семантического векторного поиска pgvector и распознавания намерений**:
