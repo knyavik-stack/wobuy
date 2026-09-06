@@ -92,66 +92,13 @@ export async function searchOzon(
     }
   } catch (err: unknown) {
     if ((err as Error)?.name !== "AbortError") {
-      console.warn("[Ozon Search] Запрос к Ozon API отклонен защитой Cloudflare, включается отказоустойчивый режим:", err);
+      console.warn("[Ozon Search] Запрос к Ozon API:", err);
     }
   } finally {
     clearTimeout(timer);
   }
 
-  // 2. Отказоустойчивый режим (формирование структурированных Ozon-предложений для запроса)
-  return generateResilientOzonOffers(cleanQuery, limit);
+  // Если Ozon API заблокирован или не вернул товары, возвращаем пустой список (не генерируем фейковые товары)
+  return [];
 }
 
-/**
- * Создает валидные структурированные предложения Ozon для запроса,
- * сохраняя реальные поисковые ссылки на Ozon и реалистичную ценовую вилку.
- */
-function generateResilientOzonOffers(query: string, limit = 5): RawMarketplaceOffer[] {
-  const hash = query.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const basePrice = Math.max(1200, (hash * 37) % 45000);
-
-  const searchUrl = `https://www.ozon.ru/search/?text=${encodeURIComponent(query)}`;
-
-  return [
-    {
-      id: `ozon-${hash}-1`,
-      marketplace: "ozon" as const,
-      externalId: `${hash}01`,
-      title: `${query} (Ozon Premium)`,
-      brand: "Ozon Marketplace",
-      price: Math.round(basePrice * 0.96),
-      originalPrice: Math.round(basePrice * 1.15),
-      discountPercent: 16,
-      currency: "RUB",
-      rating: 4.8,
-      reviewCount: 340 + (hash % 200),
-      url: searchUrl,
-      imageUrl: "https://picsum.photos/seed/ozon-item/600/600",
-      deliveryDays: 1,
-      deliveryText: "Завтра (Ozon Express)",
-      availability: "В наличии",
-      sellerName: "Ozon Retail & Официальный дистрибьютор",
-      sellerRating: 4.9,
-    },
-    {
-      id: `ozon-${hash}-2`,
-      marketplace: "ozon" as const,
-      externalId: `${hash}02`,
-      title: `${query} Original Pro`,
-      brand: "Ozon Seller",
-      price: Math.round(basePrice * 1.04),
-      originalPrice: Math.round(basePrice * 1.25),
-      discountPercent: 17,
-      currency: "RUB",
-      rating: 4.7,
-      reviewCount: 180 + (hash % 100),
-      url: searchUrl,
-      imageUrl: "https://picsum.photos/seed/ozon-seller/600/600",
-      deliveryDays: 2,
-      deliveryText: "Послезавтра (Склад Ozon)",
-      availability: "В наличии",
-      sellerName: "Проверенный партнер Ozon",
-      sellerRating: 4.8,
-    },
-  ].slice(0, limit);
-}

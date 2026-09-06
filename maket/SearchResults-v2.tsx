@@ -367,22 +367,32 @@ export default function SearchResults({
             </button>
           </form>
 
-          {/* AI Ассистент баннер на десктопе */}
-          <div className="hidden items-center gap-3 rounded-full border border-emerald-500/30 bg-[#12151B]/90 px-4 py-1.5 shadow-lg md:flex">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-[#00FF87] to-cyan-400 p-0.5">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0D0F14]">
-                <Bot className="h-4 w-4 text-[#00FF87]" />
+          {/* AI Ассистент баннер и Личный кабинет на десктопе */}
+          <div className="hidden items-center gap-3 md:flex">
+            <div className="flex items-center gap-2.5 rounded-full border border-emerald-500/30 bg-[#12151B]/90 px-3.5 py-1.5 shadow-lg">
+              <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-[#00FF87] to-cyan-400 p-0.5">
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0D0F14]">
+                  <Bot className="h-3.5 w-3.5 text-[#00FF87]" />
+                </div>
+              </div>
+              <div className="text-xs text-slate-300">
+                {products.length > 0 ? (
+                  <span>
+                    Найдено <strong className="text-white">{products.length}</strong> товаров
+                  </span>
+                ) : (
+                  <span>ИИ поиск wobuy.</span>
+                )}
               </div>
             </div>
-            <div className="text-xs text-slate-300">
-              {products.length > 0 ? (
-                <span>
-                  ИИ подобрал <strong className="text-white">{products.length}</strong> проверенных товаров
-                </span>
-              ) : (
-                <span>ИИ готов к подбору товаров</span>
-              )}
-            </div>
+
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-semibold text-white transition hover:border-[#00FF87]/50 hover:bg-white/10"
+            >
+              <Bookmark className="h-3.5 w-3.5 text-[#00FF87]" />
+              <span>Кабинет</span>
+            </Link>
           </div>
         </div>
       </header>

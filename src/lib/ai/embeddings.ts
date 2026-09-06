@@ -80,7 +80,7 @@ export async function extractSearchIntent(rawQuery: string): Promise<ExtractedSe
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-20b",
+          model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "system",
@@ -124,6 +124,41 @@ export async function extractSearchIntent(rawQuery: string): Promise<ExtractedSe
       }
     } catch (err) {
       console.warn("[Search Intent] Groq parsing error:", err);
+    }
+  }
+
+  // Gemini fallback для парсинга намерений
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const resp = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Ты — семантический парсер запросов wobuy. Извлеки JSON из запроса: "${rawQuery}".
+Формат строго JSON:
+{
+  "cleanQuery": "поисковый запрос для каталога",
+  "categoryHint": "категория или null",
+  "brandHint": "бренд или null",
+  "maxPrice": число или null,
+  "minPrice": число или null,
+  "desiredFeatures": ["свойство1"]
+}`,
+        config: { responseMimeType: "application/json" },
+      });
+
+      if (resp.text) {
+        const parsed = JSON.parse(resp.text);
+        return {
+          cleanQuery: parsed.cleanQuery || rawQuery,
+          categoryHint: parsed.categoryHint || undefined,
+          brandHint: parsed.brandHint || undefined,
+          maxPrice: parsed.maxPrice || parsedMaxPrice,
+          minPrice: parsed.minPrice || undefined,
+          desiredFeatures: Array.isArray(parsed.desiredFeatures) ? parsed.desiredFeatures : [],
+        };
+      }
+    } catch (err) {
+      console.warn("[Search Intent] Gemini parsing error:", err);
     }
   }
 

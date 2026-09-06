@@ -2,15 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request });
+  let response = NextResponse.next({ request });
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    ? process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "")
-    : undefined;
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
+  if (!rawUrl || !anonKey) {
     if (isDashboard) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";
@@ -19,6 +17,8 @@ export async function middleware(request: NextRequest) {
     }
     return response;
   }
+
+  const url = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
   try {
     const supabase = createServerClient(
@@ -30,8 +30,11 @@ export async function middleware(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
+            cookiesToSet.forEach(({ name, value }) => {
               request.cookies.set(name, value);
+            });
+            response = NextResponse.next({ request });
+            cookiesToSet.forEach(({ name, value, options }) => {
               response.cookies.set(name, value, options);
             });
           },
@@ -39,9 +42,12 @@ export async function middleware(request: NextRequest) {
       },
     );
 
-    const { data: claims } = await supabase.auth.getClaims();
+    // getUser() обновляет просроченные токены и валидирует сессию
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (isDashboard && !claims?.claims?.sub) {
+    if (isDashboard && !user) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";
       loginUrl.searchParams.set("next", request.nextUrl.pathname);
@@ -63,3 +69,4 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
+

@@ -63,31 +63,31 @@ export default function LoginPage() {
               </div>
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                  Демо-каталог
+                  Возможности wobuy.
                 </h4>
                 <p className="text-[10px] text-slate-500">
-                  Система готова для проверки пользовательского сценария
+                  Честный и безопасный поиск лучших предложений
                 </p>
               </div>
             </div>
             <div className="space-y-2.5 text-xs text-slate-300">
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87]" />
-                <span>12 демо-товаров</span>
+                <span>Живой парсинг цен и предложений Wildberries и Ozon</span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87]" />
-                <span>16 демо-предложений маркетплейсов</span>
+                <span>Анализ 4 ИИ-агентов (Перфекционист, Экономный, Срочный, Скептик)</span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87]" />
-                <span>Поиск и карточки товаров работают на реальных данных каталога</span>
+                <span>Защита Анти-Фейк и фильтрация накрученных бот-отзывов</span>
               </div>
             </div>
           </div>
         </div>
         <div className="relative z-10 text-xs text-slate-500">
-          © 2026 wobuy. · Бесплатный демо-режим
+          © 2026 wobuy. Все права защищены
         </div>
       </div>
 
