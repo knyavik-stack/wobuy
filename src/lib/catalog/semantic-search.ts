@@ -1,16 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { generateEmbedding, extractSearchIntent } from "@/lib/ai/embeddings";
 import { SearchProduct } from "@/lib/catalog/search";
-
-/**
- * Инициализирует Supabase клиент с правами service_role для безопасных серверных операций
- */
-function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 export interface SemanticSearchResult {
   products: SearchProduct[];
@@ -137,6 +127,7 @@ export async function searchProductsSemantically(
  * Сохраняет распарсенный товар в Supabase с генерацией эмбеддинга (LRU / Smart Sync)
  */
 export async function upsertProductWithEmbedding(product: {
+  id?: string;
   canonicalName: string;
   brand: string;
   category: string;
@@ -155,21 +146,22 @@ export async function upsertProductWithEmbedding(product: {
   if (!supabase) return null;
 
   try {
-    // 1. Генерируем вектор эмбеддинга по названию и характеристикам
-    const textToEmbed = `${product.canonicalName} ${product.brand} ${product.category} ${product.description}`.slice(0, 1000);
-    const embedding = await generateEmbedding(textToEmbed);
-
-    // 2. Ищем или создаем товар
-    const { data: existing } = await supabase
-      .from("products")
-      .select("id")
-      .eq("canonical_name", product.canonicalName)
-      .limit(1)
-      .maybeSingle();
+    // 1. Ищем или создаем товар
+    let existingQuery = supabase.from("products").select("id").limit(1);
+    if (product.id) {
+      existingQuery = existingQuery.eq("id", product.id);
+    } else {
+      existingQuery = existingQuery.eq("canonical_name", product.canonicalName);
+    }
+    const { data: existing } = await existingQuery.maybeSingle();
 
     let productId = existing?.id;
 
     if (!productId) {
+      // Генерируем вектор эмбеддинга
+      const textToEmbed = `${product.canonicalName} ${product.brand} ${product.category} ${product.description}`.slice(0, 1000);
+      const embedding = await generateEmbedding(textToEmbed);
+
       const insertPayload: Record<string, unknown> = {
         canonical_name: product.canonicalName,
         brand: product.brand,
@@ -178,6 +170,10 @@ export async function upsertProductWithEmbedding(product: {
         image_url: product.imageUrl,
         is_active: true,
       };
+
+      if (product.id) {
+        insertPayload.id = product.id;
+      }
 
       if (embedding) {
         insertPayload.embedding = embedding;
@@ -196,7 +192,7 @@ export async function upsertProductWithEmbedding(product: {
       productId = created?.id;
     }
 
-    // 3. Сохраняем предложения
+    // 2. Сохраняем предложения
     if (productId && product.offers.length > 0) {
       for (const off of product.offers) {
         await supabase.from("product_offers").upsert(

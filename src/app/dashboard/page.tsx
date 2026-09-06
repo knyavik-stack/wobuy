@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -9,15 +8,15 @@ import {
   Search,
   Settings,
   Sparkles,
-  Trash2,
-  ArrowRight,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardLogoutButton } from "@/components/dashboard/dashboard-logout-button";
 import ProfileSettings from "@/components/dashboard/profile-settings";
-import { deleteHistoryItem, deleteSavedSearch } from "./actions";
+import { DashboardFavoritesList } from "@/components/dashboard/dashboard-favorites-list";
+import { DashboardHistoryList } from "@/components/dashboard/dashboard-history-list";
+import { DashboardSearchesList } from "@/components/dashboard/dashboard-searches-list";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { getDemoProductById } from "@/lib/catalog/demo-data";
 import { computeProductAiMetrics } from "@/lib/catalog/search";
@@ -30,15 +29,6 @@ type HistoryProduct = {
   category: string;
   image_url: string | null;
 };
-
-function formatPrice(price: number | null, currency = "RUB") {
-  if (price === null) return "—";
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(price);
-}
 
 export default async function DashboardPage() {
   let user = null;
@@ -193,113 +183,44 @@ export default async function DashboardPage() {
                 </span>
               </div>
 
-              {favorites && favorites.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {favorites.map((item) => {
-                    const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
-                    const fallback = rawP?.id ? getDemoProductById(rawP.id) : null;
-                    const id = rawP?.id || item.product_id;
-                    const demoP = fallback || getDemoProductById(id);
-                    const name = rawP?.canonical_name || demoP?.canonical_name || "Товар каталога";
-                    const brand = rawP?.brand || demoP?.brand || "Бренд";
-                    const category = rawP?.category || demoP?.category || "Категория";
-                    const img = rawP?.image_url || demoP?.image_url || null;
-                    const offers = demoP?.product_offers ?? [];
-                    const metrics = demoP
-                      ? computeProductAiMetrics(
-                          demoP.id,
-                          demoP.category,
-                          demoP.brand,
-                          offers.map((o) => ({ price: o.price, rating: o.rating })),
+              <DashboardFavoritesList
+                initialFavorites={(favorites || []).map((item) => {
+                  const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
+                  const fallback = rawP?.id ? getDemoProductById(rawP.id) : null;
+                  const id = rawP?.id || item.product_id;
+                  const demoP = fallback || getDemoProductById(id);
+                  const name = rawP?.canonical_name || demoP?.canonical_name || "Товар каталога";
+                  const brand = rawP?.brand || demoP?.brand || "Бренд";
+                  const category = rawP?.category || demoP?.category || "Категория";
+                  const img = rawP?.image_url || demoP?.image_url || null;
+                  const offers = demoP?.product_offers ?? [];
+                  const metrics = computeProductAiMetrics(
+                    id,
+                    category,
+                    brand,
+                    offers.map((o) => ({ price: o.price, rating: o.rating })),
+                  );
+                  const minPrice =
+                    offers.length > 0
+                      ? offers.reduce(
+                          (min, cur) => (cur.price && cur.price < min ? cur.price : min),
+                          offers[0]?.price ?? 0,
                         )
                       : null;
-                    const minPrice =
-                      offers.length > 0
-                        ? offers.reduce(
-                            (min, cur) => (cur.price && cur.price < min ? cur.price : min),
-                            offers[0]?.price ?? 0,
-                          )
-                        : null;
 
-                    return (
-                      <div
-                        key={item.product_id}
-                        className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#171A21] p-4 transition-all duration-300 hover:border-[#00FF87]/40 hover:shadow-[0_0_24px_rgba(0,255,135,0.08)]"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
-                              {brand}
-                            </span>
-                            {metrics && (
-                              <span className="flex items-center gap-1 text-xs font-black text-[#00FF87]">
-                                <Sparkles className="h-3 w-3" />
-                                {metrics.aiScore}/10
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-3 flex gap-3">
-                            {img ? (
-                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0D0F14]">
-                                <img
-                                  src={img}
-                                  alt={name}
-                                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                />
-                              </div>
-                            ) : (
-                              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#0D0F14] text-slate-600">
-                                <Sparkles className="h-6 w-6" />
-                              </div>
-                            )}
-
-                            <div className="min-w-0 flex-1">
-                              <Link
-                                href={`/product/${id}`}
-                                className="line-clamp-2 text-sm font-bold text-white transition hover:text-[#00FF87]"
-                              >
-                                {name}
-                              </Link>
-                              <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                                <span className="truncate">{category}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
-                          <div className="text-xs">
-                            {minPrice ? (
-                              <span className="font-extrabold text-white">
-                                от {formatPrice(minPrice)}
-                              </span>
-                            ) : (
-                              <span className="text-slate-500">В каталоге</span>
-                            )}
-                          </div>
-
-                          <Link
-                            href={`/product/${id}`}
-                            className="flex items-center gap-1 text-xs font-semibold text-[#00FF87] hover:underline"
-                          >
-                            <span>Подробнее</span>
-                            <ArrowRight className="h-3 w-3" />
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={<Heart className="h-8 w-8 text-slate-600" />}
-                  title="Список избранного пуст"
-                  description="Нажимай на иконку сердечка на карточке любого товара в поиске или каталоге, чтобы закрепить его здесь и следить за ценой."
-                  actionHref="/search"
-                  actionText="Перейти к поиску"
-                />
-              )}
+                  return {
+                    productId: id,
+                    createdAt: item.created_at,
+                    name,
+                    brand,
+                    category,
+                    imageUrl: img,
+                    price: minPrice,
+                    aiScore: metrics.aiScore,
+                    antiFakePercent: metrics.antiFakePercent,
+                  };
+                })}
+              />
             </section>
 
             {/* Секция истории просмотров */}
@@ -319,74 +240,27 @@ export default async function DashboardPage() {
                 </span>
               </div>
 
-              {history && history.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                  {history.map((item) => {
-                    const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
-                    const id = rawP?.id || item.id;
-                    const fallback = id ? getDemoProductById(id) : null;
-                    const name = rawP?.canonical_name || fallback?.canonical_name || "Товар";
-                    const brand = rawP?.brand || fallback?.brand || "Бренд";
-                    const img = rawP?.image_url || fallback?.image_url || null;
+              <DashboardHistoryList
+                initialHistory={(history || []).map((item) => {
+                  const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
+                  const id = rawP?.id || item.id;
+                  const fallback = id ? getDemoProductById(id) : null;
+                  const name = rawP?.canonical_name || fallback?.canonical_name || "Товар";
+                  const brand = rawP?.brand || fallback?.brand || "Бренд";
+                  const category = rawP?.category || fallback?.category || "Категория";
+                  const img = rawP?.image_url || fallback?.image_url || null;
 
-                    return (
-                      <div
-                        key={item.id}
-                        className="group flex flex-col justify-between rounded-2xl border border-white/10 bg-[#171A21] p-3.5 transition hover:border-[#00FF87]/30"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
-                            <span className="text-[#00FF87]">{brand}</span>
-                            <span>{new Date(item.viewed_at).toLocaleDateString("ru-RU")}</span>
-                          </div>
-
-                          <div className="mt-2.5 flex items-center gap-2.5">
-                            {img && (
-                              <img
-                                src={img}
-                                alt={name}
-                                className="h-10 w-10 shrink-0 rounded-lg border border-white/10 object-cover"
-                              />
-                            )}
-                            <Link
-                              href={`/product/${id}`}
-                              className="line-clamp-2 text-xs font-bold text-white transition hover:text-[#00FF87]"
-                            >
-                              {name}
-                            </Link>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2">
-                          <Link
-                            href={`/product/${id}`}
-                            className="text-[11px] font-semibold text-[#00FF87] hover:underline"
-                          >
-                            Открыть
-                          </Link>
-                          <form action={deleteHistoryItem.bind(null, item.id)}>
-                            <button
-                              type="submit"
-                              aria-label="Удалить из истории"
-                              className="text-slate-500 transition hover:text-red-400"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={<Clock3 className="h-8 w-8 text-slate-600" />}
-                  title="История пока пуста"
-                  description="Открывай карточки товаров — они автоматически сохранятся здесь для быстрого возврата."
-                  actionHref="/search"
-                  actionText="Смотреть каталог"
-                />
-              )}
+                  return {
+                    id: item.id,
+                    productId: id,
+                    viewedAt: item.viewed_at,
+                    name,
+                    brand,
+                    category,
+                    imageUrl: img,
+                  };
+                })}
+              />
             </section>
           </div>
 
@@ -407,40 +281,13 @@ export default async function DashboardPage() {
                 </span>
               </div>
 
-              {searches && searches.length > 0 ? (
-                <div className="space-y-2.5">
-                  {searches.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-[#171A21] p-3 transition hover:border-[#00FF87]/30 hover:bg-white/[0.04]"
-                    >
-                      <Link
-                        href={`/search?q=${encodeURIComponent(item.query)}`}
-                        className="flex min-w-0 flex-1 items-center gap-2 text-xs font-semibold text-white transition hover:text-[#00FF87]"
-                      >
-                        <Search className="h-3.5 w-3.5 shrink-0 text-slate-500 group-hover:text-[#00FF87]" />
-                        <span className="truncate">{item.query}</span>
-                      </Link>
-                      <form action={deleteSavedSearch.bind(null, item.id)}>
-                        <button
-                          type="submit"
-                          aria-label="Удалить поиск"
-                          className="p-1 text-slate-500 transition hover:text-red-400"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </form>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-white/10 p-5 text-center">
-                  <Bookmark className="mx-auto h-6 w-6 text-slate-600" />
-                  <p className="mt-2 text-xs text-slate-400">
-                    Сохраняй частые поисковые запросы из выдачи в один клик.
-                  </p>
-                </div>
-              )}
+              <DashboardSearchesList
+                initialSearches={(searches || []).map((item) => ({
+                  id: item.id,
+                  query: item.query,
+                  createdAt: item.created_at,
+                }))}
+              />
             </section>
 
             {/* Карточка AI-ассистента и рекомендаций */}
@@ -508,39 +355,6 @@ function StatCard({
       </div>
       <div className="mt-2 text-2xl font-black text-white">{value}</div>
       <div className="mt-1 text-[10px] text-slate-500">{subtext}</div>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  description,
-  actionHref,
-  actionText,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-  actionHref: string;
-  actionText: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.02]">
-        {icon}
-      </div>
-      <h3 className="mt-3 text-sm font-bold text-white">{title}</h3>
-      <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-400">
-        {description}
-      </p>
-      <Link
-        href={actionHref}
-        className="mt-4 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-[#00FF87] transition hover:bg-white/10"
-      >
-        <span>{actionText}</span>
-        <ArrowRight className="h-3 w-3" />
-      </Link>
     </div>
   );
 }

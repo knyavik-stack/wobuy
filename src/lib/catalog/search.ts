@@ -216,8 +216,9 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
 
       // Фоново синхронизируем найденные реальные товары в базу данных Supabase
       (async () => {
-        for (const item of liveData.slice(0, 5)) {
+        for (const item of liveData.slice(0, 10)) {
           await upsertProductWithEmbedding({
+            id: item.id,
             canonicalName: item.canonicalName,
             brand: item.brand,
             category: item.category,

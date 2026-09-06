@@ -5,14 +5,12 @@ import {
   ArrowLeft,
   CheckCircle2,
   ExternalLink,
-  Heart,
   RotateCcw,
   ShieldCheck,
   Sparkles,
   Star,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { toggleFavorite } from "@/app/dashboard/actions";
 import { getDemoProductById } from "@/lib/catalog/demo-data";
 import { computeProductAiMetrics, getStoredLiveProduct } from "@/lib/catalog/search";
 import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
@@ -20,6 +18,7 @@ import { inferCategoryFromTitle } from "@/lib/parsers/deduplicator";
 import { generateProductAnalysis } from "@/lib/ai/analyzer";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { ProductFavoriteButton } from "@/components/product/product-favorite-button";
 
 function formatPrice(price: number | null, currency: string) {
   if (price === null) return "Цена не указана";
@@ -301,25 +300,17 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Добавить в избранное */}
-            <form action={toggleFavorite.bind(null, product.id)}>
-              <button
-                type="submit"
-                aria-label={favorite ? "Удалить из избранного" : "В избранное"}
-                className={`flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition ${
-                  favorite
-                    ? "border-rose-500/40 bg-rose-500/10 text-rose-400"
-                    : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10"
-                }`}
-              >
-                <Heart
-                  className={`h-3.5 w-3.5 ${favorite ? "fill-rose-400 text-rose-400" : ""}`}
-                />
-                <span className="hidden sm:inline">
-                  {favorite ? "В избранном" : "В избранное"}
-                </span>
-              </button>
-            </form>
+            {/* Добавить в избранное с мгновенной реакцией */}
+            <ProductFavoriteButton
+              productId={product.id}
+              initialIsFavorite={Boolean(favorite)}
+              productMetadata={{
+                title: product.canonical_name,
+                brand: product.brand,
+                category: product.category,
+                imageUrl: product.image_url || undefined,
+              }}
+            />
 
             <Link
               href={bestOffer?.url || "/search"}
