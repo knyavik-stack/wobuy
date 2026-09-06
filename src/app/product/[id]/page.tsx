@@ -11,7 +11,6 @@ import {
   Star,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getDemoProductById } from "@/lib/catalog/demo-data";
 import { computeProductAiMetrics, getStoredLiveProduct } from "@/lib/catalog/search";
 import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
 import { inferCategoryFromTitle } from "@/lib/parsers/deduplicator";
@@ -191,11 +190,6 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         ],
       };
     }
-  }
-
-  // 4. Демо каталог как крайний fallback для старых ссылок
-  if (!product) {
-    product = getDemoProductById(id);
   }
 
   if (!product) notFound();

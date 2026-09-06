@@ -18,7 +18,6 @@ import { DashboardFavoritesList } from "@/components/dashboard/dashboard-favorit
 import { DashboardHistoryList } from "@/components/dashboard/dashboard-history-list";
 import { DashboardSearchesList } from "@/components/dashboard/dashboard-searches-list";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
-import { getDemoProductById } from "@/lib/catalog/demo-data";
 import { computeProductAiMetrics } from "@/lib/catalog/search";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
@@ -184,42 +183,29 @@ export default async function DashboardPage() {
               </div>
 
               <DashboardFavoritesList
-                initialFavorites={(favorites || []).map((item) => {
-                  const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
-                  const fallback = rawP?.id ? getDemoProductById(rawP.id) : null;
-                  const id = rawP?.id || item.product_id;
-                  const demoP = fallback || getDemoProductById(id);
-                  const name = rawP?.canonical_name || demoP?.canonical_name || "Товар каталога";
-                  const brand = rawP?.brand || demoP?.brand || "Бренд";
-                  const category = rawP?.category || demoP?.category || "Категория";
-                  const img = rawP?.image_url || demoP?.image_url || null;
-                  const offers = demoP?.product_offers ?? [];
-                  const metrics = computeProductAiMetrics(
-                    id,
-                    category,
-                    brand,
-                    offers.map((o) => ({ price: o.price, rating: o.rating })),
-                  );
-                  const minPrice =
-                    offers.length > 0
-                      ? offers.reduce(
-                          (min, cur) => (cur.price && cur.price < min ? cur.price : min),
-                          offers[0]?.price ?? 0,
-                        )
-                      : null;
+                initialFavorites={(favorites || [])
+                  .map((item) => {
+                    const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
+                    const id = rawP?.id || item.product_id;
+                    const name = rawP?.canonical_name || "Товар";
+                    const brand = rawP?.brand || "Бренд";
+                    const category = rawP?.category || "Категория";
+                    const img = rawP?.image_url || null;
+                    const metrics = computeProductAiMetrics(id, category, brand, []);
 
-                  return {
-                    productId: id,
-                    createdAt: item.created_at,
-                    name,
-                    brand,
-                    category,
-                    imageUrl: img,
-                    price: minPrice,
-                    aiScore: metrics.aiScore,
-                    antiFakePercent: metrics.antiFakePercent,
-                  };
-                })}
+                    return {
+                      productId: id,
+                      createdAt: item.created_at,
+                      name,
+                      brand,
+                      category,
+                      imageUrl: img,
+                      price: null,
+                      aiScore: metrics.aiScore,
+                      antiFakePercent: metrics.antiFakePercent,
+                    };
+                  })
+                  .filter((p) => !p.productId.startsWith("prod-") && !p.productId.startsWith("demo-"))}
               />
             </section>
 
@@ -241,25 +227,26 @@ export default async function DashboardPage() {
               </div>
 
               <DashboardHistoryList
-                initialHistory={(history || []).map((item) => {
-                  const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
-                  const id = rawP?.id || item.id;
-                  const fallback = id ? getDemoProductById(id) : null;
-                  const name = rawP?.canonical_name || fallback?.canonical_name || "Товар";
-                  const brand = rawP?.brand || fallback?.brand || "Бренд";
-                  const category = rawP?.category || fallback?.category || "Категория";
-                  const img = rawP?.image_url || fallback?.image_url || null;
+                initialHistory={(history || [])
+                  .map((item) => {
+                    const rawP = Array.isArray(item.products) ? item.products[0] : item.products;
+                    const id = rawP?.id || item.id;
+                    const name = rawP?.canonical_name || "Товар";
+                    const brand = rawP?.brand || "Бренд";
+                    const category = rawP?.category || "Категория";
+                    const img = rawP?.image_url || null;
 
-                  return {
-                    id: item.id,
-                    productId: id,
-                    viewedAt: item.viewed_at,
-                    name,
-                    brand,
-                    category,
-                    imageUrl: img,
-                  };
-                })}
+                    return {
+                      id: item.id,
+                      productId: id,
+                      viewedAt: item.viewed_at,
+                      name,
+                      brand,
+                      category,
+                      imageUrl: img,
+                    };
+                  })
+                  .filter((p) => !p.productId.startsWith("prod-") && !p.productId.startsWith("demo-"))}
               />
             </section>
           </div>

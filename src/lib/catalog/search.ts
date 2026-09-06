@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { DEMO_PRODUCTS } from "./demo-data";
 import { aggregateMarketplaceSearch } from "@/lib/parsers/aggregator";
 import { CanonicalProductData } from "@/lib/parsers/types";
 import { searchProductsSemantically, upsertProductWithEmbedding } from "./semantic-search";
@@ -159,7 +158,7 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
   const normalizedQuery = normalize(query);
   const lowerQuery = normalizedQuery.toLowerCase();
 
-  // Если запрос пустой, возвращаем активные товары из БД или дефолтный каталог
+  // Если запрос пустой, возвращаем активные реальные товары из БД
   if (!normalizedQuery) {
     try {
       if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -170,6 +169,8 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
             "id, canonical_name, brand, category, description, image_url, product_offers(id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability)",
           )
           .eq("is_active", true)
+          .not("id", "like", "prod-%")
+          .not("id", "like", "demo-%")
           .limit(20);
 
         if (data && data.length > 0) {
@@ -177,7 +178,7 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
         }
       }
     } catch {}
-    return DEMO_PRODUCTS.filter((p) => p.is_active).map(mapProduct);
+    return [];
   }
 
   // 1. Полнотекстовый и семантический анализ намерения (pgvector)
