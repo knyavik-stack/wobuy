@@ -45,7 +45,7 @@ export async function generateProductAnalysis(
 
   const userPrompt = `Товар: "${productTitle}", Бренд: "${brand}", Категория: "${category}", Лучшая цена: ${price} ₽. Предложения: ${JSON.stringify(offers)}`;
 
-  // 1. Быстрый Groq (llama-3.3-70b-versatile / llama-3.1-8b-instant)
+  // 1. Быстрый Groq (openai/gpt-oss-120b / openai/gpt-oss-20b)
   if (process.env.GROQ_API_KEY) {
     try {
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -55,7 +55,7 @@ export async function generateProductAnalysis(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "openai/gpt-oss-120b",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
