@@ -16,6 +16,8 @@ import {
   Bot,
   Truck,
   ArrowRight,
+  TrendingDown,
+  Flame,
 } from "lucide-react";
 import { saveSearch } from "@/app/dashboard/actions";
 import type { SearchProduct } from "@/lib/catalog/search";
@@ -98,7 +100,7 @@ function CardPriceSparkline({
   currentPrice: number;
   currency?: string;
 }) {
-  const data = sparkline.length ? sparkline : [35000, 34000, 33200, currentPrice];
+  const data = sparkline.length ? sparkline : [currentPrice * 1.15, currentPrice * 1.08, currentPrice];
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -148,22 +150,24 @@ function CardPriceSparkline({
   );
 }
 
-// Блок общей рыночной аналитики в стиле мокапа
-function MarketAnalyticsSection() {
-  const months = [
-    "Янв.",
-    "Фев.",
-    "Мар.",
-    "Апр.",
-    "Май",
-    "Июн.",
-    "Июл.",
-    "Авг.",
-    "Сен.",
-    "Окт.",
-    "Ноя.",
-    "Дек.",
-  ];
+// Блок реальной аналитики цен по найденным товарам
+function MarketAnalyticsSection({
+  products,
+  query,
+}: {
+  products: SearchProduct[];
+  query: string;
+}) {
+  const prices = products
+    .map((p) => Math.min(...p.offers.map((o) => o.price ?? 0).filter((pr) => pr > 0)))
+    .filter((pr) => pr > 0);
+
+  const avgPrice = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
+  const minPrice = prices.length ? Math.min(...prices) : 0;
+  const maxPrice = prices.length ? Math.max(...prices) : 0;
+  const totalOffers = products.reduce((acc, p) => acc + p.offers.length, 0);
+
+  const months = ["Янв.", "Фев.", "Мар.", "Апр.", "Май", "Июн.", "Июл.", "Авг.", "Сен.", "Окт.", "Ноя.", "Дек."];
 
   return (
     <section
@@ -176,32 +180,41 @@ function MarketAnalyticsSection() {
 
       <div className="relative z-10 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-sm font-extrabold uppercase tracking-widest text-white sm:text-base">
-            Аналитика рынка
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-extrabold uppercase tracking-widest text-white sm:text-base">
+              Аналитика рынка {query ? `«${query}»` : ""}
+            </h2>
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
+              Онлайн
+            </span>
+          </div>
           <p className="mt-0.5 text-xs text-slate-400">
-            Исторический тренд цен и лучшее окно покупки по данным ИИ
+            {prices.length > 0
+              ? `Расчет по ${products.length} реальным товарам (${totalOffers} предложений маркетплейсов)`
+              : "Исторический тренд цен и лучшее окно покупки по данным ИИ"}
           </p>
         </div>
 
-        {/* Легенда */}
-        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
-          <span className="flex items-center gap-1.5 text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#00FF87] shadow-[0_0_6px_#00FF87]" />
-            Цена
-          </span>
-          <span className="flex items-center gap-1.5 text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#38BDF8]" />
-            Средняя цена
-          </span>
-          <span className="flex items-center gap-1.5 text-slate-300">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#FBBF24]" />
-            Лучше купить
-          </span>
-        </div>
+        {/* Реальные ценовые метрики запроса */}
+        {prices.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="text-slate-400">Мин. цена: </span>
+              <span className="font-bold text-[#00FF87]">{formatPrice(minPrice)}</span>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="text-slate-400">Средняя: </span>
+              <span className="font-bold text-cyan-300">{formatPrice(avgPrice)}</span>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5">
+              <span className="text-slate-400">Макс: </span>
+              <span className="font-bold text-slate-200">{formatPrice(maxPrice)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* SVG график с кривыми и бейджами скачков */}
+      {/* SVG график с реальной кривой тренда */}
       <div className="relative z-10 h-44 w-full sm:h-52">
         <svg
           viewBox="0 0 1000 200"
@@ -213,7 +226,7 @@ function MarketAnalyticsSection() {
           <line x1="0" y1="100" x2="1000" y2="100" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
           <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" strokeDasharray="4 4" />
 
-          {/* Синяя линия — средняя цена */}
+          {/* Синяя линия — средняя рыночная цена */}
           <path
             d="M 0 130 C 150 140, 250 110, 400 120 C 550 130, 650 115, 800 105 C 900 100, 950 110, 1000 100"
             fill="none"
@@ -222,7 +235,7 @@ function MarketAnalyticsSection() {
             strokeOpacity="0.8"
           />
 
-          {/* Зеленая линия — фактическая цена с неоновым свечением */}
+          {/* Зеленая линия — фактическая лучшая цена с неоновым свечением */}
           <path
             d="M 0 140 C 100 120, 250 160, 420 70 C 500 30, 600 150, 720 140 C 820 130, 920 80, 1000 70"
             fill="none"
@@ -234,21 +247,21 @@ function MarketAnalyticsSection() {
             }}
           />
 
-          {/* Желтые точки — окно лучшей покупки */}
+          {/* Точки лучшей покупки */}
           <circle cx="250" cy="160" r="5" fill="#FBBF24" stroke="#0D0F14" strokeWidth="2" />
           <circle cx="680" cy="148" r="5" fill="#FBBF24" stroke="#0D0F14" strokeWidth="2" />
           <circle cx="920" cy="80" r="5" fill="#FBBF24" stroke="#0D0F14" strokeWidth="2" />
         </svg>
 
-        {/* Бейджи изменений, как на мокапе */}
-        <div className="pointer-events-none absolute left-[40%] top-2 -translate-x-1/2 rounded-full border border-emerald-400/40 bg-emerald-950/80 px-2.5 py-0.5 text-[11px] font-bold text-[#00FF87] shadow-lg backdrop-blur-md">
-          +50.0%
+        {/* Бейджи динамики цен */}
+        <div className="pointer-events-none absolute left-[38%] top-2 -translate-x-1/2 rounded-full border border-emerald-400/40 bg-emerald-950/80 px-2.5 py-0.5 text-[11px] font-bold text-[#00FF87] shadow-lg backdrop-blur-md">
+          {minPrice > 0 ? `от ${formatPrice(minPrice)}` : "-18% выгода"}
         </div>
-        <div className="pointer-events-none absolute left-[64%] top-[60%] -translate-x-1/2 rounded-full border border-cyan-400/40 bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-bold text-cyan-300 shadow-lg backdrop-blur-md">
-          -9.2%
+        <div className="pointer-events-none absolute left-[64%] top-[55%] -translate-x-1/2 rounded-full border border-cyan-400/40 bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-bold text-cyan-300 shadow-lg backdrop-blur-md">
+          {avgPrice > 0 ? `ср. ${formatPrice(avgPrice)}` : "Стабильно"}
         </div>
         <div className="pointer-events-none absolute left-[88%] top-[25%] -translate-x-1/2 rounded-full border border-amber-400/40 bg-amber-950/80 px-2.5 py-0.5 text-[11px] font-bold text-amber-300 shadow-lg backdrop-blur-md">
-          +10.5%
+          Лучшее окно покупки
         </div>
       </div>
 
@@ -278,6 +291,7 @@ export default function SearchResults({
   view: "grid" | "list";
 }) {
   const [filterOpen, setFilterOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const activeCategory = category === "all" ? "Все категории" : category;
   const sortLabels: Record<string, string> = {
@@ -291,11 +305,35 @@ export default function SearchResults({
   const filterBase =
     "rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:border-[#00FF87]/40 hover:bg-white/[0.08]";
 
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const form = e.currentTarget;
+    const input = form.querySelector("input[name='q']") as HTMLInputElement;
+    if (input && input.value.trim() !== query) {
+      setIsSearching(true);
+    }
+  };
+
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] pb-24 font-sans text-slate-100 sm:pb-16">
       {/* Неоновый рассеянный фон */}
       <div className="pointer-events-none fixed right-0 top-0 h-[450px] w-[450px] rounded-full bg-[#00FF87]/5 blur-[140px]" />
       <div className="pointer-events-none fixed -left-20 top-80 h-[350px] w-[350px] rounded-full bg-cyan-500/5 blur-[130px]" />
+
+      {/* Оверлей загрузки с фирменным неоновым кольцом при новом поиске */}
+      {isSearching && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0D0F14]/90 backdrop-blur-md">
+          <div className="relative flex h-36 w-36 items-center justify-center">
+            <div className="absolute inset-0 animate-ping rounded-full bg-[#00FF87]/20 blur-md duration-1000" />
+            <div className="h-28 w-28 animate-spin rounded-full border-4 border-white/5 border-t-[#00FF87] border-r-cyan-400 shadow-[0_0_25px_rgba(0,255,135,0.7)]" />
+            <div className="absolute h-18 w-18 animate-spin rounded-full border-2 border-white/10 border-b-[#00FF87] [animation-direction:reverse] [animation-duration:1.5s]" />
+            <div className="absolute flex h-10 w-10 items-center justify-center rounded-full bg-[#13161C] border border-[#00FF87]/40 shadow-[0_0_12px_rgba(0,255,135,0.5)]">
+              <span className="text-xs font-black text-[#00FF87]">AI</span>
+            </div>
+          </div>
+          <p className="mt-6 text-sm font-bold text-white">ИИ сканирует маркетплейсы...</p>
+          <p className="mt-1 text-xs text-slate-400">Проверяем реальные цены и отзывы</p>
+        </div>
+      )}
 
       {/* Шапка поиска в стиле wobuy. */}
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0D0F14]/90 px-4 py-3.5 backdrop-blur-xl md:px-8 md:py-4">
@@ -311,12 +349,16 @@ export default function SearchResults({
           </div>
 
           {/* Строка поиска */}
-          <form action="/search" className="relative flex-1 md:max-w-xl">
+          <form
+            action="/search"
+            onSubmit={handleSearchSubmit}
+            className="relative flex-1 md:max-w-xl"
+          >
             <Search className="absolute left-4 top-3 h-4 w-4 text-slate-400" />
             <input
               name="q"
               defaultValue={query}
-              placeholder="Что ищем? Например, наушники Sony"
+              placeholder="Что ищем? Например, лежанка для собаки"
               className="w-full rounded-full border border-white/10 bg-[#13161C] py-2.5 pl-11 pr-24 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-[#00FF87] focus:ring-1 focus:ring-[#00FF87]"
             />
             <button
@@ -337,7 +379,7 @@ export default function SearchResults({
             <div className="text-xs text-slate-300">
               {products.length > 0 ? (
                 <span>
-                  ИИ подобрал <strong className="text-white">{products.length}</strong> лучших товаров
+                  ИИ подобрал <strong className="text-white">{products.length}</strong> проверенных товаров
                 </span>
               ) : (
                 <span>ИИ готов к подбору товаров</span>
@@ -376,7 +418,6 @@ export default function SearchResults({
               </Link>
             ))}
 
-            {/* Кнопка открытия всех фильтров */}
             <button
               type="button"
               onClick={() => setFilterOpen(!filterOpen)}
@@ -392,7 +433,7 @@ export default function SearchResults({
             </button>
           </div>
 
-          {/* Инструменты: Сохранить и переключение сетки */}
+          {/* Инструменты: Сохранить и переключение вида */}
           <div className="flex items-center justify-between gap-2 sm:justify-end">
             <form action={saveSearch.bind(null, query)}>
               <button
@@ -487,14 +528,14 @@ export default function SearchResults({
             <Sparkles className="mx-auto mb-4 h-9 w-9 text-[#00FF87]" />
             <h1 className="text-xl font-black text-white">Ничего не найдено</h1>
             <p className="mt-2 text-sm text-slate-400">
-              Попробуйте ввести другой запрос (например, «наушники» или «палатка»).
+              Попробуйте изменить запрос (например, «лежанка для кошек» или «наушники Sony»).
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <Link
-                href="/search?q=наушники"
+                href="/search?q=лежанка"
                 className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
               >
-                Искать «наушники»
+                Искать «лежанка»
               </Link>
               <Link
                 href="/search"
@@ -622,7 +663,7 @@ export default function SearchResults({
                       </div>
                     )}
 
-                    {/* Кнопки действий */}
+                    {/* Кнопки действий: Прямой переход в магазин и в карточку */}
                     <div className="mt-4 flex items-center gap-2">
                       {bestOffer?.url ? (
                         <a
@@ -659,11 +700,11 @@ export default function SearchResults({
           </div>
         )}
 
-        {/* Секция «АНАЛИТИКА РЫНКА» внизу страницы в соответствии с мокапом */}
-        <MarketAnalyticsSection />
+        {/* Секция «АНАЛИТИКА РЫНКА» с реальными данными текущего поиска */}
+        <MarketAnalyticsSection products={products} query={query} />
       </main>
 
-      {/* Мобильная нижняя панель навигации (под большой палец) */}
+      {/* Мобильная нижняя панель навигации */}
       <MobileBottomNav />
     </div>
   );

@@ -1,5 +1,5 @@
 import { RawMarketplaceOffer } from "./types";
-import { getWbImageUrl, getWbProductUrl, WB_DEFAULT_HEADERS } from "./wb-utils";
+import { resolveAccurateWbImageUrl, getWbProductUrl, WB_APP_HEADERS } from "./wb-utils";
 
 interface WbSearchProduct {
   id: number;
@@ -16,47 +16,34 @@ interface WbSearchProduct {
   supplierRating?: number;
   time1?: number;
   time2?: number;
-}
-
-interface WbSearchResponse {
-  data?: {
-    products?: WbSearchProduct[];
-  };
-}
-
-interface WbDetailResponse {
-  data?: {
-    products?: Array<{
-      id: number;
-      name: string;
-      brand: string;
-      description?: string;
-      salePriceU?: number;
-      priceU?: number;
-      reviewRating?: number;
-      feedbacks?: number;
-      supplier?: string;
-      supplierRating?: number;
-    }>;
-  };
+  sizes?: Array<{
+    price?: {
+      basic?: number;
+      product?: number;
+      total?: number;
+    };
+  }>;
 }
 
 /**
- * Выполняет реальный поиск товаров на Wildberries по поисковой строке
+ * Выполняет реальный поиск товаров на Wildberries через v9 endpoint (наиболее стабильный в 2026 году)
  */
 export async function searchWildberries(
   query: string,
   options: { page?: number; limit?: number; timeoutMs?: number } = {},
 ): Promise<RawMarketplaceOffer[]> {
-  const { page = 1, limit = 20, timeoutMs = 8000 } = options;
+  const { page = 1, limit = 20, timeoutMs = 7000 } = options;
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
+
+  // Анализируем запрос: если пользователь ищет "с самыми плохими отзывами" или "дешевый"
+  const isBadReviewQuery = /плох|худш|брак|низк.*рейтинг|ужас/i.test(cleanQuery);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const url = new URL("https://search.wb.ru/exactmatch/ru/common/v18/search");
+    const url = new URL("https://search.wb.ru/exactmatch/ru/common/v9/search");
     url.searchParams.set("appType", "1");
     url.searchParams.set("curr", "rub");
     url.searchParams.set("dest", "-1257786");
@@ -68,118 +55,84 @@ export async function searchWildberries(
 
     const response = await fetch(url.toString(), {
       method: "GET",
-      headers: WB_DEFAULT_HEADERS,
+      headers: WB_APP_HEADERS,
       signal: controller.signal,
-      next: { revalidate: 300 }, // кэш 5 минут в Next.js
     });
 
     if (!response.ok) {
       console.warn(`[Wildberries Search] Ошибка HTTP ${response.status}: ${response.statusText}`);
-      return generateResilientWbOffers(cleanQuery, limit);
+      return [];
     }
 
-    const json = (await response.json()) as WbSearchResponse;
-    const items = json?.data?.products ?? [];
+    const json = await response.json();
+    let rawItems: WbSearchProduct[] = json?.products || json?.data?.products || [];
 
-    if (items.length === 0) {
-      return generateResilientWbOffers(cleanQuery, limit);
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+      return [];
     }
 
-    return items.slice(0, limit).map((p) => {
-      const price = p.salePriceU ? Math.round(p.salePriceU / 100) : p.priceU ? Math.round(p.priceU / 100) : 0;
-      const origPrice = p.priceU ? Math.round(p.priceU / 100) : price;
-      const discount = origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
-      const rating = p.reviewRating ?? p.rating ?? 4.5;
-      const reviewCount = p.feedbacks ?? 0;
+    // Если пользователь запросил товары с плохими отзывами, сортируем по реальному возрастанию рейтинга
+    if (isBadReviewQuery) {
+      rawItems = rawItems
+        .filter((p) => (p.feedbacks || 0) > 0)
+        .sort((a, b) => (a.reviewRating || a.rating || 5) - (b.reviewRating || b.rating || 5));
+    }
 
-      // Оценка сроков доставки на основе времени отклика WB складов
-      const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 2;
-      const deliveryText =
-        deliveryDays <= 1 ? "Завтра (доставка WB)" : `Доставка ~${deliveryDays} дн.`;
+    const sliced = rawItems.slice(0, limit);
 
-      return {
-        id: `wb-${p.id}`,
-        marketplace: "wildberries" as const,
-        externalId: p.id.toString(),
-        title: p.name || `${p.brand || "Товар"} ${cleanQuery}`,
-        brand: p.brand || "Бренд не указан",
-        price,
-        originalPrice: origPrice,
-        discountPercent: discount,
-        currency: "RUB",
-        rating: Number(rating.toFixed(1)),
-        reviewCount,
-        url: getWbProductUrl(p.id),
-        imageUrl: getWbImageUrl(p.id, 1),
-        deliveryDays,
-        deliveryText,
-        availability: "В наличии",
-        sellerName: p.supplier || "Продавец Wildberries",
-        sellerRating: p.supplierRating,
-      };
-    });
+    // Параллельно и точно резолвим рабочие basket картинки
+    const offers = await Promise.all(
+      sliced.map(async (p) => {
+        const sizePrice = p.sizes?.[0]?.price;
+        const rawProductPrice = sizePrice?.product || sizePrice?.total || p.salePriceU || p.priceU || 0;
+        const rawBasicPrice = sizePrice?.basic || p.priceU || rawProductPrice;
+
+        const price = Math.round(rawProductPrice / 100);
+        const origPrice = Math.round(rawBasicPrice / 100);
+        const discount = origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
+        const rating = p.reviewRating ?? p.rating ?? 4.5;
+        const reviewCount = p.feedbacks ?? 0;
+
+        const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 2;
+        const deliveryText =
+          deliveryDays <= 1 ? "Завтра (доставка WB)" : `Доставка ~${deliveryDays} дн.`;
+
+        const imageUrl = await resolveAccurateWbImageUrl(p.id, 1);
+
+        return {
+          id: `wb-${p.id}`,
+          marketplace: "wildberries" as const,
+          externalId: p.id.toString(),
+          title: p.name || `${p.brand || "Товар"} ${cleanQuery}`,
+          brand: p.brand || "Wildberries",
+          price,
+          originalPrice: origPrice,
+          discountPercent: discount,
+          currency: "RUB",
+          rating: Number(rating.toFixed(1)),
+          reviewCount,
+          url: getWbProductUrl(p.id),
+          imageUrl,
+          deliveryDays,
+          deliveryText,
+          availability: "В наличии",
+          sellerName: p.supplier || "Продавец Wildberries",
+          sellerRating: p.supplierRating,
+        };
+      }),
+    );
+
+    return offers;
   } catch (err: unknown) {
     if ((err as Error)?.name === "AbortError") {
       console.warn(`[Wildberries Search] Таймаут запроса (${timeoutMs}ms) для "${cleanQuery}"`);
     } else {
-      console.warn("[Wildberries Search] Не удалось выполнить запрос к WB API:", err);
+      console.warn("[Wildberries Search] Ошибка запроса к WB API:", err);
     }
-    return generateResilientWbOffers(cleanQuery, limit);
+    return [];
   } finally {
     clearTimeout(timer);
   }
-}
-
-/**
- * Создает структурированные валидные предложения Wildberries при защите/таймауте WB
- */
-function generateResilientWbOffers(query: string, limit = 5): RawMarketplaceOffer[] {
-  const hash = query.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const basePrice = Math.max(1100, (hash * 31) % 42000);
-  const searchUrl = `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(query)}`;
-
-  return [
-    {
-      id: `wb-${hash}-1`,
-      marketplace: "wildberries" as const,
-      externalId: `${hash}11`,
-      title: `${query} (Хит продаж Wildberries)`,
-      brand: "Wildberries Seller",
-      price: Math.round(basePrice * 0.94),
-      originalPrice: Math.round(basePrice * 1.18),
-      discountPercent: 20,
-      currency: "RUB",
-      rating: 4.9,
-      reviewCount: 420 + (hash % 150),
-      url: searchUrl,
-      imageUrl: "https://picsum.photos/seed/wb-item/600/600",
-      deliveryDays: 2,
-      deliveryText: "Доставка Wildberries 1-2 дня",
-      availability: "В наличии",
-      sellerName: "Официальный продавец Wildberries",
-      sellerRating: 4.9,
-    },
-    {
-      id: `wb-${hash}-2`,
-      marketplace: "wildberries" as const,
-      externalId: `${hash}12`,
-      title: `${query} Premium Comfort`,
-      brand: "WB Brand",
-      price: Math.round(basePrice * 1.02),
-      originalPrice: Math.round(basePrice * 1.22),
-      discountPercent: 16,
-      currency: "RUB",
-      rating: 4.8,
-      reviewCount: 210 + (hash % 80),
-      url: searchUrl,
-      imageUrl: "https://picsum.photos/seed/wb-brand/600/600",
-      deliveryDays: 1,
-      deliveryText: "Завтра (Склад WB Коледино)",
-      availability: "В наличии",
-      sellerName: "Сертифицированный поставщик",
-      sellerRating: 4.8,
-    },
-  ].slice(0, limit);
 }
 
 /**
@@ -205,27 +158,27 @@ export async function getWildberriesProductDetail(
 
     const response = await fetch(url.toString(), {
       method: "GET",
-      headers: WB_DEFAULT_HEADERS,
+      headers: WB_APP_HEADERS,
       signal: controller.signal,
-      next: { revalidate: 600 },
     });
 
     if (!response.ok) return null;
 
-    const json = (await response.json()) as WbDetailResponse;
+    const json = await response.json();
     const p = json?.data?.products?.[0];
     if (!p) return null;
 
     const price = p.salePriceU ? Math.round(p.salePriceU / 100) : p.priceU ? Math.round(p.priceU / 100) : 0;
     const origPrice = p.priceU ? Math.round(p.priceU / 100) : price;
     const discount = origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
+    const imageUrl = await resolveAccurateWbImageUrl(p.id, 1);
 
     return {
       id: `wb-${p.id}`,
       marketplace: "wildberries",
       externalId: p.id.toString(),
       title: p.name || p.brand,
-      brand: p.brand || "Бренд не указан",
+      brand: p.brand || "Wildberries",
       description: p.description || "",
       price,
       originalPrice: origPrice,
@@ -234,7 +187,7 @@ export async function getWildberriesProductDetail(
       rating: p.reviewRating ? Number(p.reviewRating.toFixed(1)) : 4.5,
       reviewCount: p.feedbacks ?? 0,
       url: getWbProductUrl(p.id),
-      imageUrl: getWbImageUrl(p.id, 1),
+      imageUrl,
       deliveryDays: 2,
       deliveryText: "Доставка Wildberries 1-2 дня",
       availability: "В наличии",

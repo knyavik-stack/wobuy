@@ -1,6 +1,63 @@
 import { RawMarketplaceOffer, CanonicalProductData } from "./types";
 
 /**
+ * Определение реалистичной категории товара на основе названия и ключевых слов
+ */
+export function inferCategoryFromTitle(title: string): string {
+  const t = title.toLowerCase();
+
+  if (
+    /собак|кошек|лежанк|когтеточк|ошейник|поводок|корм для|животн|клетк.*попуга/i.test(t)
+  ) {
+    return "Зоотовары";
+  }
+
+  if (
+    /фен|стайлер|утюжок|плойк|эпилятор|бритв|триммер|массажер|маникюр|косметик|шампунь|крем/i.test(t)
+  ) {
+    return "Красота и уход";
+  }
+
+  if (
+    /палатк|спальник|рюкзак|фонар|термос|кемпинг|удочк|рыбалк|лодка|котелок|мангал|сапборд/i.test(t)
+  ) {
+    return "Туризм и кемпинг";
+  }
+
+  if (
+    /смартфон|телефон|наушник|планшет|ноутбук|клавиатур|мышь|монитор|телевизор|колонк|часы.*smart|гаджет/i.test(t)
+  ) {
+    return "Электроника и гаджеты";
+  }
+
+  if (
+    /пылесос|холодильник|стиральн|микроволнов|чайник|кофемашин|утюг|блендер|мультиварк/i.test(t)
+  ) {
+    return "Бытовая техника";
+  }
+
+  if (
+    /куртк|пальто|футболк|джинс|кроссовк|ботинк|кед|платье|худи|костюм|сумк|шапк/i.test(t)
+  ) {
+    return "Одежда и обувь";
+  }
+
+  if (
+    /посуд|сковород|кастрюл|плед|подушк|одеял|штор|постельн|интерьер|светильник|мебель/i.test(t)
+  ) {
+    return "Дом и интерьер";
+  }
+
+  if (
+    /дрель|шуруповерт|перфоратор|инструмент|набор ключей|автотовар|масло моторн|видеорегистратор/i.test(t)
+  ) {
+    return "Авто и инструменты";
+  }
+
+  return "Товары для жизни";
+}
+
+/**
  * Нормализует строку для сопоставления названий товаров
  */
 function cleanTitleForMatch(title: string): string {
@@ -45,7 +102,7 @@ function calculateSimilarity(titleA: string, titleB: string): number {
  */
 export function clusterAndDeduplicateOffers(
   offers: RawMarketplaceOffer[],
-  fallbackCategory = "Электроника и гаджеты",
+  fallbackCategory?: string,
 ): CanonicalProductData[] {
   if (!offers.length) return [];
 
@@ -81,15 +138,16 @@ export function clusterAndDeduplicateOffers(
 
     if (matchedCluster) {
       matchedCluster.offers.push(offer);
-      // Если у нового предложения более длинное/информативное название или лучше картинка
+      // Если у нового предложения лучшая картинка
       if (offer.imageUrl && (!matchedCluster.imageUrl || matchedCluster.imageUrl.includes("picsum"))) {
         matchedCluster.imageUrl = offer.imageUrl;
       }
     } else {
+      const category = offer.category || fallbackCategory || inferCategoryFromTitle(offer.title);
       clusters.push({
         canonicalName: offer.title,
         brand: offer.brand || "Бренд",
-        category: offer.category || fallbackCategory,
+        category,
         description:
           offer.description ||
           `Оригинальный товар «${offer.title}» от проверенных продавцов с гарантией лучшей цены на маркетплейсах.`,
@@ -102,16 +160,16 @@ export function clusterAndDeduplicateOffers(
   // Преобразование кластеров в канонические карточки с расчетом AI метрик
   return clusters.map((cluster, index) => {
     const sortedOffers = [...cluster.offers].sort((a, b) => a.price - b.price);
-    const bestPrice = sortedOffers[0]?.price || 3000;
+    const bestPrice = sortedOffers[0]?.price || 1500;
     const maxPrice = Math.max(...sortedOffers.map((o) => o.originalPrice || o.price));
     const discount = maxPrice > bestPrice ? Math.round(((maxPrice - bestPrice) / maxPrice) * 100) : 15;
 
     // Расчет спарклайна на основе реальной лучшей цены
     const sparkline = [
-      Math.round(bestPrice * 1.2),
-      Math.round(bestPrice * 1.14),
+      Math.round(bestPrice * 1.15),
       Math.round(bestPrice * 1.1),
-      Math.round(bestPrice * 1.04),
+      Math.round(bestPrice * 1.08),
+      Math.round(bestPrice * 1.03),
       bestPrice,
     ];
 
@@ -120,9 +178,10 @@ export function clusterAndDeduplicateOffers(
 
     const hash = cluster.canonicalName.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
     const aiScore = Number((Math.min(9.9, Math.max(8.4, avgRating * 1.8 + (hash % 10) * 0.05))).toFixed(1));
-    const antiFakePercent = 90 + (hash % 9);
+    const antiFakePercent = 92 + (hash % 8);
 
-    const hasMultiStore = cluster.offers.some((o) => o.marketplace === "wildberries") &&
+    const hasMultiStore =
+      cluster.offers.some((o) => o.marketplace === "wildberries") &&
       cluster.offers.some((o) => o.marketplace === "ozon");
 
     const aiTags = [

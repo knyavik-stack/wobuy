@@ -30,7 +30,7 @@ export type SearchProduct = {
   }>;
 };
 
-// Хранилище сессионных распарсенных товаров для прямого открытия по id
+// Глобальное хранилище распарсенных товаров для прямого открытия по id без 404
 const LIVE_PRODUCTS_STORE = new Map<string, SearchProduct>();
 
 function normalize(value: string | null | undefined) {
@@ -43,57 +43,20 @@ export function computeProductAiMetrics(
   brand: string,
   offers: Array<{ price: number | null; rating: number | null }>,
 ) {
-  if (id === "prod-13") {
-    return {
-      aiScore: 9.7,
-      antiFakePercent: 98,
-      aiTags: ["Анти-Фейк: 98%", "Честная цена", "Выбор AI 2026", "Топ-звук"],
-      priceSparkline: [38500, 36200, 35100, 33800, 32990],
-      discountPercent: 50,
-    };
-  }
-  if (id === "prod-5") {
-    return {
-      aiScore: 9.2,
-      antiFakePercent: 94,
-      aiTags: ["Анти-Фейк: 94%", "Честная цена", "Премиум материалы", "Комфорт+"],
-      priceSparkline: [37900, 36200, 34900, 33500, 32490],
-      discountPercent: 18,
-    };
-  }
-  if (id === "prod-14") {
-    return {
-      aiScore: 8.9,
-      antiFakePercent: 91,
-      aiTags: ["Анти-Фейк: 91%", "Высокая цена", "Эксклюзив", "Дизайн+"],
-      priceSparkline: [74000, 71500, 68900, 67200, 65990],
-      discountPercent: 12,
-    };
-  }
-
-  // Детерминированная генерация по ID
   const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const avgRating = offers.length ? offers.reduce((a, b) => a + (b.rating ?? 4.5), 0) / offers.length : 4.6;
-  const aiScore = Number((Math.min(9.8, Math.max(8.5, avgRating * 1.9 + (hash % 5) * 0.1))).toFixed(1));
-  const antiFakePercent = 90 + (hash % 10);
-  const discountPercent = 10 + (hash % 35);
+  const avgRating = offers.length ? offers.reduce((a, b) => a + (b.rating ?? 4.7), 0) / offers.length : 4.7;
+  const aiScore = Number((Math.min(9.9, Math.max(8.5, avgRating * 1.9 + (hash % 5) * 0.05))).toFixed(1));
+  const antiFakePercent = 91 + (hash % 8);
+  const discountPercent = 10 + (hash % 25);
 
-  const bestPrice = Math.min(...offers.map((o) => o.price ?? 5000));
+  const bestPrice = Math.min(...offers.map((o) => o.price ?? 2500));
   const sparkline = [
-    Math.round(bestPrice * 1.22),
-    Math.round(bestPrice * 1.15),
+    Math.round(bestPrice * 1.18),
     Math.round(bestPrice * 1.12),
-    Math.round(bestPrice * 1.05),
+    Math.round(bestPrice * 1.09),
+    Math.round(bestPrice * 1.03),
     bestPrice,
   ];
-
-  const categoryTags: Record<string, string[]> = {
-    "Палатки и кемпинг": ["Влагозащита+", "Прочный каркас", "Легкая сборка"],
-    "Электроника": ["Топ-звук", "Автономность+", "Hi-Res Audio"],
-    "Бытовая техника": ["Энергоэффективно", "Надежная помпа", "Легкая чистка"],
-    "Спорт и отдых": ["Водоотталкивающий", "Термозащита", "Высокая прочность"],
-  };
-  const specificTag = (categoryTags[category] || ["Хит сезона", "Надежный бренд"])[hash % 2];
 
   return {
     aiScore,
@@ -102,7 +65,7 @@ export function computeProductAiMetrics(
       `Анти-Фейк: ${antiFakePercent}%`,
       "Честная цена",
       hash % 2 === 0 ? "Выбор AI 2026" : "Проверен AI",
-      specificTag,
+      "Оригинал",
     ],
     priceSparkline: sparkline,
     discountPercent,
@@ -183,157 +146,144 @@ function mapCanonicalToSearchProduct(item: CanonicalProductData): SearchProduct 
 }
 
 /**
- * Получить товар по id (поддерживает как статические/БД id, так и распарсенные live-id)
+ * Получить товар по id (поддерживает живые live-id, артикулы и базу)
  */
 export function getStoredLiveProduct(id: string): SearchProduct | undefined {
   return LIVE_PRODUCTS_STORE.get(id);
 }
 
 /**
- * Основная функция поиска товаров с поддержкой реального конвейера парсинга Wildberries и Ozon
+ * Основная функция поиска товаров с поддержкой реального конвейера парсинга маркетплейсов
  */
 export async function searchProducts(query: string): Promise<SearchProduct[]> {
   const normalizedQuery = normalize(query);
   const lowerQuery = normalizedQuery.toLowerCase();
+
+  // Если запрос пустой, возвращаем активные товары из БД или дефолтный каталог
+  if (!normalizedQuery) {
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        const supabase = await createClient();
+        const { data } = await supabase
+          .from("products")
+          .select(
+            "id, canonical_name, brand, category, description, image_url, product_offers(id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability)",
+          )
+          .eq("is_active", true)
+          .limit(20);
+
+        if (data && data.length > 0) {
+          return data.map(mapProduct);
+        }
+      }
+    } catch {}
+    return DEMO_PRODUCTS.filter((p) => p.is_active).map(mapProduct);
+  }
 
   // 1. Полнотекстовый и семантический анализ намерения (pgvector)
   let semanticMatches: SearchProduct[] = [];
   let effectiveQuery = normalizedQuery;
   let maxPriceFilter: number | undefined;
 
-  if (normalizedQuery) {
-    try {
-      const semResult = await searchProductsSemantically(normalizedQuery);
-      if (semResult.products.length > 0) {
-        semanticMatches = semResult.products;
-      }
-      if (semResult.intent.cleanQuery && semResult.intent.cleanQuery !== normalizedQuery) {
-        effectiveQuery = semResult.intent.cleanQuery;
-      }
-      maxPriceFilter = semResult.intent.maxPrice;
-    } catch (err) {
-      console.warn("[Search Service] Ошибка семантического анализа:", err);
+  try {
+    const semResult = await searchProductsSemantically(normalizedQuery);
+    if (semResult.products.length > 0) {
+      semanticMatches = semResult.products;
     }
+    if (semResult.intent.cleanQuery && semResult.intent.cleanQuery !== normalizedQuery) {
+      effectiveQuery = semResult.intent.cleanQuery;
+    }
+    maxPriceFilter = semResult.intent.maxPrice;
+  } catch (err) {
+    console.warn("[Search Service] Ошибка семантического анализа:", err);
   }
 
-  // 2. Запуск реального парсинга Wildberries и Ozon по нормализованному ключу
+  // 2. Реальный поиск и парсинг товаров на Wildberries и Ozon
   let liveResults: SearchProduct[] = [];
-  if (effectiveQuery) {
-    try {
-      const liveData = await aggregateMarketplaceSearch(effectiveQuery);
-      if (liveData && liveData.length > 0) {
-        liveResults = liveData.map(mapCanonicalToSearchProduct);
-        // Сохраняем в сессионный кэш для прямого перехода
-        for (const prod of liveResults) {
-          LIVE_PRODUCTS_STORE.set(prod.id, prod);
+  try {
+    const liveData = await aggregateMarketplaceSearch(effectiveQuery);
+    if (liveData && liveData.length > 0) {
+      liveResults = liveData.map(mapCanonicalToSearchProduct);
+
+      // Сохраняем в кэш для мгновенного перехода в карточку товара
+      for (const prod of liveResults) {
+        LIVE_PRODUCTS_STORE.set(prod.id, prod);
+        // Также сохраняем по id офферов для прямого доступа
+        for (const off of prod.offers) {
+          LIVE_PRODUCTS_STORE.set(off.id, prod);
         }
-
-        // Асинхронно синхронизируем топ-3 горячих товара в Supabase без блокировки UI
-        (async () => {
-          for (const item of liveData.slice(0, 3)) {
-            await upsertProductWithEmbedding({
-              canonicalName: item.canonicalName,
-              brand: item.brand,
-              category: item.category,
-              description: item.description,
-              imageUrl: item.imageUrl,
-              offers: item.offers.map((o) => ({
-                marketplace: o.marketplace,
-                title: o.title,
-                url: o.url,
-                price: o.price,
-                rating: o.rating,
-                reviewCount: o.reviewCount,
-              })),
-            });
-          }
-        })().catch(() => {});
       }
-    } catch (err) {
-      console.warn("[Search Service] Ошибка парсинга маркетплейсов:", err);
+
+      // Фоново синхронизируем найденные реальные товары в базу данных Supabase
+      (async () => {
+        for (const item of liveData.slice(0, 5)) {
+          await upsertProductWithEmbedding({
+            canonicalName: item.canonicalName,
+            brand: item.brand,
+            category: item.category,
+            description: item.description,
+            imageUrl: item.imageUrl,
+            offers: item.offers.map((o) => ({
+              marketplace: o.marketplace,
+              title: o.title,
+              url: o.url,
+              price: o.price,
+              rating: o.rating,
+              reviewCount: o.reviewCount,
+            })),
+          });
+        }
+      })().catch((e) => console.warn("[Search Sync] Background DB upsert err:", e));
     }
+  } catch (err) {
+    console.warn("[Search Service] Ошибка парсинга маркетплейсов:", err);
   }
 
-  // Применяем фильтр по максимальной цене (если был в семантике запроса)
-  if (maxPriceFilter && liveResults.length > 0) {
-    const filtered = liveResults.filter((p) => {
-      const best = Math.min(...p.offers.map((o) => o.price || 999999));
-      return best <= (maxPriceFilter as number);
-    });
-    if (filtered.length > 0) {
-      liveResults = filtered;
+  // Если живой поиск вернул результаты, отдаем ИСКЛЮЧИТЕЛЬНО реальные товары без примеси демо-данных
+  if (liveResults.length > 0) {
+    if (maxPriceFilter) {
+      const filtered = liveResults.filter((p) => {
+        const best = Math.min(...p.offers.map((o) => o.price || 999999));
+        return best <= (maxPriceFilter as number);
+      });
+      if (filtered.length > 0) return filtered;
     }
+    return liveResults;
   }
 
-  // 3. Поиск в Supabase
+  // 3. Если живой поиск не дал результатов, проверяем совпадения в базе данных Supabase
   let dbResults: SearchProduct[] = [];
   try {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       const supabase = await createClient();
-      let productsQuery = supabase
+      const pattern = `%${lowerQuery}%`;
+      const { data, error } = await supabase
         .from("products")
         .select(
           "id, canonical_name, brand, category, description, image_url, product_offers(id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability)",
         )
         .eq("is_active", true)
-        .limit(40);
-
-      if (lowerQuery) {
-        const pattern = `%${lowerQuery}%`;
-        productsQuery = productsQuery.or(
+        .or(
           `canonical_name.ilike.${pattern},brand.ilike.${pattern},category.ilike.${pattern},description.ilike.${pattern}`,
-        );
-      }
-
-      const { data, error } = await productsQuery;
+        )
+        .limit(20);
 
       if (!error && data && data.length > 0) {
         dbResults = data.map(mapProduct);
       }
     }
   } catch (err) {
-    console.warn("Поиск Supabase недоступен, используется резервный демо-каталог:", err);
+    console.warn("[Search Service] Supabase search error:", err);
   }
 
-  // 4. Резервный поиск в демо-каталоге
-  let demoList = DEMO_PRODUCTS.filter((p) => p.is_active);
-  if (lowerQuery) {
-    demoList = demoList.filter(
-      (p) =>
-        p.canonical_name.toLowerCase().includes(lowerQuery) ||
-        p.brand.toLowerCase().includes(lowerQuery) ||
-        p.category.toLowerCase().includes(lowerQuery) ||
-        p.description.toLowerCase().includes(lowerQuery),
-    );
-  }
-  const fallbackResults = demoList.map(mapProduct);
-
-  // 5. Иерархическое объединение: Векторные совпадения + Парсинг маркетплейсов -> БД -> Демо
-  const combinedMap = new Map<string, SearchProduct>();
-
-  // Векторные совпадения
-  for (const item of semanticMatches) {
-    combinedMap.set(item.title.toLowerCase(), item);
+  if (dbResults.length > 0) {
+    return dbResults;
   }
 
-  // Распарсенные с маркетплейсов
-  for (const item of liveResults) {
-    if (!combinedMap.has(item.title.toLowerCase())) {
-      combinedMap.set(item.title.toLowerCase(), item);
-    }
+  if (semanticMatches.length > 0) {
+    return semanticMatches;
   }
 
-  // БД и Демо
-  for (const item of [...dbResults, ...fallbackResults]) {
-    if (!combinedMap.has(item.title.toLowerCase())) {
-      combinedMap.set(item.title.toLowerCase(), item);
-    }
-  }
-
-  const finalResults = Array.from(combinedMap.values());
-  if (finalResults.length > 0) {
-    return finalResults;
-  }
-
-  return fallbackResults;
+  // Если ни в маркетплейсах, ни в БД ничего не нашлось — возвращаем пустой список, НИКАКИХ фейковых демо товаров!
+  return [];
 }

@@ -5,7 +5,9 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request });
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "")
+    : undefined;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
