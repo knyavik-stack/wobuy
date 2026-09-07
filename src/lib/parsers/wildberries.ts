@@ -31,11 +31,51 @@ interface WbSearchProduct {
 export function normalizeQueryForMarketplace(rawQuery: string): string {
   let q = rawQuery.trim();
   // Удаляем вводные и разговорные фразы
-  q = q.replace(/^(?:ищу|найди|посоветуй|подскажи|порекомендуй|где купить|купить|мне нуж(?:ен|на|но)|хочу купить|срочно нужен|выбери|подбери)\s+/i, "");
+  q = q.replace(/^(?:ищу|найди|посоветуй|подскажи|порекомендуй|где купить|купить|мне нуж(?:ен|на|но|ны)|хочу купить|срочно нуж(?:ен|на|но|ны)|нуж(?:ен|на|но|ны)|выбери|подбери)\s+/i, "");
   q = q.replace(/\s+(?:недорого|дешево|дешевый|со скидкой|оригинал|хороший|лучший|топ)$/i, "");
   // Убираем лишние символы пунктуации
   q = q.replace(/[«»""'']/g, " ").replace(/\s+/g, " ").trim();
   return q || rawQuery.trim();
+}
+
+/**
+ * Проверяет соответствие товара ключевым атрибутам запроса (цвет, тип, материал)
+ */
+export function matchesQueryAttributes(title: string, rawQuery: string): boolean {
+  const t = title.toLowerCase();
+  const q = rawQuery.toLowerCase();
+
+  // Проверка цвета
+  const colorMap: Record<string, string[]> = {
+    черный: ["черн", "black"],
+    белый: ["бел", "white"],
+    красный: ["красн", "red"],
+    синий: ["син", "голуб", "blue"],
+    зеленый: ["зелен", "green"],
+    прозрачный: ["прозрачн", "transparent"],
+    розовый: ["розов", "pink"],
+    серый: ["сер", "gray", "grey"],
+    бежевый: ["бежев", "beige"],
+  };
+
+  for (const [colorName, colorKeywords] of Object.entries(colorMap)) {
+    const isColorRequested = colorKeywords.some((kw) => q.includes(kw));
+    if (isColorRequested) {
+      // Пользователь запросил конкретный цвет (например, черный)
+      const hasRequestedColor = colorKeywords.some((kw) => t.includes(kw));
+      // Проверяем, не содержит ли название явно противоположный цвет
+      for (const [otherColor, otherKeywords] of Object.entries(colorMap)) {
+        if (otherColor !== colorName) {
+          const hasOtherColor = otherKeywords.some((kw) => t.includes(kw));
+          if (hasOtherColor && !hasRequestedColor) {
+            return false; // Товар не того цвета (например, белый вместо черного)
+          }
+        }
+      }
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -101,11 +141,34 @@ export async function searchWildberries(
           continue;
         }
 
-        // Если пользователь запросил товары с плохими отзывами, сортируем по возрастанию рейтинга
+        // Фильтрация по соответствию ключевым атрибутам запроса (цвет, тип, ключевые слова)
+        rawItems = rawItems.filter((p) => {
+          const title = (p.name || p.brand || "").trim();
+          return matchesQueryAttributes(title, rawCleanQuery);
+        });
+
+        if (rawItems.length === 0) {
+          rawItems = json?.products || json?.data?.products || [];
+        }
+
+        // Сортировка:
+        // Если запрос на плохие отзывы — сортируем по возрастанию
+        // Иначе — поднимаем товары с проверенными отзывами (> 0) и высоким рейтингом
         if (isBadReviewQuery) {
           rawItems = rawItems
             .filter((p) => (p.feedbacks || 0) > 0)
             .sort((a, b) => (a.reviewRating || a.rating || 5) - (b.reviewRating || b.rating || 5));
+        } else {
+          rawItems = rawItems.sort((a, b) => {
+            const feedbacksA = a.feedbacks || 0;
+            const feedbacksB = b.feedbacks || 0;
+            // Товары с отзывами выше товаров без отзывов
+            if (feedbacksA > 0 && feedbacksB === 0) return -1;
+            if (feedbacksA === 0 && feedbacksB > 0) return 1;
+            const ratingA = a.reviewRating || a.rating || 0;
+            const ratingB = b.reviewRating || b.rating || 0;
+            return ratingB - ratingA;
+          });
         }
 
         const sliced = rawItems.slice(0, limit);
@@ -127,15 +190,14 @@ export async function searchWildberries(
             }
             if (origPrice < price) origPrice = price;
 
-            // Если цена аномально низкая (< 50 руб для техники/крупных товаров), корректируем
             if (price <= 0) {
               price = 1200;
               origPrice = 1500;
             }
 
             const discount = origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
-            const rating = p.reviewRating ?? p.rating ?? 4.7;
             const reviewCount = p.feedbacks ?? 0;
+            const rating = reviewCount > 0 ? (p.reviewRating || p.rating || 4.7) : null;
 
             const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 2;
             const deliveryText =
@@ -156,7 +218,7 @@ export async function searchWildberries(
               originalPrice: origPrice,
               discountPercent: discount,
               currency: "RUB",
-              rating: Number(rating.toFixed(1)),
+              rating: rating !== null ? Number(rating.toFixed(1)) : null,
               reviewCount,
               url: getWbProductUrl(p.id),
               imageUrl,
@@ -211,31 +273,40 @@ export async function getWildberriesProductDetail(
     if (!response.ok) return null;
 
     const json = await response.json();
-    const p = json?.data?.products?.[0];
+    const p = json?.data?.products?.[0] || json?.products?.[0];
     if (!p) return null;
 
-    const price = p.salePriceU ? Math.round(p.salePriceU / 100) : p.priceU ? Math.round(p.priceU / 100) : 0;
-    const origPrice = p.priceU ? Math.round(p.priceU / 100) : price;
+    const sizePrice = p.sizes?.[0]?.price;
+    const rawPrice = sizePrice?.total || sizePrice?.product || p.salePriceU || p.priceU || 0;
+    const rawBasicPrice = sizePrice?.basic || p.priceU || rawPrice;
+
+    const price = rawPrice > 0 ? (rawPrice >= 100 ? Math.round(rawPrice / 100) : rawPrice) : 0;
+    let origPrice = rawBasicPrice > 0 ? (rawBasicPrice >= 100 ? Math.round(rawBasicPrice / 100) : rawBasicPrice) : price;
+    if (origPrice < price) origPrice = price;
+
     const discount = origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
     const imageUrl = await resolveAccurateWbImageUrl(p.id, 1);
+    const reviewCount = p.feedbacks ?? 0;
+    const rating = reviewCount > 0 ? (p.reviewRating || p.rating || 4.7) : null;
+    const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 2;
 
     return {
       id: `wb-${p.id}`,
       marketplace: "wildberries",
       externalId: p.id.toString(),
-      title: p.name || p.brand,
+      title: p.name ? p.name.trim() : (p.brand || `Товар WB ${p.id}`),
       brand: p.brand || "Wildberries",
       description: p.description || "",
       price,
       originalPrice: origPrice,
       discountPercent: discount,
       currency: "RUB",
-      rating: p.reviewRating ? Number(p.reviewRating.toFixed(1)) : 4.5,
-      reviewCount: p.feedbacks ?? 0,
+      rating: rating !== null ? Number(rating.toFixed(1)) : null,
+      reviewCount,
       url: getWbProductUrl(p.id),
       imageUrl,
-      deliveryDays: 2,
-      deliveryText: "Доставка Wildberries 1-2 дня",
+      deliveryDays,
+      deliveryText: deliveryDays <= 1 ? "Завтра (со склада WB)" : `Доставка ~${deliveryDays} дн.`,
       availability: "В наличии",
       sellerName: p.supplier || "Продавец Wildberries",
       sellerRating: p.supplierRating,

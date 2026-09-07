@@ -97,21 +97,27 @@ export function MarketplaceComparisonCard({
                 {/* Маркетплейс + Оценка маркетплейса */}
                 <div className="flex items-center justify-between">
                   <MarketplaceBadge marketplace={item.marketplace} size="md" showLabel={true} />
-                  <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-amber-400">
-                    <Star className="h-3 w-3 fill-amber-400" />
-                    <span>{item.rating.toFixed(1)}</span>
-                    <span className="text-[10px] font-normal text-slate-400">
-                      ({item.reviewsCount})
-                    </span>
-                  </div>
+                  {item.reviewsCount > 0 ? (
+                    <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-amber-400">
+                      <Star className="h-3 w-3 fill-amber-400" />
+                      <span>{item.rating.toFixed(1)}</span>
+                      <span className="text-[10px] font-normal text-slate-400">
+                        ({item.reviewsCount.toLocaleString("ru-RU")})
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-400">
+                      {item.price ? "Новинка" : "Поиск"}
+                    </div>
+                  )}
                 </div>
 
                 {/* Цена */}
                 <div className="flex items-baseline gap-2">
-                  <span className={`text-2xl font-black ${isBest ? "text-[#00FF87]" : "text-white"}`}>
-                    {formatPrice(item.price, currency)}
+                  <span className={`text-2xl font-black ${isBest ? "text-[#00FF87]" : item.price ? "text-white" : "text-slate-400 text-lg"}`}>
+                    {item.price ? formatPrice(item.price, currency) : "Поиск аналогов"}
                   </span>
-                  {isBest ? (
+                  {isBest && item.price ? (
                     <span className="rounded-md bg-[#00FF87]/20 px-2 py-0.5 text-[11px] font-bold text-[#00FF87]">
                       Лучшая цена
                     </span>
@@ -167,12 +173,12 @@ export function MarketplaceComparisonCard({
                   target="_blank"
                   rel="noreferrer"
                   className={`flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-extrabold transition ${
-                    isBest
+                    isBest && item.price
                       ? "bg-[#00FF87] text-black shadow-[0_0_15px_rgba(0,255,135,0.4)] hover:bg-[#00E576]"
                       : "border border-white/15 bg-white/5 text-white hover:border-[#00FF87]/50 hover:bg-white/10"
                   }`}
                 >
-                  <span>Купить на {item.name}</span>
+                  <span>{item.price ? `Купить на ${item.name}` : `Искать на ${item.name}`}</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </div>

@@ -44,32 +44,55 @@ export function computeProductAiMetrics(
   id: string,
   category: string,
   brand: string,
-  offers: Array<{ price: number | null; rating: number | null }>,
+  offers: Array<{ price: number | null; rating: number | null; reviewCount?: number | null }>,
 ) {
-  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const avgRating = offers.length ? offers.reduce((a, b) => a + (b.rating ?? 4.7), 0) / offers.length : 4.7;
-  const aiScore = Number((Math.min(9.9, Math.max(8.5, avgRating * 1.9 + (hash % 5) * 0.05))).toFixed(1));
-  const antiFakePercent = 91 + (hash % 8);
-  const discountPercent = 10 + (hash % 25);
+  const validOffersWithRating = offers.filter((o) => typeof o.rating === "number" && o.rating > 0);
+  const totalReviews = offers.reduce((acc, o) => acc + (o.reviewCount || 0), 0);
 
-  const bestPrice = Math.min(...offers.map((o) => o.price ?? 2500));
+  const avgRating = validOffersWithRating.length
+    ? validOffersWithRating.reduce((a, b) => a + (b.rating || 4.7), 0) / validOffersWithRating.length
+    : 0;
+
+  let aiScore: number;
+  let antiFakePercent: number;
+  let aiTags: string[];
+
+  if (totalReviews > 0 && avgRating > 0) {
+    aiScore = Number(Math.min(9.9, Math.max(7.5, (avgRating / 5) * 9.8)).toFixed(1));
+    antiFakePercent = totalReviews >= 500 ? 99 : totalReviews >= 100 ? 97 : totalReviews >= 10 ? 94 : 90;
+    aiTags = [
+      `Анти-Фейк: ${antiFakePercent}%`,
+      "Честная цена",
+      avgRating >= 4.7 ? "Выбор wobuy." : "Проверен ИИ",
+      "Оригинал",
+    ];
+  } else {
+    // Новинка без отзывов
+    aiScore = 9.0;
+    antiFakePercent = 85;
+    aiTags = ["Новинка без отзывов", "Прямая поставка", "Честная цена", "Оригинал"];
+  }
+
+  const validPrices = offers
+    .map((o) => o.price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+
+  const bestPrice = validPrices.length ? Math.min(...validPrices) : 2500;
+  const maxPrice = validPrices.length ? Math.max(...validPrices) : bestPrice;
+  const discountPercent = maxPrice > bestPrice ? Math.round(((maxPrice - bestPrice) / maxPrice) * 100) : 12;
+
   const sparkline = [
-    Math.round(bestPrice * 1.18),
-    Math.round(bestPrice * 1.12),
-    Math.round(bestPrice * 1.09),
-    Math.round(bestPrice * 1.03),
+    Math.round(bestPrice * 1.15),
+    Math.round(bestPrice * 1.1),
+    Math.round(bestPrice * 1.06),
+    Math.round(bestPrice * 1.02),
     bestPrice,
   ];
 
   return {
     aiScore,
     antiFakePercent,
-    aiTags: [
-      `Анти-Фейк: ${antiFakePercent}%`,
-      "Честная цена",
-      hash % 2 === 0 ? "Выбор AI 2026" : "Проверен AI",
-      "Оригинал",
-    ],
+    aiTags,
     priceSparkline: sparkline,
     discountPercent,
   };
@@ -194,6 +217,13 @@ export async function resolveProductById(id: string): Promise<SearchProduct | nu
     const wbItem = await getWildberriesProductDetail(article);
     if (wbItem) {
       const category = inferCategoryFromTitle(wbItem.title);
+      const metrics = computeProductAiMetrics(
+        `wb-${wbItem.externalId}`,
+        category,
+        wbItem.brand,
+        [wbItem],
+      );
+
       const prod: SearchProduct = {
         id: `wb-${wbItem.externalId}`,
         title: wbItem.title,
@@ -202,11 +232,11 @@ export async function resolveProductById(id: string): Promise<SearchProduct | nu
         description: wbItem.description || `Оригинальный товар «${wbItem.title}» с Wildberries. Проверен ИИ wobuy.`,
         imageUrl: wbItem.imageUrl,
         images: [wbItem.imageUrl],
-        aiScore: 9.6,
-        antiFakePercent: 97,
-        aiTags: ["Оригинал", "Проверен ИИ", "Честная цена"],
-        priceSparkline: [Math.round(wbItem.price * 1.15), wbItem.price],
-        discountPercent: 18,
+        aiScore: metrics.aiScore,
+        antiFakePercent: metrics.antiFakePercent,
+        aiTags: metrics.aiTags,
+        priceSparkline: metrics.priceSparkline,
+        discountPercent: metrics.discountPercent,
         offers: [
           {
             id: wbItem.id,

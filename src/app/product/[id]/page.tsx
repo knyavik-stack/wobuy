@@ -271,7 +271,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                       <div
                         key={idx}
                         className={`flex flex-col justify-between gap-3 rounded-2xl border p-3.5 transition sm:flex-row sm:items-center ${
-                          isBest
+                          isBest && mkt.price
                             ? "border-[#00FF87]/50 bg-emerald-950/20 shadow-[0_0_15px_rgba(0,255,135,0.1)]"
                             : "border-white/5 bg-[#0D0F14]"
                         }`}
@@ -280,20 +280,24 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                           <MarketplaceBadge marketplace={mkt.marketplace} size="md" showLabel={true} />
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-black text-white">
-                                {formatPrice(mkt.price, currency)}
+                              <span className={`text-sm font-black ${mkt.price ? "text-white" : "text-slate-400"}`}>
+                                {mkt.price ? formatPrice(mkt.price, currency) : "Поиск аналогов"}
                               </span>
-                              {isBest && (
+                              {isBest && mkt.price && (
                                 <span className="rounded bg-[#00FF87]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
                                   ★ Выбор
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                              <span className="flex items-center gap-0.5 font-bold text-amber-400">
-                                <Star className="h-3 w-3 fill-amber-400" />
-                                {mkt.rating.toFixed(1)}
-                              </span>
+                              {mkt.reviewsCount > 0 ? (
+                                <span className="flex items-center gap-0.5 font-bold text-amber-400">
+                                  <Star className="h-3 w-3 fill-amber-400" />
+                                  {mkt.rating.toFixed(1)}
+                                </span>
+                              ) : (
+                                <span>{mkt.price ? "Новинка" : "Поиск"}</span>
+                              )}
                               <span>•</span>
                               <span>{mkt.delivery}</span>
                             </div>
@@ -305,12 +309,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                           target="_blank"
                           rel="noreferrer"
                           className={`flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
-                            isBest
+                            isBest && mkt.price
                               ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)] hover:bg-[#00E576]"
                               : "border border-white/10 bg-white/5 text-white hover:border-[#00FF87]/50 hover:bg-white/10"
                           }`}
                         >
-                          <span>Купить на {mkt.name}</span>
+                          <span>{mkt.price ? `Купить на ${mkt.name}` : `Искать на ${mkt.name}`}</span>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       </div>
@@ -318,39 +322,41 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   })}
                 </div>
               </div>
-
-              {/* Структурированные характеристики и описание от ИИ */}
-              <div className="rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-lg">
-                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-400">
-                  <Sliders className="h-4 w-4 text-[#00FF87]" />
-                  <span>Характеристики и описание от ИИ</span>
-                </div>
-
-                <p className="mt-2.5 text-xs leading-relaxed text-slate-300">
-                  {analysis?.summary || resolved.description}
-                </p>
-
-                {/* Таблица структурированных спецификаций */}
-                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {(analysis?.specifications || [
-                    { label: "Бренд", value: resolved.brand || "Оригинал" },
-                    { label: "Категория", value: resolved.category || "Каталог" },
-                    { label: "Аудит подлинности", value: `Пройден на ${antiFakePercent}%` },
-                    { label: "Гарантия", value: "Официальная 12 месяцев" },
-                  ]).map((spec, sIdx) => (
-                    <div
-                      key={sIdx}
-                      className="flex items-center justify-between rounded-xl border border-white/5 bg-[#0D0F14] px-3 py-2 text-xs"
-                    >
-                      <span className="text-slate-400">{spec.label}</span>
-                      <strong className="text-white text-right">{spec.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
+
+        {/* Характеристики и описание от ИИ на всю ширину под фото товара */}
+        <section className="mt-8 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
+          <div className="flex items-center gap-2.5 text-sm font-extrabold uppercase tracking-wider text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/15 text-[#00FF87] border border-[#00FF87]/30">
+              <Sliders className="h-4 w-4" />
+            </div>
+            <span>Характеристики и описание от ИИ</span>
+          </div>
+
+          <p className="mt-4 text-sm leading-relaxed text-slate-300">
+            {analysis?.summary || resolved.description}
+          </p>
+
+          {/* Таблица структурированных спецификаций */}
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(analysis?.specifications || [
+              { label: "Бренд", value: resolved.brand || "Оригинал" },
+              { label: "Категория", value: resolved.category || "Каталог" },
+              { label: "Аудит подлинности", value: `Пройден на ${antiFakePercent}%` },
+              { label: "Гарантия", value: "Официальная 12 месяцев" },
+            ]).map((spec, sIdx) => (
+              <div
+                key={sIdx}
+                className="flex items-center justify-between rounded-2xl border border-white/5 bg-[#0D0F14] p-4 text-xs"
+              >
+                <span className="text-slate-400">{spec.label}</span>
+                <strong className="font-bold text-white text-right">{spec.value}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Секция вердикта 4 независимых ИИ-агентов с персональными баллами, плюсами и честными минусами */}
         <section className="mt-12">
@@ -455,8 +461,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           {/* 1. Анализ отзывов и детекция ботов */}
           <ReviewsAnalysisCard
             productTitle={resolved.title}
-            rating={bestOffer?.rating ?? 4.8}
-            reviewCount={bestOffer?.reviewCount ?? 1420}
+            rating={bestOffer?.rating ?? 0}
+            reviewCount={bestOffer?.reviewCount ?? 0}
             antiFakeScore={antiFakePercent}
           />
 

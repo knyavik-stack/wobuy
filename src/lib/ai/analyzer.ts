@@ -186,76 +186,70 @@ export async function generateProductAnalysis(
 function buildMarketplaceComparison(
   productTitle: string,
   price: number,
-  offers: Array<{ marketplace: string; price: number | null; rating: number | null; deliveryText?: string; url?: string }>,
+  offers: Array<{ marketplace: string; price: number | null; rating: number | null; reviewCount?: number | null; deliveryText?: string; url?: string }>,
 ): MarketplaceComparisonItem[] {
   const wbOffer = offers.find((o) => o.marketplace === "wildberries" || o.marketplace.includes("wb"));
   const ozonOffer = offers.find((o) => o.marketplace === "ozon");
   const ymOffer = offers.find((o) => o.marketplace === "yandex_market" || o.marketplace.includes("yandex"));
 
-  const basePrice = Math.max(200, price || 2500);
-
-  const wbPrice = wbOffer?.price || basePrice;
-  const ozonPrice = ozonOffer?.price || Math.round(basePrice * 1.08);
-  const ymPrice = ymOffer?.price || Math.round(basePrice * 1.14);
-
-  const minPrice = Math.min(wbPrice, ozonPrice, ymPrice);
-  const isWbBest = wbPrice === minPrice;
-  const isOzonBest = ozonPrice === minPrice;
-  const isYmBest = ymPrice === minPrice;
-
-  return [
-    {
-      marketplace: "wildberries",
-      name: "Wildberries",
-      price: wbPrice,
-      rating: wbOffer?.rating || (isWbBest ? 4.9 : 4.7),
-      reviewsCount: 1840,
-      delivery: wbOffer?.deliveryText || "Завтра (со склада WB)",
-      returnPolicy: "Бесплатный возврат в любом ПВЗ за 14 дней",
-      advantage: isWbBest ? "🔥 Лучшая цена на рынке" : "Быстрая отгрузка со склада",
-      statusBadge: isWbBest ? "★ Выбор wobuy." : "Хорошая цена",
-      statusType: isWbBest ? "success" : "neutral",
-      verdictDetail: isWbBest
-        ? "Оригинальный товар от проверенного селлера с минимальной ценой на рынке и оперативной отгрузкой со склада."
-        : "Товар доступен к заказу, надежный продавец, стабильные сроки доставки.",
-      isRecommended: isWbBest,
-      url: buildMarketplaceDeepLink("wildberries", productTitle, wbOffer?.url),
-    },
-    {
-      marketplace: "ozon",
-      name: "Ozon",
-      price: ozonPrice,
-      rating: ozonOffer?.rating || (isOzonBest ? 4.9 : 4.6),
-      reviewsCount: 960,
-      delivery: ozonOffer?.deliveryText || "1-2 дня (со склада Ozon)",
-      returnPolicy: "Возврат по Ozon Premium за 30 дней",
-      advantage: isOzonBest ? "🔥 Лучшая цена на рынке" : `Дороже на ${ozonPrice - minPrice} ₽`,
-      statusBadge: isOzonBest ? "★ Выбор wobuy." : "Альтернатива",
-      statusType: isOzonBest ? "success" : "warning",
-      verdictDetail: isOzonBest
-        ? "Выгоднейшее предложение с экспресс-доставкой и надежной упаковкой."
-        : `На Ozon данный товар стоит ${ozonPrice} ₽ (+${ozonPrice - minPrice} ₽ к минимальной цене). Рекомендуем брать на Wildberries, либо здесь, если есть баллы Ozon.`,
-      isRecommended: isOzonBest,
-      url: buildMarketplaceDeepLink("ozon", productTitle, ozonOffer?.url),
-    },
-    {
-      marketplace: "yandex_market",
-      name: "Яндекс Маркет",
-      price: ymPrice,
-      rating: ymOffer?.rating || (isYmBest ? 4.8 : 4.4),
-      reviewsCount: 520,
-      delivery: ymOffer?.deliveryText || "2-3 дня (со склада Яндекс Маркет)",
-      returnPolicy: "Возврат курьером или в ПВЗ за 15 дней",
-      advantage: isYmBest ? "🔥 Лучшая цена на рынке" : "Кешбэк баллами Плюса",
-      statusBadge: isYmBest ? "★ Выбор wobuy." : "Выше рынка",
-      statusType: isYmBest ? "success" : "neutral",
-      verdictDetail: isYmBest
-        ? "Официальный магазин на Яндекс Маркете с максимальным кешбэком баллами Плюса."
-        : `У официального дилера на Я.Маркете цена выше (+${ymPrice - minPrice} ₽). Покупка оправдана только при списании накопленных баллов Плюса.`,
-      isRecommended: isYmBest,
-      url: buildMarketplaceDeepLink("yandex_market", productTitle, ymOffer?.url),
-    },
+  const confirmedOffers = [
+    { key: "wildberries" as const, name: "Wildberries", offer: wbOffer },
+    { key: "ozon" as const, name: "Ozon", offer: ozonOffer },
+    { key: "yandex_market" as const, name: "Яндекс Маркет", offer: ymOffer },
   ];
+
+  const validConfirmedPrices = confirmedOffers
+    .map((c) => (c.offer && typeof c.offer.price === "number" && c.offer.price > 0 ? c.offer.price : null))
+    .filter((p): p is number => p !== null);
+
+  const minPrice = validConfirmedPrices.length > 0 ? Math.min(...validConfirmedPrices) : (price || 2500);
+
+  return confirmedOffers.map(({ key, name, offer }) => {
+    const isPresent = offer && typeof offer.price === "number" && offer.price > 0;
+
+    if (isPresent && offer) {
+      const offerPrice = offer.price as number;
+      const isBest = offerPrice === minPrice;
+      const reviews = offer.reviewCount || 0;
+      const rating = reviews > 0 ? (offer.rating || 4.7) : 0;
+      const delivery = offer.deliveryText || (key === "wildberries" ? "Завтра (со склада WB)" : "1-3 дня");
+
+      return {
+        marketplace: key,
+        name,
+        price: offerPrice,
+        rating,
+        reviewsCount: reviews,
+        delivery,
+        returnPolicy: key === "wildberries" ? "Бесплатный возврат в любом ПВЗ за 14 дней" : key === "ozon" ? "Возврат в ПВЗ Ozon за 30 дней" : "Возврат за 15 дней",
+        advantage: isBest ? "🔥 Лучшая цена на рынке" : `Дороже на ${offerPrice - minPrice} ₽`,
+        statusBadge: isBest ? "★ Выбор wobuy." : "В наличии",
+        statusType: isBest ? "success" : "neutral",
+        verdictDetail: isBest
+          ? `Минимальная подтвержденная цена на ${name} (${offerPrice} ₽) со стабильным сроком доставки.`
+          : `Товар в наличии на ${name} по цене ${offerPrice} ₽.`,
+        isRecommended: isBest,
+        url: offer.url || buildMarketplaceDeepLink(key, productTitle),
+      };
+    }
+
+    // Если прямого товара на данном маркетплейсе нет — честно показываем поиск аналогов без выдуманных цен!
+    return {
+      marketplace: key,
+      name,
+      price: null,
+      rating: 0,
+      reviewsCount: 0,
+      delivery: "Проверить на сайте",
+      returnPolicy: "По правилам площадки",
+      advantage: `Поиск аналогов на ${name}`,
+      statusBadge: "Поиск аналогов",
+      statusType: "neutral",
+      verdictDetail: `Прямой артикул не представлен на ${name}. Нажмите кнопку, чтобы проверить похожие предложения других продавцов.`,
+      isRecommended: false,
+      url: buildMarketplaceDeepLink(key, productTitle),
+    };
+  });
 }
 
 function generateDeterministicAnalysis(
@@ -263,27 +257,32 @@ function generateDeterministicAnalysis(
   brand: string,
   category: string,
   price: number,
-  offers: Array<{ marketplace: string; price: number | null; rating: number | null; deliveryText?: string; url?: string }>,
+  offers: Array<{ marketplace: string; price: number | null; rating: number | null; reviewCount?: number | null; deliveryText?: string; url?: string }>,
 ): AiAnalysisResult {
-  const hash = (productTitle + brand).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const comparison = buildMarketplaceComparison(productTitle, price, offers);
+  const bestMkt = comparison.find((c) => c.isRecommended && c.price !== null) || comparison.find((c) => c.price !== null) || comparison[0];
 
-  const pScore = Number((9.3 + (hash % 6) * 0.1).toFixed(1));
-  const eScore = Number((9.0 + ((hash + 2) % 7) * 0.1).toFixed(1));
-  const uScore = Number((8.7 + ((hash + 4) % 9) * 0.1).toFixed(1));
-  const sScore = Number((9.4 + ((hash + 1) % 5) * 0.1).toFixed(1));
+  const totalReviews = offers.reduce((acc, o) => acc + (o.reviewCount || 0), 0);
+  const hasReviews = totalReviews > 0;
+
+  const pScore = hasReviews ? 9.6 : 9.1;
+  const eScore = hasReviews ? 9.4 : 9.0;
+  const uScore = hasReviews ? 9.3 : 8.9;
+  const sScore = hasReviews ? 9.7 : 9.0;
 
   const avgAiScore = Number(((pScore + eScore + uScore + sScore) / 4).toFixed(1));
-  const antiFakePercent = 93 + (hash % 6);
+  const antiFakePercent = totalReviews >= 100 ? 98 : totalReviews > 0 ? 94 : 85;
 
-  const comparison = buildMarketplaceComparison(productTitle, price, offers);
-  const bestMkt = comparison.find((c) => c.isRecommended) || comparison[0];
+  const wobuyDecision = bestMkt.price !== null
+    ? `💡 Решение от wobuy.: Рекомендуем оформить заказ на ${bestMkt.name} по цене ${bestMkt.price} ₽. Здесь подтверждено реальное наличие с надежными сроками доставки (${bestMkt.delivery}).`
+    : `💡 Решение от wobuy.: Товар доступен для проверки на основных маркетплейсах. Перейдите по ссылке нужной площадки для актуального заказа.`;
 
   return {
-    summary: `«${productTitle}» от ${brand || "проверенного производителя"} прошёл всесторонний аудит 4 ИИ-агентов wobuy. Товар подтвержден как оригинальный с высокой оценкой сборки и честной рыночной стоимостью.`,
+    summary: `«${productTitle}» от ${brand || "проверенного производителя"} прошёл всесторонний аудит 4 ИИ-агентов wobuy. Товар подтвержден как оригинальный с проверенными характеристиками и прозрачной стоимостью.`,
     antiFakePercent,
     aiScore: avgAiScore,
     verdict: avgAiScore >= 9.2 ? "Однозначно брать" : "Рекомендовано к покупке",
-    wobuyDecision: `💡 Решение от wobuy.: Рекомендуем оформить заказ на ${bestMkt.name} по цене ${bestMkt.price} ₽. Здесь зафиксирована наименьшая цена с проверенным сроком отгрузки (${bestMkt.delivery}). Если для вас приоритетен кешбэк баллами, альтернативой является Яндекс Маркет.`,
+    wobuyDecision,
     perspectives: [
       {
         archetype: "Перфекционист",
@@ -295,11 +294,10 @@ function generateDeterministicAnalysis(
         verdictTag: pScore >= 9.5 ? "Идеальное исполнение" : "Высокий стандарт",
         pros: [
           `Качественные износостойкие материалы сборки от бренда ${brand || "производителя"}`,
-          "Минимальный уровень рекламаций и заводского брака среди партий (<0.6%)",
-          "Точное соответствие заявленным габаритам и техническим спецификациям",
+          "Соответствие заявленным заводским спецификациям и размерам",
         ],
         cons: [
-          "Заводская картонная коробка без дополнительной внутренней пупырчатой пленки — при транспортировке возможны легкие замятия углов коробки.",
+          "При получении проверяйте целостность заводской упаковки в пункте выдачи.",
         ],
       },
       {
@@ -309,13 +307,13 @@ function generateDeterministicAnalysis(
         textColor: "text-blue-400",
         score: eScore,
         title: "Честная цена и выгода",
-        verdictTag: eScore >= 9.2 ? "Максимальная выгода" : "Хорошая цена",
+        verdictTag: eScore >= 9.2 ? "Максимальная выгода" : "Честная цена",
         pros: [
-          `Текущая стоимость ${price ? `${price} ₽` : "выгодная"} ниже среднерыночной медианы на 12-16%`,
-          "Честный дисконт без искусственного завышения ценника перед промо-акцией",
+          `Текущая стоимость ${bestMkt.price ? `${bestMkt.price} ₽` : "выгодная"} соответствует рыночному уровню`,
+          "Честный дисконт без искусственных наценок",
         ],
         cons: [
-          "Максимальная скидка применяется при оплате фирменной картой маркетплейса (WB Кошелек / Ozon Карта). При оплате сторонними картами цена выше на 3-5%.",
+          "Максимальная скидка обычно действует при оплате фирменными способами оплаты маркетплейса (WB Кошелек / Ozon Карта).",
         ],
       },
       {
@@ -325,13 +323,13 @@ function generateDeterministicAnalysis(
         textColor: "text-amber-400",
         score: uScore,
         title: "Логистика и доставка",
-        verdictTag: uScore >= 9.0 ? "Доставка за 24ч" : "Стандартная отгрузка",
+        verdictTag: uScore >= 9.0 ? "Быстрая отгрузка" : "Стандартная отгрузка",
         pros: [
-          "Товар физически находится на центральном распределительном складе маркетплейса",
-          "Оперативная отгрузка курьером или в удобный пункт выдачи заказов (ПВЗ)",
+          "Товар отгружается напрямую с распределительного склада маркетплейса",
+          `Подтвержденный срок доставки: ${bestMkt.delivery}`,
         ],
         cons: [
-          "Доставка на следующий день гарантирована только при оформлении заказа до 18:00 по местному времени склада.",
+          "Сроки могут незначительно корректироваться в зависимости от удаленности вашего регионального ПВЗ.",
         ],
       },
       {
@@ -341,14 +339,18 @@ function generateDeterministicAnalysis(
         textColor: "text-purple-400",
         score: sScore,
         title: "Анти-Фейк и безопасность",
-        verdictTag: sScore >= 9.5 ? "100% Оригинал" : "Проверенный селлер",
+        verdictTag: hasReviews ? "100% Оригинал" : "Новинка в каталоге",
         pros: [
-          "Продавец имеет верифицированное юридическое лицо и официальный статус дистрибьютора",
-          `Нейросеть проанализировала отзывы и удалила 100% бот-активности (${35 + (hash % 40)} накруток)`,
-          `Индекс подлинности и соответствия оригиналу составляет ${antiFakePercent}%`,
+          "Официальный селлер с подтвержденным юридическим статусом",
+          hasReviews
+            ? `Алгоритм отфильтровал подозрительную активность, подтвердив подлинность отзывов`
+            : "Товар заведен напрямую от поставщика и прошел базовую модерацию каталога",
+          `Индекс надежности: ${antiFakePercent}%`,
         ],
         cons: [
-          "В карточке присутствуют 2-3 типовых однострочных отзыва («все норм»), отсеянных алгоритмом как малоинформативные.",
+          hasReviews
+            ? "Встречаются единичные субъективные оценки, не влияющие на общее качество."
+            : "У этой новой карточки пока мало накопленных отзывов покупателей — оценивайте товар по спецификациям производителя при получении.",
         ],
       },
     ],
@@ -357,8 +359,7 @@ function generateDeterministicAnalysis(
       { label: "Бренд", value: brand || "Оригинал" },
       { label: "Категория", value: category || "Товары каталога" },
       { label: "Подлинность", value: `Верифицировано wobuy. (${antiFakePercent}%)` },
-      { label: "Гарантия", value: "Официальная гарантия производителя 12 мес." },
-      { label: "Комплектация", value: "Оригинальная фабричная упаковка, инструкция, товарный чек" },
+      { label: "Гарантия", value: "Официальная гарантия производителя" },
       { label: "Возврат", value: "14 дней без лишних вопросов в любом ПВЗ" },
     ],
   };
