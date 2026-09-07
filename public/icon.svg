@@ -1,1 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#0D0F14"/><path d="M14 18h8l5 24 6-18h6l6 18 5-24h8l-8 32h-9l-5-16-5 16h-9z" fill="#00FF87"/></svg>
+<svg xmlns="http://w3.org" viewBox="0 0 64 64">
+  <!-- Тёмный фон со скруглением -->
+  <rect width="64" height="64" rx="20" fill="#0D1117"/>
+  
+  <!-- Белая сглаженная буква W -->
+  <path d="M16 20 c1-2 3-2 4 0 l6 16 c1 2 2 2 3 0 l6 -16 c1-2 3-2 4 0 l6 16 c1 2 2 2 3 0 l5 -14 c1-2 3-2 4 0 l-7 22 c-1 2-3 2-4 0 l-6 -16 c-1-2-2-2-3 0 l-6 16 c-1 2-3 2-4 0 z" fill="#FFFFFF"/>
+  
+  <!-- Ярко-зелёная точка -->
+  <circle cx="50" cy="42" r="4.5" fill="#00FF87"/>
+</svg>
