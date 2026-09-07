@@ -199,9 +199,19 @@ export async function searchWildberries(
             const reviewCount = p.feedbacks ?? 0;
             const rating = reviewCount > 0 ? (p.reviewRating || p.rating || 4.7) : null;
 
-            const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 2;
-            const deliveryText =
-              deliveryDays <= 1 ? "Завтра (доставка WB)" : `Доставка ~${deliveryDays} дн.`;
+            const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 3;
+            let deliveryText = "2-3 дня (со склада WB)";
+            if (p.time1 && p.time1 > 0) {
+              if (p.time1 <= 24) {
+                deliveryText = "1-2 дня (со склада WB)";
+              } else if (p.time1 <= 48) {
+                deliveryText = "2-3 дня (со склада WB)";
+              } else if (p.time1 <= 72) {
+                deliveryText = "3-4 дня (со склада WB)";
+              } else {
+                deliveryText = `~${Math.ceil(p.time1 / 24)} дн. (доставка WB)`;
+              }
+            }
 
             const imageUrl = await resolveAccurateWbImageUrl(p.id, 1);
 
@@ -288,7 +298,19 @@ export async function getWildberriesProductDetail(
     const imageUrl = await resolveAccurateWbImageUrl(p.id, 1);
     const reviewCount = p.feedbacks ?? 0;
     const rating = reviewCount > 0 ? (p.reviewRating || p.rating || 4.7) : null;
-    const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 2;
+    const deliveryDays = p.time1 ? Math.max(1, Math.round(p.time1 / 24)) : 3;
+    let deliveryText = "2-3 дня (со склада WB)";
+    if (p.time1 && p.time1 > 0) {
+      if (p.time1 <= 24) {
+        deliveryText = "1-2 дня (со склада WB)";
+      } else if (p.time1 <= 48) {
+        deliveryText = "2-3 дня (со склада WB)";
+      } else if (p.time1 <= 72) {
+        deliveryText = "3-4 дня (со склада WB)";
+      } else {
+        deliveryText = `~${Math.ceil(p.time1 / 24)} дн. (доставка WB)`;
+      }
+    }
 
     return {
       id: `wb-${p.id}`,
@@ -306,7 +328,7 @@ export async function getWildberriesProductDetail(
       url: getWbProductUrl(p.id),
       imageUrl,
       deliveryDays,
-      deliveryText: deliveryDays <= 1 ? "Завтра (со склада WB)" : `Доставка ~${deliveryDays} дн.`,
+      deliveryText,
       availability: "В наличии",
       sellerName: p.supplier || "Продавец Wildberries",
       sellerRating: p.supplierRating,

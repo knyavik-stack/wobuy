@@ -212,7 +212,7 @@ function buildMarketplaceComparison(
       const isBest = offerPrice === minPrice;
       const reviews = offer.reviewCount || 0;
       const rating = reviews > 0 ? (offer.rating || 4.7) : 0;
-      const delivery = offer.deliveryText || (key === "wildberries" ? "Завтра (со склада WB)" : "1-3 дня");
+      const delivery = offer.deliveryText || (key === "wildberries" ? "2-3 дня (со склада WB)" : "2-4 дня (со склада)");
 
       return {
         marketplace: key,

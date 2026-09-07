@@ -229,7 +229,7 @@ export function clusterAndDeduplicateOffers(
         currency: o.currency || "RUB",
         rating: o.rating,
         reviewCount: o.reviewCount,
-        deliveryText: o.deliveryText || "Доставка 1-2 дня",
+        deliveryText: o.deliveryText || "2-3 дня (со склада)",
         availability: o.availability || "В наличии",
       })),
     };

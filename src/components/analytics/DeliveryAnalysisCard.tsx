@@ -18,29 +18,48 @@ interface DeliveryAnalysisCardProps {
 }
 
 export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: DeliveryAnalysisCardProps) {
-  const defaultOffers: OfferDeliveryInfo[] = offers.length > 0 ? offers : [
-    {
-      marketplace: "wildberries",
-      price: 2450,
-      deliveryText: "Завтра (со склада WB Коледино)",
-      warehouse: "Коледино (быстрая отгрузка 4ч)",
-      speedRating: 9.8,
-    },
-    {
-      marketplace: "ozon",
-      price: 2690,
-      deliveryText: "1-2 дня (со склада Ozon Хоругвино)",
-      warehouse: "Хоругвино (отгрузка 12ч)",
-      speedRating: 9.2,
-    },
-    {
-      marketplace: "yandex_market",
-      price: 2750,
-      deliveryText: "2 дня (Яндекс Маркет Софьино)",
-      warehouse: "Софьино",
-      speedRating: 8.9,
-    },
-  ];
+  // Дедупликация предложений: строго по 1 уникальной строке на каждый маркетплейс
+  const marketplaceMap = new Map<string, OfferDeliveryInfo>();
+
+  for (const off of offers) {
+    const key = off.marketplace.toLowerCase();
+    const existing = marketplaceMap.get(key);
+    if (!existing || (off.price > 0 && (existing.price <= 0 || off.price < existing.price))) {
+      marketplaceMap.set(key, {
+        marketplace: off.marketplace,
+        price: off.price,
+        deliveryText: off.deliveryText || "2-3 дня (со склада)",
+        warehouse:
+          off.warehouse ||
+          (key.includes("wb") || key.includes("wildberries")
+            ? "Склад WB (FBO отгрузка 6ч)"
+            : key.includes("ozon")
+              ? "Склад Ozon (Хоругвино / Гривно)"
+              : "Склад Яндекс Маркет (Софьино)"),
+        speedRating: off.speedRating || 9.4,
+      });
+    }
+  }
+
+  const uniqueOffers = Array.from(marketplaceMap.values());
+
+  const displayOffers: OfferDeliveryInfo[] =
+    uniqueOffers.length > 0
+      ? uniqueOffers
+      : [
+          {
+            marketplace: "wildberries",
+            price: 2450,
+            deliveryText: "2-3 дня (со склада WB)",
+            warehouse: "Склад WB (Коледино)",
+            speedRating: 9.5,
+          },
+        ];
+
+  // Динамическое определение самой быстрой доставки
+  const fastestText = displayOffers.some((o) => o.deliveryText.includes("1") || o.deliveryText.includes("Завтра"))
+    ? "1-2 дня"
+    : "2-3 дня";
 
   return (
     <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-2xl backdrop-blur-md sm:p-6">
@@ -61,13 +80,13 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
 
         <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-950/40 px-3 py-1 text-xs font-bold text-amber-300">
           <Clock className="h-3.5 w-3.5" />
-          <span>Самая быстрая: Завтра</span>
+          <span>Самая быстрая: ~{fastestText}</span>
         </div>
       </div>
 
-      {/* Сетка сравнения площадок */}
+      {/* Сетка сравнения площадок: строго 1 строка на каждый маркетплейс */}
       <div className="mt-5 space-y-3">
-        {defaultOffers.map((off, idx) => (
+        {displayOffers.map((off, idx) => (
           <div
             key={idx}
             className="flex flex-col justify-between gap-3 rounded-2xl border border-white/5 bg-[#0D0F14] p-4 transition hover:border-white/10 sm:flex-row sm:items-center"
@@ -76,11 +95,11 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
               <MarketplaceBadge marketplace={off.marketplace} size="sm" showLabel={true} />
               <div>
                 <div className="text-xs font-bold text-white">
-                  {off.deliveryText || "Доставка 1-2 дня"}
+                  {off.deliveryText}
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-slate-400">
                   <MapPin className="h-3 w-3 text-emerald-400" />
-                  <span>{off.warehouse || "Склад маркетплейса (FBO)"}</span>
+                  <span>{off.warehouse}</span>
                 </div>
               </div>
             </div>
@@ -88,13 +107,15 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
             <div className="flex items-center justify-between gap-4 sm:justify-end">
               <div className="text-right">
                 <div className="text-xs font-bold text-[#00FF87]">
-                  {off.speedRating ? `${off.speedRating}/10 скорость` : "Высокая скорость"}
+                  {off.speedRating ? `${off.speedRating}/10 скорость` : "Стабильная доставка"}
                 </div>
                 <div className="text-[10px] text-slate-400">0% задержек за неделю</div>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-bold text-white">
-                {new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(off.price)}
+                {off.price > 0
+                  ? new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(off.price)
+                  : "Поиск аналогов"}
               </div>
             </div>
           </div>

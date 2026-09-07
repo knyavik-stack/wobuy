@@ -326,8 +326,32 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        {/* Характеристики и описание от ИИ на всю ширину под фото товара */}
-        <section className="mt-8 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
+        {/* Главный блок: Заключение и рекомендация wobuy. на всю ширину прямо под фото и карточкой товара */}
+        {analysis?.wobuyDecision && (
+          <section className="mt-8 overflow-hidden rounded-3xl border border-[#00FF87]/50 bg-gradient-to-r from-emerald-950/60 via-[#13161C] to-emerald-950/30 p-6 shadow-2xl shadow-emerald-950/20 backdrop-blur-md">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#00FF87] text-black font-black shadow-lg shadow-emerald-500/20">
+                ✓
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-black uppercase tracking-widest text-[#00FF87]">
+                    Заключение и рекомендация wobuy.
+                  </div>
+                  <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-3 py-0.5 text-[11px] font-bold text-[#00FF87]">
+                    ★ Персональный вердикт ИИ
+                  </span>
+                </div>
+                <p className="text-sm font-medium leading-relaxed text-slate-100 sm:text-base">
+                  {analysis.wobuyDecision}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Характеристики и описание от ИИ на всю ширину */}
+        <section className="mt-6 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
           <div className="flex items-center gap-2.5 text-sm font-extrabold uppercase tracking-wider text-white">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/15 text-[#00FF87] border border-[#00FF87]/30">
               <Sliders className="h-4 w-4" />
@@ -445,12 +469,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
         </section>
 
-        {/* Секция Сравнения маркетплейсов и итогового решения wobuy. */}
+        {/* Секция Сравнения маркетплейсов */}
         {analysis?.marketplaceComparison && (
           <section className="mt-12">
             <MarketplaceComparisonCard
               items={analysis.marketplaceComparison}
-              wobuyDecision={analysis.wobuyDecision}
               currency={currency}
             />
           </section>

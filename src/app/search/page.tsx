@@ -21,10 +21,14 @@ export default async function SearchPage({
     const priceB = Math.min(...b.offers.map((offer) => offer.price ?? Number.MAX_SAFE_INTEGER));
     const ratingA = Math.max(...a.offers.map((offer) => offer.rating ?? 0));
     const ratingB = Math.max(...b.offers.map((offer) => offer.rating ?? 0));
+    const reviewsA = a.offers.reduce((acc, o) => acc + (o.reviewCount ?? 0), 0);
+    const reviewsB = b.offers.reduce((acc, o) => acc + (o.reviewCount ?? 0), 0);
+
     if (sort === "price_asc") return priceA - priceB;
     if (sort === "price_desc") return priceB - priceA;
     if (sort === "rating") return ratingB - ratingA;
-    return a.title.localeCompare(b.title, "ru");
+    // По умолчанию ("relevance" - выбор wobuy): по комбинации AI Score и надежности отзывов
+    return (b.aiScore * 10 + Math.log10(reviewsB + 1) * 3) - (a.aiScore * 10 + Math.log10(reviewsA + 1) * 3);
   });
   return (
     <SearchResults

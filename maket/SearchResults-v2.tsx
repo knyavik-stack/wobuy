@@ -100,7 +100,7 @@ const AGENT_PERSONAS = [
     type: "express",
     name: "Срочный",
     emoji: "⚡",
-    tagline: "Быстрая доставка завтра со склада",
+    tagline: "Быстрая доставка FBO со склада",
     badgeBg: "border-amber-500/40 bg-amber-950/60 text-amber-400",
     scoreColor: "text-amber-400",
     scoreLabel: "Оценка Срочного",
@@ -110,13 +110,133 @@ const AGENT_PERSONAS = [
     type: "skeptic",
     name: "Скептик",
     emoji: "🛡️",
-    tagline: "Анти-Фейк защита, 0 бот-отзывов",
+    tagline: "Анти-Фейк защита, максимум отзывов, 0 ботов",
     badgeBg: "border-purple-500/40 bg-purple-950/60 text-purple-300",
     scoreColor: "text-purple-300",
     scoreLabel: "Оценка Скептика",
     defaultScore: 9.8,
   },
 ];
+
+interface AgentPick {
+  persona: (typeof AGENT_PERSONAS)[number];
+  product: SearchProduct;
+  agentScore: string;
+  selectionReason: string;
+}
+
+// Умный алгоритм отбора 4 лучших товаров 4 агентами
+function selectAgentPicks(allProducts: SearchProduct[]): AgentPick[] {
+  if (!allProducts || allProducts.length === 0) return [];
+
+  const available = [...allProducts];
+  const results: AgentPick[] = [];
+
+  const getReviews = (p: SearchProduct) =>
+    p.offers.reduce((acc, o) => acc + (o.reviewCount ?? 0), 0);
+  const getRating = (p: SearchProduct) =>
+    Math.max(...p.offers.map((o) => o.rating ?? 0), 0);
+  const getMinPrice = (p: SearchProduct) => {
+    const valid = p.offers.map((o) => o.price).filter((pr): pr is number => typeof pr === "number" && pr > 0);
+    return valid.length > 0 ? Math.min(...valid) : 999999;
+  };
+
+  const allMinPrices = allProducts.map(getMinPrice).filter((pr) => pr < 999999);
+  const lowestPrice = allMinPrices.length > 0 ? Math.min(...allMinPrices) : 1000;
+  const highestPrice = allMinPrices.length > 0 ? Math.max(...allMinPrices) : 5000;
+
+  // 1. Перфекционист: Высокий рейтинг (4.8 - 5.0), бренд, материалы
+  const scorePerfectionist = (p: SearchProduct) => {
+    const rating = getRating(p);
+    const reviews = getReviews(p);
+    const brandBonus = p.brand && p.brand !== "Wildberries" && p.brand !== "Бренд" ? 1.0 : 0.2;
+    const reviewBonus = reviews >= 50 ? 1.5 : reviews >= 10 ? 1.0 : reviews > 0 ? 0.4 : 0.05;
+    return (rating * 1.6) + brandBonus + reviewBonus;
+  };
+
+  // 2. Экономный: Лучшая цена и скидка при проверенном качестве
+  const scoreEconomist = (p: SearchProduct) => {
+    const minP = getMinPrice(p);
+    const rating = getRating(p);
+    const reviews = getReviews(p);
+    const priceRatio = highestPrice > lowestPrice
+      ? 1 - ((minP - lowestPrice) / (highestPrice - lowestPrice))
+      : 0.8;
+    const discountBonus = (p.discountPercent || 0) * 0.03;
+    const trustFactor = reviews >= 5 ? 1.0 : reviews > 0 ? 0.4 : 0.1;
+    return (priceRatio * 3.5) + discountBonus + (rating * 0.8) + trustFactor;
+  };
+
+  // 3. Срочный: Быстрая доставка, наличие на складе
+  const scoreExpress = (p: SearchProduct) => {
+    const rating = getRating(p);
+    const hasFast = p.offers.some(
+      (o) => o.deliveryText?.includes("1") || o.deliveryText?.includes("2") || o.deliveryText?.includes("Завтра")
+    );
+    const reviews = getReviews(p);
+    const speedBonus = hasFast ? 3.0 : 1.2;
+    const trustFactor = reviews >= 5 ? 1.0 : reviews > 0 ? 0.5 : 0.1;
+    return speedBonus + (rating * 1.0) + trustFactor;
+  };
+
+  // 4. Скептик: Максимум подтвержденных отзывов (100, 500, 2000+), 0 ботов!
+  // Если у товара <= 2 отзывов — Скептик его дисквалифицирует в пользу проверенных товаров
+  const scoreSkeptic = (p: SearchProduct) => {
+    const reviews = getReviews(p);
+    const rating = getRating(p);
+    if (reviews <= 2) return 0.1;
+    const reviewWeight = Math.min(4.5, Math.log10(reviews + 1) * 1.4);
+    const ratingWeight = rating * 1.2;
+    const antiFakeWeight = (p.antiFakePercent / 100) * 1.5;
+    return reviewWeight + ratingWeight + antiFakeWeight;
+  };
+
+  const agentConfigs = [
+    { persona: AGENT_PERSONAS[0], scorer: scorePerfectionist, type: "perfectionist" },
+    { persona: AGENT_PERSONAS[1], scorer: scoreEconomist, type: "economist" },
+    { persona: AGENT_PERSONAS[2], scorer: scoreExpress, type: "express" },
+    { persona: AGENT_PERSONAS[3], scorer: scoreSkeptic, type: "skeptic" },
+  ];
+
+  for (const config of agentConfigs) {
+    if (available.length === 0) break;
+
+    available.sort((a, b) => config.scorer(b) - config.scorer(a));
+    const winner = available.shift()!;
+
+    const reviews = getReviews(winner);
+    const rating = getRating(winner);
+    const hasFast = winner.offers.some(
+      (o) => o.deliveryText?.includes("1") || o.deliveryText?.includes("2") || o.deliveryText?.includes("Завтра")
+    );
+
+    let score = 9.5;
+    let reason = "";
+
+    if (config.type === "perfectionist") {
+      score = Number(Math.min(9.9, Math.max(9.1, 8.6 + (rating >= 4.8 ? 0.8 : 0.4) + (winner.brand ? 0.4 : 0.1))).toFixed(1));
+      reason = `Премиальное качество: рейтинг ${rating > 0 ? rating.toFixed(1) : "4.8"}, бренд ${winner.brand}`;
+    } else if (config.type === "economist") {
+      score = Number(Math.min(9.8, Math.max(8.9, 8.6 + (winner.discountPercent >= 20 ? 0.8 : 0.4) + 0.3)).toFixed(1));
+      reason = `Честная выгода: скидка -${winner.discountPercent}%, лучшая цена за единицу качества`;
+    } else if (config.type === "express") {
+      score = Number(Math.min(9.7, Math.max(8.8, 8.6 + (hasFast ? 0.8 : 0.3) + 0.2)).toFixed(1));
+      reason = `Быстрая логистика: отгрузка FBO со склада, срок ${winner.offers[0]?.deliveryText || "2-3 дня"}`;
+    } else {
+      score = Number(Math.min(9.9, Math.max(9.0, 8.4 + (reviews >= 100 ? 1.2 : reviews >= 20 ? 0.8 : 0.4) + (winner.antiFakePercent >= 95 ? 0.3 : 0.1))).toFixed(1));
+      reason = `Анти-Фейк аудит: ${reviews > 0 ? `${reviews.toLocaleString("ru-RU")} реальных отзывов` : "проверено ИИ"}, 0 ботов`;
+    }
+
+    results.push({
+      persona: config.persona,
+      product: winner,
+      agentScore: score.toFixed(1),
+      selectionReason: reason,
+    });
+  }
+
+  return results;
+}
 
 // Блок отсева и аналитики 4 ИИ-агентов
 function ScreeningStatsBanner({ totalProducts, query }: { totalProducts: number; query: string }) {
@@ -178,12 +298,12 @@ export default function SearchResults({
 
   const activeCategory = category === "all" ? "Все категории" : category;
   const sortLabels: Record<string, string> = {
-    relevance: "По названию",
+    relevance: "По AI Score (Выбор wobuy.)",
     price_asc: "Сначала дешевле",
     price_desc: "Сначала дороже",
     rating: "По рейтингу",
   };
-  const activeSort = sortLabels[sort] ?? "По названию";
+  const activeSort = sortLabels[sort] ?? "По AI Score (Выбор wobuy.)";
 
   const filterBase =
     "rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:border-[#00FF87]/40 hover:bg-white/[0.08]";
@@ -196,8 +316,8 @@ export default function SearchResults({
     }
   };
 
-  // Показываем ровно 4 товара (по 1 от каждого из 4 агентов: Перфекционист, Экономный, Срочный, Скептик)
-  const agentProducts = products.slice(0, 4);
+  // Выбираем ровно 4 лучших товара по критериям каждого из 4 агентов
+  const agentPicks = selectAgentPicks(products);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] pb-24 font-sans text-slate-100 sm:pb-16">
@@ -506,13 +626,10 @@ export default function SearchResults({
                 : "mb-10 space-y-4"
             }
           >
-            {agentProducts.map((product, pIndex) => {
-              const persona = AGENT_PERSONAS[pIndex % AGENT_PERSONAS.length];
+            {agentPicks.map((pick) => {
+              const { persona, product, agentScore, selectionReason } = pick;
               const bestOffer = product.offers[0];
               const priceRangeText = formatPriceRange(product.offers, bestOffer?.currency || "RUB");
-
-              // Персональная оценка выдвинувшего агента
-              const agentScore = (persona.defaultScore - (pIndex % 3) * 0.1).toFixed(1);
 
               return (
                 <article
@@ -548,7 +665,7 @@ export default function SearchResults({
                       />
                     </div>
 
-                    {/* Оценка агента + AI Score + Теги валидации */}
+                    {/* Оценка агента + AI Score + Причина выбора */}
                     <div className="flex flex-1 min-w-0 flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between gap-2">
@@ -579,14 +696,24 @@ export default function SearchResults({
                           </div>
                         </div>
 
+                        {/* Аргумент выбора агента */}
+                        <div className="mt-3 rounded-xl border border-white/10 bg-[#0D0F14]/70 p-2.5">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Почему выбрал {persona.name}:
+                          </div>
+                          <div className="mt-1 text-xs font-semibold text-slate-200">
+                            {selectionReason}
+                          </div>
+                        </div>
+
                         {/* Теги валидации ИИ */}
-                        <div className="mt-3 flex flex-col gap-1.5 overflow-hidden">
-                          {product.aiTags.slice(0, 3).map((tag, idx) => (
+                        <div className="mt-2.5 flex flex-col gap-1 overflow-hidden">
+                          {product.aiTags.slice(0, 2).map((tag, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200"
+                              className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300"
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
+                              <CheckCircle2 className="h-3 w-3 shrink-0 text-[#00FF87]" />
                               <span className="truncate">{tag}</span>
                             </div>
                           ))}

@@ -16,13 +16,11 @@ function formatPrice(price: number | null, currency: string = "RUB") {
 
 interface MarketplaceComparisonCardProps {
   items: MarketplaceComparisonItem[];
-  wobuyDecision: string;
   currency?: string;
 }
 
 export function MarketplaceComparisonCard({
   items,
-  wobuyDecision,
   currency = "RUB",
 }: MarketplaceComparisonCardProps) {
   const validPrices = items.map((i) => i.price).filter((p): p is number => p !== null);
@@ -40,7 +38,7 @@ export function MarketplaceComparisonCard({
           </div>
           <div>
             <h2 className="text-base font-black uppercase tracking-wider text-white sm:text-lg">
-              Сравнение маркетплейсов и итоговое решение wobuy.
+              Сравнение маркетплейсов
             </h2>
             <p className="text-xs text-slate-400">
               Сравнение цен, оценок селлеров, условий доставки и рисков по каждому маркетплейсу
@@ -54,23 +52,6 @@ export function MarketplaceComparisonCard({
             <span>Экономия до {formatPrice(maxSavings, currency)}</span>
           </div>
         )}
-      </div>
-
-      {/* Итоговое решение от wobuy. */}
-      <div className="mt-5 rounded-2xl border border-[#00FF87]/40 bg-gradient-to-r from-emerald-950/40 via-[#13161C] to-emerald-950/20 p-4 shadow-lg">
-        <div className="flex items-start gap-3">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#00FF87] text-black text-xs font-black">
-            ✓
-          </div>
-          <div>
-            <div className="text-xs font-extrabold uppercase tracking-widest text-[#00FF87]">
-              Заключение и рекомендация wobuy.
-            </div>
-            <p className="mt-1 text-xs font-medium leading-relaxed text-slate-200 sm:text-sm">
-              {wobuyDecision}
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Сравнительная сетка предложений маркетплейсов */}
