@@ -4,8 +4,6 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
-  SlidersHorizontal,
-  ChevronDown,
   Grid3X3,
   List,
   Sparkles,
@@ -19,20 +17,6 @@ import { MatrixSlotCard } from "@/components/search/MatrixSlotCard";
 import { saveSearch } from "@/app/actions";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
-
-function buildSearchUrl(
-  query: string,
-  category: string,
-  sort: string,
-  view: "grid" | "list",
-) {
-  const params = new URLSearchParams();
-  if (query) params.set("q", query);
-  if (category && category !== "all") params.set("category", category);
-  if (sort && sort !== "relevance") params.set("sort", sort);
-  if (view && view !== "grid") params.set("view", view);
-  return `/search?${params.toString()}`;
-}
 
 // Баннер отсева и статистики ИИ-конвейера
 function ScreeningStatsBanner({
@@ -81,9 +65,6 @@ function ScreeningStatsBanner({
 export default function SearchResults({
   query,
   products,
-  categories = [],
-  category = "all",
-  sort = "relevance",
   view = "grid",
 }: {
   query: string;

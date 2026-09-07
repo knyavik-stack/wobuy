@@ -18,6 +18,10 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { ProductFavoriteButton } from "@/components/product/product-favorite-button";
 import { MarketplaceBadge } from "@/components/ui/MarketplaceBadge";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { DuelBridgeBanner } from "@/components/product/DuelBridgeBanner";
+import { TcoCalculatorCard } from "@/components/product/TcoCalculatorCard";
+import { AgentsDialogueChat } from "@/components/product/AgentsDialogueChat";
+import { FomoAlternativesDrawer } from "@/components/product/FomoAlternativesDrawer";
 import { ReviewsAnalysisCard } from "@/components/analytics/ReviewsAnalysisCard";
 import { DeliveryAnalysisCard } from "@/components/analytics/DeliveryAnalysisCard";
 import { PriceHistoryCard } from "@/components/analytics/PriceHistoryCard";
@@ -366,9 +370,30 @@ export default async function ProductPage({
                   })}
                 </div>
               </div>
+
+              {/* Блок 2. Межплощадочный мост сравнения (Блок «Дуэль») */}
+              {analysis?.duelData && (
+                <div className="pt-1">
+                  <DuelBridgeBanner
+                    duelData={analysis.duelData}
+                    currentPlatform={bestOffer?.marketplace || "wildberries"}
+                    currentPrice={bestPrice || 2500}
+                    productTitle={resolved.title}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Блок 3. Калькулятор реальной стоимости (TCO — Total Cost of Ownership) */}
+        <section className="mt-8">
+          <TcoCalculatorCard
+            tco={analysis?.tcoBreakdown}
+            currency={currency}
+            brand={resolved.brand}
+          />
+        </section>
 
         {/* Характеристики и описание от ИИ на всю ширину */}
         <section className="mt-8 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
@@ -402,8 +427,16 @@ export default async function ProductPage({
           </div>
         </section>
 
-        {/* Секция вердикта 4 независимых ИИ-агентов с персональными баллами, плюсами и честными минусами */}
-        <section className="mt-12">
+        {/* Блок 4. Панель «Конфликт интересов» (Диалог ИИ-Агентов / Баттл мнений) */}
+        <section className="mt-8">
+          <AgentsDialogueChat
+            dialogue={analysis?.agentsDialogue}
+            avgScore={aggregateScore}
+          />
+        </section>
+
+        {/* Секция детальных перспектив 4 независимых ИИ-агентов с персональными баллами, плюсами и минусами */}
+        <section className="mt-8">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#00FF87]/10 border border-[#00FF87]/30 text-[#00FF87]">
@@ -411,11 +444,10 @@ export default async function ProductPage({
               </div>
               <div>
                 <h2 className="text-base font-black uppercase tracking-wider text-white sm:text-lg">
-                  Вердикт 4 независимых ИИ-агентов wobuy.
+                  Детальный аудит 4 ИИ-агентов wobuy.
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Каждый агент ставит свой индивидуальный балл. Общий рейтинг рассчитывается как среднее:{" "}
-                  <strong className="text-[#00FF87]">{aggregateScore.toFixed(1)} / 10</strong>
+                  Индивидуальные баллы, объективные факты и честные предостережения от каждого эксперта
                 </p>
               </div>
             </div>
@@ -491,7 +523,7 @@ export default async function ProductPage({
 
         {/* Секция Сравнения маркетплейсов */}
         {analysis?.marketplaceComparison && (
-          <section className="mt-12">
+          <section className="mt-8">
             <MarketplaceComparisonCard
               items={analysis.marketplaceComparison}
               currency={currency}
@@ -499,9 +531,9 @@ export default async function ProductPage({
           </section>
         )}
 
-        {/* 3 АНАЛИТИЧЕСКИХ МОДУЛЯ */}
-        <section className="mt-12 space-y-6">
-          {/* 1. Анализ отзывов и детекция ботов */}
+        {/* 3 АНАЛИТИЧЕСКИХ МОДУЛЯ: Отзывы, Доставка, История цен */}
+        <section className="mt-8 space-y-6">
+          {/* Блок 5. Глубокий семантический анализ отзывов (Review Analyst) */}
           <ReviewsAnalysisCard
             productTitle={resolved.title}
             rating={bestOffer?.rating ?? 0}
@@ -509,7 +541,7 @@ export default async function ProductPage({
             antiFakeScore={antiFakePercent}
           />
 
-          {/* 2. Анализ доставок и складов */}
+          {/* Анализ доставок и складов */}
           <DeliveryAnalysisCard
             offers={offers.map((o) => ({
               marketplace: o.marketplace,
@@ -520,13 +552,18 @@ export default async function ProductPage({
             currency={currency}
           />
 
-          {/* 3. Анализ изменения цен и честности скидок */}
+          {/* Блок 6. График «Детектор манипуляций с ценами» */}
           <PriceHistoryCard
             currentPrice={bestPrice ?? 2500}
             discountPercent={resolved.discountPercent}
             currency={currency}
             sparkline={resolved.priceSparkline}
           />
+        </section>
+
+        {/* Блок 7. Убийца FOMO — Шторка «Проигравшие аналоги» */}
+        <section className="mt-8">
+          <FomoAlternativesDrawer alternatives={analysis?.fomoAlternatives} />
         </section>
       </main>
 
