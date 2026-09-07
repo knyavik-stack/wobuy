@@ -10,7 +10,7 @@ export function Footer() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/5 pb-6">
           <div className="flex flex-wrap items-center gap-3">
             <BrandLogo size="sm" />
-            {/*<span className="hidden sm:inline text-slate-600">•</span>*/}
+            <span className="hidden sm:inline text-slate-600">•</span>
             <span className="text-xs text-slate-300 font-medium">
               Сервис честной селекции товаров wobuy.
             </span>
