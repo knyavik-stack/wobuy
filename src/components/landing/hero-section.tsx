@@ -2,149 +2,31 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
   Bot,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Search,
   ShieldCheck,
   Sparkles,
-  Truck,
-  X,
   Zap,
+  X,
+  Clock,
+  Coins,
 } from "lucide-react";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { RadarScanningLogo } from "@/components/brand/RadarScanningLogo";
 
-type Archetype = "urgent" | "perfectionist" | "budget" | "antifake";
-
-const ARCHETYPES: Record<
-  Archetype,
-  {
-    label: string;
-    emoji: string;
-    placeholder: string;
-    description: string;
-    accentColor: string;
-    glowColor: string;
-    product: {
-      title: string;
-      score: number;
-      price: string;
-      oldPrice: string;
-      platform: string;
-      delivery: string;
-      reasons: string[];
-      antiFake: string;
-    };
-  }
-> = {
-  perfectionist: {
-    label: "Перфекционист",
-    emoji: "💎",
-    placeholder: "Ищу лучшую палатку по качеству и реальным отзывам...",
-    description: "Приоритет на качество, надежность и отсутствие брака",
-    accentColor: "from-emerald-400 to-teal-500",
-    glowColor: "rgba(0, 255, 135, 0.25)",
-    product: {
-      title: "Экспедиционная палатка Tramp Mountain 3 v2",
-      score: 9.7,
-      price: "14 890 ₽",
-      oldPrice: "17 500 ₽",
-      platform: "Ozon",
-      delivery: "Послезавтра",
-      reasons: [
-        "Алюминиевый каркас повышенной прочности",
-        "Двухслойная мембрана RipStop 8000 мм",
-        "0% жалоб на фабричный брак за 6 месяцев",
-      ],
-      antiFake: "98% проверенных покупателей",
-    },
-  },
-  budget: {
-    label: "Экономный",
-    emoji: "🏷️",
-    placeholder: "Палатка 3-местная со скидкой, дешевле чем везде...",
-    description: "Приоритет на минимальную цену и честные скидки без накруток",
-    accentColor: "from-blue-500 to-indigo-600",
-    glowColor: "rgba(59, 130, 246, 0.2)",
-    product: {
-      title: "Кемпинговая палатка Trek Planet",
-      score: 9.1,
-      price: "4 120 ₽",
-      oldPrice: "6 800 ₽",
-      platform: "Wildberries",
-      delivery: "2 дня",
-      reasons: [
-        "Честная выгода -39% от средней цены по рынку",
-        "Исторический минимум цены за последние 12 месяцев",
-        "Честный рейтинг продавца: 4.8 / 5.0",
-      ],
-      antiFake: "Отзывы проверены ИИ",
-    },
-  },
-  urgent: {
-    label: "Срочный",
-    emoji: "⚡",
-    placeholder: "Нужна палатка с доставкой до завтра...",
-    description: "Приоритет на максимальную скорость доставки до ПВЗ",
-    accentColor: "from-amber-500 to-orange-600",
-    glowColor: "rgba(245, 158, 11, 0.2)",
-    product: {
-      title: "Быстросборная 3-местная палатка MirCamping",
-      score: 8.9,
-      price: "7 450 ₽",
-      oldPrice: "9 200 ₽",
-      platform: "Ozon",
-      delivery: "Сегодня до 21:00",
-      reasons: [
-        "Автоматическая сборка за 45 секунд",
-        "Экспресс-отгрузка со склада маркетплейса",
-        "Влагозащита дна 5000 мм",
-      ],
-      antiFake: "94% реальных отзывов",
-    },
-  },
-  antifake: {
-    label: "Анти-Фейк",
-    emoji: "🛡️",
-    placeholder: "Оригинальная электроника с гарантией и без подделок...",
-    description: "Приоритет на подлинность товара и отсечение накрученных отзывов",
-    accentColor: "from-purple-500 to-pink-500",
-    glowColor: "rgba(168, 85, 247, 0.2)",
-    product: {
-      title: "Беспроводные наушники Sony WH-1000XM5",
-      score: 9.6,
-      price: "32 490 ₽",
-      oldPrice: "38 900 ₽",
-      platform: "Яндекс Маркет",
-      delivery: "Завтра",
-      reasons: [
-        "Официальная серийная верификация подлинности",
-        "Отфильтровано 140+ накрученных бот-отзывов",
-        "Оригинальная гарантия производителя в РФ",
-      ],
-      antiFake: "99% подлинности: проверено ИИ",
-    },
-  },
-};
-
-const NAV_ITEMS = [
-  { id: "features", label: "Как это работает" },
-  { id: "advantages", label: "Преимущества" },
-  { id: "pricing", label: "Тарифы" },
-  { id: "about", label: "О нас" },
+const POPULAR_QUERIES = [
+  "Кемпинговая палатка",
+  "Sony WH-1000XM5",
+  "Кофемашина DeLonghi",
+  "Робот-пылесос",
 ];
 
 export default function HeroSection() {
-  const [activeTab, setActiveTab] = useState<Archetype>("perfectionist");
   const [searchQuery, setSearchQuery] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const config = ARCHETYPES[activeTab];
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -152,140 +34,98 @@ export default function HeroSection() {
     window.location.assign(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
   };
 
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (!element) return;
-    const headerOffset = 80;
-    const top = element.getBoundingClientRect().top + window.scrollY - headerOffset;
-    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-    setMobileMenuOpen(false);
-  };
-
   return (
-    <section className="relative w-full overflow-hidden bg-[#0D0F14] px-4 pb-4 pt-16 text-slate-100 selection:bg-[#00FF87] selection:text-black md:px-8 md:pt-20 lg:px-16">
-      {/* Мягкие фоновые неоновые пятна */}
-      <div className="pointer-events-none absolute left-[-10%] top-[-15%] h-[55%] w-[55%] rounded-full bg-gradient-to-tr from-emerald-500/10 to-transparent blur-[140px]" />
-      <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[60%] w-[60%] rounded-full bg-gradient-to-br from-blue-600/5 to-transparent blur-[160px]" />
+    <div className="relative w-full overflow-hidden bg-[#0A0C10] text-slate-100 selection:bg-[#00FF87] selection:text-black">
+      {/* Деликатный фоновый свет без визуального шума */}
+      <div className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-emerald-500/10 blur-[130px]" />
+      <div className="pointer-events-none absolute -right-20 top-40 h-96 w-96 rounded-full bg-cyan-500/10 blur-[140px]" />
 
-      {/* Верхний Header */}
-      <header className="fixed left-0 right-0 top-0 z-50 flex min-h-16 items-center justify-between border-b border-white/5 bg-[#0D0F14]/95 px-4 py-3 shadow-lg shadow-black/20 backdrop-blur-xl md:px-8 lg:px-16">
+      {/* Верхний лаконичный Header */}
+      <header
+        id="landing-header"
+        className="fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between border-b border-white/5 bg-[#0A0C10]/90 px-4 backdrop-blur-xl sm:px-8 lg:px-14"
+      >
         <BrandLogo size="md" />
-        <div className="flex items-center gap-2 md:gap-6">
-          <nav
-            className="hidden items-center gap-5 text-sm font-medium text-slate-400 md:flex lg:gap-7"
-            aria-label="Основная навигация"
+
+        <div className="flex items-center gap-3">
+          <Link
+            href="/search"
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-200 transition hover:border-[#00FF87]/40 hover:bg-white/10 hover:text-white"
           >
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => scrollToSection(item.id)}
-                className="transition-colors hover:text-white"
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
+            <Search className="h-3.5 w-3.5 text-[#00FF87]" />
+            <span className="hidden sm:inline">Поиск</span>
+          </Link>
           <Link
             href="/login"
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10 md:px-5"
+            className="rounded-xl bg-[#00FF87] px-4 py-2 text-xs font-bold text-black transition hover:bg-[#00E576]"
           >
             Войти
           </Link>
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen((open) => !open)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white md:hidden"
-            aria-label={mobileMenuOpen ? "Закрыть меню" : "Открыть меню"}
-            aria-expanded={mobileMenuOpen}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-          </button>
         </div>
-
-        {/* Выпадающее мобильное меню */}
-        <AnimatePresence>
-          {mobileMenuOpen ? (
-            <motion.nav
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="absolute left-4 right-4 top-[calc(100%+8px)] rounded-2xl border border-white/10 bg-[#13161C]/98 p-2 shadow-2xl backdrop-blur-xl md:hidden"
-              aria-label="Мобильная навигация"
-            >
-              {NAV_ITEMS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => scrollToSection(item.id)}
-                  className="flex w-full items-center rounded-xl px-4 py-3 text-left text-sm font-semibold text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </motion.nav>
-          ) : null}
-        </AnimatePresence>
       </header>
 
-      {/* Главный Hero-блок */}
-      <main className="relative z-10 mx-auto grid min-h-[calc(100svh-64px)] w-full max-w-7xl grid-cols-1 items-center gap-6 py-6 lg:grid-cols-12 lg:gap-8">
-        <div className="col-span-1 flex flex-col justify-center space-y-5 lg:col-span-7">
-          <div className="inline-flex self-start items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-[#00FF87]">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-[#00FF87]" />
-            Time-to-Best-Offer &lt; 3 минуты
-          </div>
-
-          <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl md:text-6xl">
-            Выбирает ИИ.
-            <br />
-            <span className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              Покупаешь ты.
-            </span>
-          </h1>
-
-          <p className="max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">
-            wobuy. анализирует предложения Ozon, Wildberries и Яндекс Маркета, отсекает фейковые отзывы,
-            рассчитывает непредвзятый AI Score и находит 3 лучших варианта за 3 минуты.
-          </p>
-
-          {/* Строка поиска */}
-          <form onSubmit={submitSearch} className="group relative w-full max-w-2xl">
-            <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#00FF87]/30 to-blue-500/30 opacity-75 blur transition duration-500 group-focus-within:opacity-100" />
-            <div className="relative flex items-center rounded-2xl border border-white/10 bg-[#13161C]/90 p-2 pl-4 transition-all focus-within:border-[#00FF87]/50">
-              <Search className="mr-3 h-5 w-5 shrink-0 text-slate-500" />
-              <input
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={config.placeholder}
-                className="w-full border-none bg-transparent pr-4 text-sm text-white outline-none placeholder:text-slate-500 sm:text-base"
-                aria-label="Поиск товаров"
-              />
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="mr-2 text-slate-500 hover:text-white"
-                  aria-label="Очистить"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-              <button
-                type="submit"
-                className="flex shrink-0 items-center justify-center rounded-xl bg-[#00FF87] px-5 py-3 text-xs font-bold text-black shadow-lg shadow-emerald-500/10 transition-all hover:bg-[#00E576] sm:px-6 sm:text-sm"
-              >
-                <span className="mr-2 hidden sm:inline">Найти лучшее</span>
-                <Sparkles className="h-4 w-4" />
-              </button>
+      {/* Главный экран: поиск и логотип со сканирующим неоновым кольцом */}
+      <section
+        id="hero-search-section"
+        className="relative z-10 mx-auto max-w-7xl px-4 pt-24 pb-10 sm:px-8 lg:px-14 lg:pt-28 lg:pb-12"
+      >
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
+          {/* Левая колонка: Заголовок, статус, поиск */}
+          <div className="flex flex-col space-y-4 lg:col-span-7">
+            <div className="inline-flex self-start items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-[#00FF87]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00FF87]" />
+              <span>Time-to-Best-Offer &lt; 3 минуты</span>
             </div>
-          </form>
 
-          {/* Быстрые теги запросов */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-            <span className="font-medium text-slate-500">Например:</span>
-            {["Кемпинговая палатка", "Sony WH-1000XM5", "Кофемашина DeLonghi", "Робот-пылесос"].map(
-              (term) => (
+            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.08]">
+              Выбирает ИИ.
+              <br />
+              <span className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                Покупаешь ты.
+              </span>
+            </h1>
+
+            {/* Короткое емкое описание без шума */}
+            <p className="text-base sm:text-lg font-medium text-slate-300">
+              Сервис честной селекции товаров wobuy.
+            </p>
+
+            {/* Строка поиска */}
+            <form onSubmit={submitSearch} className="group relative w-full pt-1">
+              <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#00FF87]/30 to-cyan-500/30 opacity-60 blur transition duration-300 group-focus-within:opacity-100" />
+              <div className="relative flex items-center rounded-2xl border border-white/10 bg-[#11141A] p-2 pl-4 transition-all focus-within:border-[#00FF87]/60">
+                <Search className="mr-3 h-5 w-5 shrink-0 text-slate-500" />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Что ищешь? (например: кемпинговая палатка или кофемашина)"
+                  className="w-full border-none bg-transparent pr-4 text-sm text-white outline-none placeholder:text-slate-500 sm:text-base"
+                  aria-label="Поиск товаров"
+                />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="mr-2 text-slate-500 hover:text-white"
+                    aria-label="Очистить"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+                <button
+                  type="submit"
+                  className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#00FF87] px-5 py-3 text-xs font-bold text-black shadow-lg shadow-emerald-500/20 transition-all hover:bg-[#00E576] sm:px-6 sm:text-sm"
+                >
+                  <span>Найти лучшее</span>
+                  <Sparkles className="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+
+            {/* Быстрые запросы */}
+            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-slate-400">
+              <span className="text-slate-500">Например:</span>
+              {POPULAR_QUERIES.map((term) => (
                 <button
                   key={term}
                   type="button"
@@ -293,416 +133,213 @@ export default function HeroSection() {
                     setSearchQuery(term);
                     window.location.assign(`/search?q=${encodeURIComponent(term)}`);
                   }}
-                  className="rounded-lg border border-white/5 bg-white/5 px-2.5 py-1 text-slate-300 transition hover:border-[#00FF87]/40 hover:text-[#00FF87]"
+                  className="rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1 text-slate-300 transition hover:border-[#00FF87]/40 hover:text-[#00FF87]"
                 >
                   {term}
                 </button>
-              ),
-            )}
+              ))}
+            </div>
           </div>
 
-          {/* Селектор архетипов: 2x2 сетка на мобильных, flex на планшетах/десктопе */}
-          <div className="space-y-2.5 pt-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Выбери свой фокус ИИ-анализа:
+          {/* Правая колонка: Логотип вокруг которого крутящееся неоновое кольцо поиска */}
+          <div className="flex items-center justify-center lg:col-span-5">
+            <RadarScanningLogo />
+          </div>
+        </div>
+      </section>
+
+      {/* Инфографический блок 1: Как wobuy. экономит твои часы и деньги */}
+      <section
+        id="savings-infographic"
+        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-10 sm:px-8 lg:px-14"
+      >
+        <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#00FF87]">
+              Экономика времени и бюджета
             </span>
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              {(Object.keys(ARCHETYPES) as Archetype[]).map((key) => {
-                const item = ARCHETYPES[key];
-                const selected = activeTab === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setActiveTab(key)}
-                    className={`relative flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all sm:w-auto sm:justify-start sm:px-3.5 sm:text-sm ${
-                      selected
-                        ? "border border-white/20 bg-white/10 text-white"
-                        : "border border-transparent bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <span className="shrink-0">{item.emoji}</span>
-                    <span className="truncate">{item.label}</span>
-                    {selected ? (
-                      <motion.div
-                        layoutId="activeGlow"
-                        className="pointer-events-none absolute inset-0 rounded-xl border-2 border-[#00FF87]/30"
-                        style={{ boxShadow: `0 0 15px ${item.glowColor}` }}
-                      />
-                    ) : null}
-                  </button>
-                );
-              })}
+            <h2 className="mt-1 text-2xl font-extrabold text-white sm:text-3xl">
+              Как <BrandLogo size="md" className="inline-flex" /> экономит твои часы и деньги
+            </h2>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-[#00FF87]" />
+              <span>Экономия 3+ часов на поиск</span>
             </div>
-            <p className="mt-1 text-xs italic text-slate-500">💡 {config.description}</p>
+            <div className="flex items-center gap-1.5">
+              <Coins className="h-4 w-4 text-cyan-400" />
+              <span>Защита от переплат до 35%</span>
+            </div>
           </div>
         </div>
 
-        {/* Превью-карточка рекомендации ИИ */}
-        <div className="relative col-span-1 flex min-h-[350px] items-center justify-center lg:col-span-5">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -30, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              className="relative w-full max-w-[390px] rounded-3xl border border-white/10 bg-[#13161C]/80 p-6 shadow-2xl backdrop-blur-xl"
-            >
-              <div className="mb-4 flex items-start justify-between">
-                <span
-                  className={`rounded-lg bg-gradient-to-r ${config.accentColor} px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white`}
-                >
-                  Рекомендация ИИ
-                </span>
-                <div className="relative flex h-14 w-14 items-center justify-center">
-                  <svg className="h-full w-full -rotate-90">
-                    <circle
-                      cx="28"
-                      cy="28"
-                      r="22"
-                      stroke="rgba(255,255,255,0.08)"
-                      strokeWidth="3.5"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="28"
-                      cy="28"
-                      r="22"
-                      stroke="#00FF87"
-                      strokeWidth="4"
-                      fill="transparent"
-                      strokeDasharray="138.2"
-                      strokeDashoffset={138.2 - (138.2 * config.product.score) / 10}
-                      strokeLinecap="round"
-                      style={{ filter: "drop-shadow(0 0 6px rgba(0,255,135,0.65))" }}
-                    />
-                  </svg>
-                  <div className="absolute flex flex-col items-center justify-center text-center">
-                    <span className="text-sm font-black text-white">
-                      {config.product.score}
-                    </span>
-                    <span className="text-[7px] font-extrabold text-[#00FF87]">AI SCORE</span>
-                  </div>
-                </div>
-              </div>
+        {/* Иерархическая инфографическая схема */}
+        <div className="relative rounded-3xl border border-white/10 bg-[#0F1218]/70 p-6 sm:p-8 backdrop-blur-xl">
+          {/* Сквозная неоновая направляющая линия (на десктопе горизонтальная, на мобильных вертикальная) */}
+          <div className="pointer-events-none absolute left-8 right-8 top-1/2 hidden h-[2px] -translate-y-1/2 bg-gradient-to-r from-[#00FF87]/20 via-[#00FF87] to-[#00FF87]/20 lg:block" />
 
-              <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
-                <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 font-medium text-white">
-                  {config.product.platform}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+            {/* Узел 1 */}
+            <div className="relative z-10 flex flex-col items-start rounded-2xl border border-white/5 bg-[#141820]/90 p-5 transition hover:border-[#00FF87]/40">
+              <div className="mb-3 flex items-center justify-between w-full">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/10 font-black text-xs text-[#00FF87] border border-[#00FF87]/30">
+                  01
                 </span>
-                <span className="flex items-center">
-                  <Truck className="mr-1 h-3.5 w-3.5 text-emerald-400" />
-                  {config.product.delivery}
+                <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                  Входной интент
                 </span>
               </div>
+              <h3 className="text-base font-bold text-white">Человеческий запрос</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                Задаешь задачу живым языком — ИИ понимает контекст без ручной настройки десятков фильтров.
+              </p>
+            </div>
 
-              <h3 className="mb-3 line-clamp-2 text-base font-bold leading-snug text-white">
-                {config.product.title}
-              </h3>
-
-              <div className="mb-4 flex items-baseline gap-3">
-                <span className="text-2xl font-black text-[#00FF87]">{config.product.price}</span>
-                <span className="text-xs text-slate-500 line-through">
-                  {config.product.oldPrice}
+            {/* Узел 2 */}
+            <div className="relative z-10 flex flex-col items-start rounded-2xl border border-[#00FF87]/30 bg-[#141820]/90 p-5 shadow-[0_0_30px_rgba(0,255,135,0.05)] transition hover:border-[#00FF87]/60">
+              <div className="mb-3 flex items-center justify-between w-full">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87] font-black text-xs text-black shadow-[0_0_12px_#00FF87]">
+                  02
+                </span>
+                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
+                  4 Агента в параллели
                 </span>
               </div>
+              <h3 className="text-base font-bold text-white">Мультиагентный скан</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                Скептик и Аналитик синхронно отсекают ботов, проверяют фабричный брак и разоблачают накрученные скидки.
+              </p>
+            </div>
 
-              <hr className="my-4 border-white/5" />
-
-              <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/10 bg-emerald-500/5 px-3 py-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                <span className="text-xs font-medium text-slate-300">
-                  {config.product.antiFake}
+            {/* Узел 3 */}
+            <div className="relative z-10 flex flex-col items-start rounded-2xl border border-white/5 bg-[#141820]/90 p-5 transition hover:border-[#00FF87]/40">
+              <div className="mb-3 flex items-center justify-between w-full">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/10 font-black text-xs text-cyan-400 border border-cyan-500/30">
+                  03
+                </span>
+                <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                  Финал за 3 минуты
                 </span>
               </div>
+              <h3 className="text-base font-bold text-white">Арбитраж TCO и Дуэль</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                Получаешь 3 проверенных товара с честной ценой владения и мгновенным выбором между WB и Ozon.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <div className="space-y-2.5">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Аргументы ИИ-агентов:
-                </span>
-                {config.product.reasons.map((reason) => (
-                  <div key={reason} className="flex items-start gap-2">
-                    <span className="mt-0.5 text-sm text-[#00FF87]">•</span>
-                    <p className="text-xs leading-relaxed text-slate-300">{reason}</p>
-                  </div>
-                ))}
-              </div>
+      {/* Инфографический блок 2: Почему покупатели доверяют (Инфографика 4 векторов доверия) */}
+      <section
+        id="trust-infographic"
+        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-10 sm:px-8 lg:px-14"
+      >
+        <div className="mb-8">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#00FF87]">
+            Стандарты надежности
+          </span>
+          <h2 className="mt-1 text-2xl font-extrabold text-white sm:text-3xl">
+            Почему покупатели доверяют <BrandLogo size="md" className="inline-flex" />
+          </h2>
+        </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery(config.product.title);
-                  window.location.assign(`/search?q=${encodeURIComponent(config.product.title)}`);
-                }}
-                className="group mt-5 flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-bold text-white transition-all hover:bg-white/10"
+        {/* Инфографическая сетка 4 векторов независимости */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-[#00FF87]/40">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-[#00FF87]">
+              <Bot className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-white">Непредвзятый AI Score</h3>
+            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+              Рейтинг рассчитывается математически без влияния рекламных бюджетов селлеров.
+            </p>
+          </div>
+
+          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-purple-400/40">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-white">Нейросеть Анти-Фейк</h3>
+            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+              Выявляет и отсекает накрученные пятизвездочные отзывы коммерческих бот-ферм.
+            </p>
+          </div>
+
+          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-cyan-400/40">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-white">Детектор цен</h3>
+            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+              Разоблачает искусственные завышения цен перед распродажами и акциями.
+            </p>
+          </div>
+
+          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-amber-400/40">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+              <Zap className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-bold text-white">Дуэль платформ</h3>
+            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+              Сравнивает идентичные товары на WB и Ozon по честной стоимости владения.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Лаконичный минималистичный манифест */}
+      <section
+        id="manifesto"
+        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-10 sm:px-8 lg:px-14"
+      >
+        <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-[#11141B] to-[#0A0C10] p-6 sm:p-10">
+          <div className="max-w-3xl space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
+              Манифест независимости
+            </span>
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+              Мы не продаем товары. Мы защищаем твой выбор.
+            </h2>
+            <p className="text-sm sm:text-base leading-relaxed text-slate-300">
+              Маркетплейсы зарабатывают на рекламе продавцов и скрытых комиссиях. wobuy. работает исключительно на покупателя: фильтрует накрученные отзывы, разоблачает мнимые скидки и находит честные предложения.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Импульсивный CTA-блок */}
+      <section
+        id="quick-cta"
+        className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-8 lg:px-14"
+      >
+        <div className="relative overflow-hidden rounded-3xl border border-[#00FF87]/30 bg-gradient-to-r from-emerald-950/50 via-[#10141C] to-[#0D1016] p-6 sm:p-10 shadow-2xl">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-white sm:text-3xl">
+                Найди лучшее за 3 минуты без риска и переплат.
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+                Один запрос отсекает тысячи ботов и находит минимальную цену на проверенный товар.
+              </p>
+            </div>
+
+            <div className="shrink-0">
+              <Link
+                href="/search"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#00FF87] px-6 py-3.5 text-xs sm:text-sm font-bold text-black shadow-lg shadow-emerald-500/25 transition hover:bg-[#00E576]"
               >
-                <span>Посмотреть подборку в поиске</span>
-                <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-              </button>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
-
-      {/* Секция: Как это работает */}
-      <section
-        id="features"
-        className="relative z-10 mx-auto max-w-7xl scroll-mt-24 border-t border-white/5 py-14"
-      >
-        <div className="mb-10 text-center md:text-left">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">
-            Механика сервиса
-          </span>
-          <h2 className="mt-2 flex flex-wrap items-baseline gap-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
-            <span>Как</span>
-            <BrandLogo size="lg" className="inline-flex" />
-            <span>экономит твои часы и деньги</span>
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-            Всего 3 прозрачных шага к идеальной покупке без риска нарваться на подделку или завышенную цену.
-          </p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-md transition hover:border-[#00FF87]/30">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-[#00FF87]/20 bg-[#00FF87]/10 text-sm font-black text-[#00FF87]">
-              01
-            </div>
-            <h3 className="text-lg font-bold text-white">Человеческий запрос</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">
-              Опиши потребность обычными словами: «нужна тихая кофемашина для дома до 25 000 ₽» или «палатка для шторма».
-            </p>
-          </div>
-
-          <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-md transition hover:border-[#00FF87]/30">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-[#00FF87]/20 bg-[#00FF87]/10 text-sm font-black text-[#00FF87]">
-              02
-            </div>
-            <h3 className="text-lg font-bold text-white">Мультиагентный скан</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">
-              4 ИИ-агента одновременно проверяют Ozon, WB и Яндекс Маркет, отсекая бот-отзывы, проверяя брак и динамику цен.
-            </p>
-          </div>
-
-          <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-md transition hover:border-[#00FF87]/30">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-[#00FF87]/20 bg-[#00FF87]/10 text-sm font-black text-[#00FF87]">
-              03
-            </div>
-            <h3 className="text-lg font-bold text-white">Решение за 3 минуты</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">
-              Получаешь топ-3 проверенных товара с честным AI Score, аргументами за и против и прямыми ссылками на лучшую цену.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Секция: Преимущества (Почему wobuy.) */}
-      <section
-        id="advantages"
-        className="relative z-10 mx-auto max-w-7xl scroll-mt-24 border-t border-white/5 py-14"
-      >
-        <div className="mb-10 text-center md:text-left">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">
-            Наши принципы
-          </span>
-          <h2 className="mt-2 flex flex-wrap items-baseline gap-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
-            <span>Почему покупатели доверяют</span>
-            <BrandLogo size="lg" className="inline-flex" />
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-            Мы не продаём товары и не берем комиссию от продавцов за продвижение. Наш клиент — ты.
-          </p>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-white/20">
-            <Bot className="mb-3 h-6 w-6 text-[#00FF87]" />
-            <h3 className="text-base font-bold text-white">Непредвзятый AI Score</h3>
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
-              Никаких проплаченных позиций и рекламных баннеров. Место в топе заслуживается только фактами.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-white/20">
-            <ShieldCheck className="mb-3 h-6 w-6 text-purple-400" />
-            <h3 className="text-base font-bold text-white">Нейросеть «Анти-Фейк»</h3>
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
-              Очищает отзывы от заказных публикаций бот-ферм и селлеров, вычисляя долю реальных покупателей.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-white/20">
-            <BarChart3 className="mb-3 h-6 w-6 text-cyan-400" />
-            <h3 className="text-base font-bold text-white">Честная динамика цен</h3>
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
-              Защита от искусственных «скидок» перед распродажами. Видишь реальный исторический минимум.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-white/20">
-            <Zap className="mb-3 h-6 w-6 text-amber-400" />
-            <h3 className="text-base font-bold text-white">Единое окно рынка</h3>
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
-              Сравнивай предложения ведущих маркетплейсов в одном месте без переключения между десятками вкладок.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Секция: Тарифы */}
-      <section
-        id="pricing"
-        className="relative z-10 mx-auto max-w-7xl scroll-mt-24 border-t border-white/5 py-14"
-      >
-        <div className="mb-10 text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">Тарифы</span>
-          <h2 className="mt-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
-            Прозрачные и честные условия
-          </h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
-            Базовый поиск бесплатен навсегда. Дополнительные возможности созданы для продвинутых покупателей.
-          </p>
-        </div>
-
-        <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
-          {/* Базовый тариф */}
-          <div className="flex flex-col justify-between rounded-3xl border border-emerald-500/30 bg-[#13161C]/80 p-6 shadow-xl backdrop-blur-xl sm:p-8">
-            <div>
-              <div className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#00FF87]">
-                Бесплатно навсегда
-              </div>
-              <h3 className="mt-4 text-2xl font-extrabold text-white">Базовый поиск</h3>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-4xl font-black text-white">0 ₽</span>
-                <span className="text-xs text-slate-500">без ограничений по времени</span>
-              </div>
-              <ul className="mt-6 space-y-3 text-xs text-slate-300">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                  <span>Полноценный AI-поиск по каталогу товаров</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                  <span>Проверка отзывов фильтром «Анти-Фейк»</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                  <span>Сравнение предложений Ozon, WB и Яндекс Маркета</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                  <span>Сохранение товаров и истории в личном кабинете</span>
-                </li>
-              </ul>
-            </div>
-            <Link
-              href="/search"
-              className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-[#00FF87] py-3 text-xs font-bold text-black transition hover:bg-[#00E576]"
-            >
-              <span>Начать поиск</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {/* Тариф PRO */}
-          <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-[#13161C]/40 p-6 backdrop-blur-xl sm:p-8">
-            <div>
-              <div className="inline-block rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Скоро в релизе
-              </div>
-              <h3 className="mt-4 flex items-baseline gap-1.5 text-2xl font-extrabold text-white">
-                <BrandLogo size="sm" />
-                <span>PRO</span>
-              </h3>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-4xl font-black text-slate-300">290 ₽</span>
-                <span className="text-xs text-slate-500">/ месяц</span>
-              </div>
-              <ul className="mt-6 space-y-3 text-xs text-slate-400">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span>Все возможности базового тарифа</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                  <span>Автоматический мониторинг снижения цен 24/7</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                  <span>Мгновенные уведомления о скидках в Telegram</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00FF87]" />
-                  <span>Глубокий анализ истории селлеров и возвратов</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              type="button"
-              disabled
-              className="mt-8 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-bold text-slate-500"
-            >
-              Доступно после тестирования
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Секция: О нас (Манифест) */}
-      <section
-        id="about"
-        className="relative z-10 mx-auto max-w-7xl scroll-mt-24 border-t border-white/5 py-14"
-      >
-        <div className="rounded-3xl border border-white/10 bg-[#13161C]/50 p-8 backdrop-blur-xl sm:p-12">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#00FF87]">Манифест</span>
-          <h2 className="mt-3 flex flex-wrap items-baseline gap-2 text-2xl font-extrabold text-white sm:text-3xl md:text-4xl">
-            <BrandLogo size="lg" className="inline-flex" />
-            <span className="text-slate-200">— сервис осознанного выбора</span>
-          </h2>
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <div className="space-y-3 text-sm leading-relaxed text-slate-300">
-              <p>
-                Мы создали <BrandLogo size="sm" className="inline-flex" />, потому что устали от бесконечных рекламных плашек, накрученных пятизвёздочных оценок и фальшивых «скидок» на маркетплейсах.
-              </p>
-              <p className="text-slate-400">
-                В современном онлайн-шопинге покупатель вынужден тратить часы на чтение сотен однотипных отзывов, пытаясь отделить реальный опыт использования от заказного маркетинга продавцов.
-              </p>
-            </div>
-            <div className="space-y-3 text-sm leading-relaxed text-slate-300">
-              <p>
-                Наша цель — вернуть покупателю контроль над своими деньгами и временем. Искусственный интеллект должен работать на тебя, отсеивая информационный шум и находя действительно честные и качественные вещи.
-              </p>
-              <p className="text-[#00FF87] font-medium">
-                Никаких скрытых спонсорских позиций. Место товара в рейтинге определяется исключительно фактами, качеством и выгодой.
-              </p>
+                <span>Найти лучшее сейчас</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA-баннер */}
-      <section className="relative z-10 mx-auto my-6 max-w-7xl rounded-3xl border border-emerald-500/20 bg-gradient-to-r from-emerald-950/40 via-[#13161C] to-[#13161C] p-8 text-center sm:p-12">
-        <h2 className="text-2xl font-black text-white sm:text-3xl md:text-4xl">
-          Хватит тратить часы на чтение накрученных отзывов
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-slate-400 sm:text-base">
-          Опиши свою задачу и позволь 4 независимым ИИ-агентам найти лучшее предложение прямо сейчас.
-        </p>
-        <div className="mt-6 flex justify-center">
-          <Link
-            href="/search"
-            className="flex items-center gap-2 rounded-xl bg-[#00FF87] px-6 py-3.5 text-sm font-bold text-black shadow-lg shadow-emerald-500/20 transition hover:bg-[#00E576]"
-          >
-            <span>Попробовать поиск wobuy.</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
-
-      {/* Мобильная панель навигации */}
+      {/* Мобильная навигация */}
       <MobileBottomNav />
-    </section>
+    </div>
   );
 }
-

@@ -4,9 +4,15 @@ interface BrandLogoProps {
   href?: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
+  animatedDot?: boolean;
 }
 
-export function BrandLogo({ href = "/", size = "md", className = "" }: BrandLogoProps) {
+export function BrandLogo({
+  href = "/",
+  size = "md",
+  className = "",
+  animatedDot = true,
+}: BrandLogoProps) {
   const sizeClasses = {
     sm: "text-lg",
     md: "text-2xl",
@@ -26,10 +32,18 @@ export function BrandLogo({ href = "/", size = "md", className = "" }: BrandLogo
       className={`inline-flex items-baseline font-black tracking-tight text-white transition hover:opacity-90 ${sizeClasses[size]} ${className}`}
     >
       <span>wobuy</span>
-      <span
-        aria-hidden="true"
-        className={`ml-0.5 inline-block shrink-0 rounded-full bg-[#00FF87] shadow-[0_0_10px_#00FF87] ${dotSizeClasses[size]}`}
-      />
+      <span className="relative ml-0.5 inline-flex items-baseline">
+        {animatedDot && (
+          <span
+            aria-hidden="true"
+            className={`absolute -inset-0.5 animate-ping rounded-full bg-[#00FF87]/50 opacity-75 ${dotSizeClasses[size]}`}
+          />
+        )}
+        <span
+          aria-hidden="true"
+          className={`relative inline-block shrink-0 rounded-full bg-[#00FF87] shadow-[0_0_10px_#00FF87] ${dotSizeClasses[size]}`}
+        />
+      </span>
     </span>
   );
 
