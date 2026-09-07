@@ -700,22 +700,6 @@ export default function HeroSection() {
         </div>
       </section>
 
-      {/* Футер */}
-      <footer className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-3 border-t border-white/5 pb-24 pt-6 text-xs text-slate-500 sm:pb-6 md:flex-row md:items-center md:justify-between">
-        <div>© 2026 wobuy. — Умный ИИ-помощник для покупок на маркетплейсах.</div>
-        <div className="flex flex-wrap items-center gap-4">
-          <Link href="/privacy" className="hover:text-white">
-            Конфиденциальность
-          </Link>
-          <Link href="/terms" className="hover:text-white">
-            Условия использования
-          </Link>
-          <Link href="/login" className="hover:text-white">
-            Войти в кабинет
-          </Link>
-        </div>
-      </footer>
-
       {/* Мобильная панель навигации */}
       <MobileBottomNav />
     </section>

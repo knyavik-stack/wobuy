@@ -81,34 +81,31 @@ function ScreeningStatsBanner({
 export default function SearchResults({
   query,
   products,
-  categories,
-  category,
-  sort,
-  view,
+  categories = [],
+  category = "all",
+  sort = "relevance",
+  view = "grid",
 }: {
   query: string;
   products: SearchProduct[];
-  categories: string[];
-  category: string;
-  sort: string;
-  view: "grid" | "list";
+  categories?: string[];
+  category?: string;
+  sort?: string;
+  view?: "grid" | "list";
 }) {
-  const [filterOpen, setFilterOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   // Быстрый тумблер: "matrix" (Гибридная Матрица 2+2), "wb" (Только Wildberries), "ozon" (Только Ozon)
   const [activeMode, setActiveMode] = useState<"matrix" | "wb" | "ozon">("matrix");
 
-  const activeCategory = category === "all" ? "Все категории" : category;
-  const sortLabels: Record<string, string> = {
-    relevance: "По AI Score (Выбор wobuy.)",
-    price_asc: "Сначала дешевле",
-    price_desc: "Сначала дороже",
-    rating: "По рейтингу",
-  };
-  const activeSort = sortLabels[sort] ?? "По AI Score (Выбор wobuy.)";
-
-  const filterBase =
-    "rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:border-[#00FF87]/40 hover:bg-white/[0.08]";
+  // Автоматическое запоминание поискового запроса, чтобы результаты не сбрасывались при переходе назад
+  React.useEffect(() => {
+    if (query) {
+      try {
+        sessionStorage.setItem("wobuy_last_query", query);
+        document.cookie = `wobuy_last_query=${encodeURIComponent(query)}; path=/; max-age=86400; SameSite=Lax`;
+      } catch {}
+    }
+  }, [query]);
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     const form = e.currentTarget;
@@ -276,7 +273,7 @@ export default function SearchResults({
               <div className="flex rounded-full border border-white/10 bg-[#13161C] p-0.5">
                 <Link
                   aria-label="Вид сеткой"
-                  href={buildSearchUrl(query, category, sort, "grid")}
+                  href={`/search?q=${encodeURIComponent(query)}&view=grid`}
                   className={`rounded-full p-1.5 transition ${
                     view === "grid" ? "bg-[#00FF87] text-black" : "text-slate-400 hover:text-white"
                   }`}
@@ -285,7 +282,7 @@ export default function SearchResults({
                 </Link>
                 <Link
                   aria-label="Вид списком"
-                  href={buildSearchUrl(query, category, sort, "list")}
+                  href={`/search?q=${encodeURIComponent(query)}&view=list`}
                   className={`rounded-full p-1.5 transition ${
                     view === "list" ? "bg-[#00FF87] text-black" : "text-slate-400 hover:text-white"
                   }`}
@@ -295,100 +292,7 @@ export default function SearchResults({
               </div>
             </div>
           </div>
-
-          {/* Фильтры и сортировка */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none sm:flex-wrap sm:pb-0">
-            <Link
-              href={buildSearchUrl(query, "all", sort, view)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                category === "all"
-                  ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)]"
-                  : "border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10"
-              }`}
-            >
-              Все категории
-            </Link>
-            {categories.slice(0, 5).map((c) => (
-              <Link
-                key={c}
-                href={buildSearchUrl(query, c, sort, view)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                  category === c
-                    ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)]"
-                    : "border border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10"
-                }`}
-              >
-                {c}
-              </Link>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:bg-white/10"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 text-[#00FF87]" />
-              <span>Сортировка</span>
-              <ChevronDown
-                className={`h-3 w-3 text-slate-400 transition-transform ${
-                  filterOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-          </div>
         </div>
-
-        {/* Панель расширенной сортировки */}
-        {filterOpen && (
-          <div className="mb-6 rounded-2xl border border-white/10 bg-[#13161C] p-4 sm:p-5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Все категории ({activeCategory})
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    href={buildSearchUrl(query, "all", sort, view)}
-                    className={`${filterBase} ${category === "all" ? "border-[#00FF87] bg-[#00FF87]/15 text-[#00FF87]" : ""}`}
-                  >
-                    Все
-                  </Link>
-                  {categories.map((c) => (
-                    <Link
-                      key={c}
-                      href={buildSearchUrl(query, c, sort, view)}
-                      className={`${filterBase} ${category === c ? "border-[#00FF87] bg-[#00FF87]/15 text-[#00FF87]" : ""}`}
-                    >
-                      {c}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Сортировка ({activeSort})
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    ["relevance", "По AI Score (Выбор wobuy.)"],
-                    ["price_asc", "Сначала дешевле"],
-                    ["price_desc", "Сначала дороже"],
-                    ["rating", "По рейтингу"],
-                  ].map(([s, label]) => (
-                    <Link
-                      key={s}
-                      href={buildSearchUrl(query, category, s, view)}
-                      className={`${filterBase} ${sort === s ? "border-[#00FF87] bg-white/10 text-white" : ""}`}
-                    >
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ПУСТОЕ СОСТОЯНИЕ ИЛИ ПРИВЕТСТВЕННЫЙ ЭКРАН */}
         {!matrix || products.length === 0 ? (
@@ -499,13 +403,13 @@ export default function SearchResults({
                         : "space-y-4"
                     }
                   >
-                    <MatrixSlotCard slot={matrix.wbChampion} view={view} />
-                    <MatrixSlotCard slot={matrix.ozonChampion} view={view} />
+                    <MatrixSlotCard slot={matrix.wbChampion} view={view} query={query} />
+                    <MatrixSlotCard slot={matrix.ozonChampion} view={view} query={query} />
                   </div>
                 </div>
 
                 {/* 2. СВЯЗКА-ДУЭЛЬ: АРБИТРАЖ СКЕПТИКА (ДУЭЛЬНЫЕ ВЕСЫ) */}
-                <DuelArbitrationCard duel={matrix.duel} />
+                <DuelArbitrationCard duel={matrix.duel} query={query} />
 
                 {/* 3. НИЖНИЙ ЯРУС: СЛОТ 3 (ЭКОНОМНЫЙ) + СЛОТ 4 (СРОЧНЫЙ) */}
                 <div>
@@ -524,8 +428,8 @@ export default function SearchResults({
                         : "space-y-4"
                     }
                   >
-                    <MatrixSlotCard slot={matrix.economistChampion} view={view} />
-                    <MatrixSlotCard slot={matrix.expressChampion} view={view} />
+                    <MatrixSlotCard slot={matrix.economistChampion} view={view} query={query} />
+                    <MatrixSlotCard slot={matrix.expressChampion} view={view} query={query} />
                   </div>
                 </div>
               </div>
@@ -598,7 +502,7 @@ export default function SearchResults({
                       },
                     };
 
-                    return <MatrixSlotCard key={p.id} slot={mockSlot} view={view} />;
+                    return <MatrixSlotCard key={p.id} slot={mockSlot} view={view} query={query} />;
                   })}
                 </div>
               </div>
@@ -671,7 +575,7 @@ export default function SearchResults({
                       },
                     };
 
-                    return <MatrixSlotCard key={p.id} slot={mockSlot} view={view} />;
+                    return <MatrixSlotCard key={p.id} slot={mockSlot} view={view} query={query} />;
                   })}
                 </div>
               </div>

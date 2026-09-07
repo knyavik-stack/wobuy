@@ -80,8 +80,17 @@ function ProductAiGauge({ score }: { score: number }) {
   );
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ fromQuery?: string; q?: string }>;
+}) {
   const { id } = await params;
+  const sParams = await searchParams;
+  const fromQuery = sParams.fromQuery || sParams.q || "";
+  const backHref = fromQuery ? `/search?q=${encodeURIComponent(fromQuery)}` : "/search";
   let user = null;
   let favorite = null;
 
@@ -158,7 +167,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
-              href="/search"
+              href={backHref}
               aria-label="Назад к поиску"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-[#00FF87]/50 hover:bg-white/10 hover:text-white"
             >
@@ -189,26 +198,61 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
       {/* Основной контент */}
       <main className="mx-auto max-w-7xl px-4 pt-6 md:px-8">
-        {/* Хлебные крошки */}
+        {/* Хлебные крошки с сохранением контекста поиска */}
         <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-slate-400">
           <Link href="/" className="hover:text-white">Главная</Link>
           <span>/</span>
-          <Link href={`/search?category=${encodeURIComponent(resolved.category)}`} className="hover:text-white">
-            {resolved.category}
-          </Link>
-          <span>/</span>
+          {fromQuery ? (
+            <>
+              <Link href={`/search?q=${encodeURIComponent(fromQuery)}`} className="hover:text-white text-emerald-400 font-medium">
+                Поиск: «{fromQuery}»
+              </Link>
+              <span>/</span>
+            </>
+          ) : (
+            <>
+              <Link href={`/search?category=${encodeURIComponent(resolved.category)}`} className="hover:text-white">
+                {resolved.category}
+              </Link>
+              <span>/</span>
+            </>
+          )}
           <span className="font-semibold text-white">{resolved.brand}</span>
         </div>
 
         {/* Главный блок товара: Галерея слева + Карточка оффера и AI Score справа */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          {/* Левая колонка: Интерактивная фотогалерея */}
-          <div className="lg:col-span-6 xl:col-span-5">
+          {/* Левая колонка: Интерактивная фотогалерея + прямо под фото заключение wobuy. */}
+          <div className="flex flex-col gap-6 lg:col-span-6 xl:col-span-5">
             <ProductGallery
               images={productImages}
               title={resolved.title}
               marketplace={bestOffer?.marketplace}
             />
+
+            {/* Блок: Заключение и рекомендация wobuy. ПРЯМО ПОД ФОТО ТОВАРА */}
+            {analysis?.wobuyDecision && (
+              <section className="overflow-hidden rounded-3xl border border-[#00FF87]/50 bg-gradient-to-br from-emerald-950/60 via-[#13161C] to-[#12151B] p-5 shadow-2xl shadow-emerald-950/20 backdrop-blur-md">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#00FF87] text-black font-black text-xs shadow-md shadow-emerald-500/30">
+                        ✓
+                      </div>
+                      <div className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
+                        Заключение и рекомендация wobuy.
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
+                      ★ Вердикт ИИ
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed text-slate-100">
+                    {analysis.wobuyDecision}
+                  </p>
+                </div>
+              </section>
+            )}
           </div>
 
           {/* Правая колонка: Информация, AI Score, Выбор лучшей цены и кнопки */}
@@ -326,32 +370,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        {/* Главный блок: Заключение и рекомендация wobuy. на всю ширину прямо под фото и карточкой товара */}
-        {analysis?.wobuyDecision && (
-          <section className="mt-8 overflow-hidden rounded-3xl border border-[#00FF87]/50 bg-gradient-to-r from-emerald-950/60 via-[#13161C] to-emerald-950/30 p-6 shadow-2xl shadow-emerald-950/20 backdrop-blur-md">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#00FF87] text-black font-black shadow-lg shadow-emerald-500/20">
-                ✓
-              </div>
-              <div className="flex-1 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs font-black uppercase tracking-widest text-[#00FF87]">
-                    Заключение и рекомендация wobuy.
-                  </div>
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-3 py-0.5 text-[11px] font-bold text-[#00FF87]">
-                    ★ Персональный вердикт ИИ
-                  </span>
-                </div>
-                <p className="text-sm font-medium leading-relaxed text-slate-100 sm:text-base">
-                  {analysis.wobuyDecision}
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
         {/* Характеристики и описание от ИИ на всю ширину */}
-        <section className="mt-6 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
+        <section className="mt-8 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
           <div className="flex items-center gap-2.5 text-sm font-extrabold uppercase tracking-wider text-white">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/15 text-[#00FF87] border border-[#00FF87]/30">
               <Sliders className="h-4 w-4" />

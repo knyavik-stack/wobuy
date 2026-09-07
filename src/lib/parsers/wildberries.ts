@@ -78,6 +78,37 @@ export function matchesQueryAttributes(title: string, rawQuery: string): boolean
   return true;
 }
 
+const BRAND_SYNONYMS: Record<string, string> = {
+  "полярис": "polaris",
+  "polaris": "полярис",
+  "сяоми": "xiaomi",
+  "ксиаоми": "xiaomi",
+  "xiaomi": "сяоми",
+  "редми": "redmi",
+  "redmi": "редми",
+  "самсунг": "samsung",
+  "samsung": "самсунг",
+  "бош": "bosch",
+  "bosch": "бош",
+  "филипс": "philips",
+  "philips": "филипс",
+  "тефаль": "tefal",
+  "tefal": "тефаль",
+  "делонги": "delonghi",
+  "delonghi": "делонги",
+  "де лонги": "delonghi",
+  "хайер": "haier",
+  "haier": "хайер",
+  "китфорт": "kitfort",
+  "kitfort": "китфорт",
+  "браун": "braun",
+  "braun": "браун",
+  "эппл": "apple",
+  "apple": "эппл",
+  "дайсон": "dyson",
+  "dyson": "дайсон",
+};
+
 /**
  * Выполняет реальный поиск товаров на Wildberries с поддержкой нескольких стабильных эндпоинтов
  */
@@ -97,6 +128,15 @@ export async function searchWildberries(
   const queriesToTry = [normalizedQuery];
   if (rawCleanQuery !== normalizedQuery) {
     queriesToTry.push(rawCleanQuery);
+  }
+
+  // Добавляем вариацию с синонимом бренда (например: 'кофемашина полярис' -> 'кофемашина polaris')
+  const queryWithBrand = normalizedQuery;
+  for (const [cyr, lat] of Object.entries(BRAND_SYNONYMS)) {
+    const regex = new RegExp(`\\b${cyr}\\b`, "gi");
+    if (regex.test(queryWithBrand)) {
+      queriesToTry.push(queryWithBrand.replace(regex, lat));
+    }
   }
 
   // Набор проверенных эндпоинтов поиска Wildberries

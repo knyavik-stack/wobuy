@@ -48,17 +48,35 @@ export async function searchOzon(
       if (widgetStates) {
         const results: RawMarketplaceOffer[] = [];
         for (const [key, stateStr] of Object.entries(widgetStates)) {
-          if (key.startsWith("tileGrid") || key.startsWith("searchResultsV2")) {
+          if (
+            key.startsWith("tileGrid") ||
+            key.startsWith("searchResults") ||
+            key.startsWith("megaPaginator") ||
+            key.startsWith("webSearchResults") ||
+            key.startsWith("skuGrid")
+          ) {
             try {
               const state = typeof stateStr === "string" ? JSON.parse(stateStr) : stateStr;
               const items = state?.items || [];
               for (const item of items) {
-                const sku = item?.sku || item?.id || Math.abs(cleanQuery.split("").reduce((a, b) => a + b.charCodeAt(0), 0) + results.length);
+                const sku =
+                  item?.sku ||
+                  item?.id ||
+                  Math.abs(cleanQuery.split("").reduce((a, b) => a + b.charCodeAt(0), 0) + results.length);
                 const title = item?.title || item?.name || cleanQuery;
-                const priceStr = item?.price?.price || item?.price?.current || "0";
-                const price = typeof priceStr === "number" ? priceStr : parseInt(String(priceStr).replace(/\D/g, ""), 10) || 0;
+                const priceStr =
+                  item?.price?.price ||
+                  item?.price?.current ||
+                  item?.mainState?.price ||
+                  "0";
+                const price =
+                  typeof priceStr === "number"
+                    ? priceStr
+                    : parseInt(String(priceStr).replace(/\D/g, ""), 10) || 0;
                 const origPriceStr = item?.price?.original || item?.price?.old;
-                const origPrice = origPriceStr ? parseInt(String(origPriceStr).replace(/\D/g, ""), 10) : price;
+                const origPrice = origPriceStr
+                  ? parseInt(String(origPriceStr).replace(/\D/g, ""), 10)
+                  : price;
 
                 results.push({
                   id: `ozon-${sku}`,
@@ -68,14 +86,22 @@ export async function searchOzon(
                   brand: item?.brand || "Ozon Seller",
                   price: price || 2500,
                   originalPrice: origPrice || price,
-                  discountPercent: origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0,
+                  discountPercent:
+                    origPrice > price
+                      ? Math.round(((origPrice - price) / origPrice) * 100)
+                      : 0,
                   currency: "RUB",
                   rating: item?.rating ? Number(item.rating) : 4.8,
                   reviewCount: item?.commentsCount || 120,
-                  url: item?.action?.link ? `https://www.ozon.ru${item.action.link}` : `https://www.ozon.ru/product/${sku}`,
-                  imageUrl: item?.image?.link || "https://picsum.photos/seed/ozon/600/600",
-                  deliveryDays: 1,
-                  deliveryText: "Завтра (Ozon Express / Fresh)",
+                  url: item?.action?.link
+                    ? `https://www.ozon.ru${item.action.link}`
+                    : `https://www.ozon.ru/product/${sku}`,
+                  imageUrl:
+                    item?.image?.link ||
+                    item?.tileImage?.link ||
+                    "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80",
+                  deliveryDays: 2,
+                  deliveryText: "1-2 дня (со склада Ozon)",
                   availability: "В наличии",
                   sellerName: item?.seller?.name || "Ozon Retail",
                 });
@@ -98,7 +124,6 @@ export async function searchOzon(
     clearTimeout(timer);
   }
 
-  // Если Ozon API заблокирован или не вернул товары, возвращаем пустой список (не генерируем фейковые товары)
   return [];
 }
 

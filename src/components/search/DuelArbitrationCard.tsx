@@ -15,9 +15,10 @@ import { DuelArbitration } from "@/lib/catalog/duel-matrix";
 
 interface DuelArbitrationCardProps {
   duel: DuelArbitration;
+  query?: string;
 }
 
-export function DuelArbitrationCard({ duel }: DuelArbitrationCardProps) {
+export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const {
     isSameSku,
@@ -31,6 +32,9 @@ export function DuelArbitrationCard({ duel }: DuelArbitrationCardProps) {
     bestOverallPick,
     comparisonPoints,
   } = duel;
+
+  const wbLink = `/product/${wbSlot.product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
+  const ozonLink = `/product/${ozonSlot.product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
 
   return (
     <section className="relative my-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#161922] to-[#101218] p-5 shadow-2xl backdrop-blur-xl sm:p-7">
@@ -147,7 +151,7 @@ export function DuelArbitrationCard({ duel }: DuelArbitrationCardProps) {
                 <ExternalLink className="h-3 w-3 opacity-60" />
               </a>
               <Link
-                href={`/product/${wbSlot.product.id}`}
+                href={wbLink}
                 className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
               >
                 Разбор
@@ -240,7 +244,7 @@ export function DuelArbitrationCard({ duel }: DuelArbitrationCardProps) {
                 <ExternalLink className="h-3 w-3 opacity-60" />
               </a>
               <Link
-                href={`/product/${ozonSlot.product.id}`}
+                href={ozonLink}
                 className="flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10"
               >
                 Разбор

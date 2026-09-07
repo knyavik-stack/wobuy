@@ -3,17 +3,25 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
+  const pathname = request.nextUrl.pathname;
+  const isProtected = pathname.startsWith("/dashboard") || pathname.startsWith("/search");
 
   const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  const getLoginRedirect = () => {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    const fullTarget = request.nextUrl.search
+      ? `${pathname}${request.nextUrl.search}`
+      : pathname;
+    loginUrl.searchParams.set("next", fullTarget);
+    return NextResponse.redirect(loginUrl);
+  };
+
   if (!rawUrl || !anonKey) {
-    if (isDashboard) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("next", request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
+    if (isProtected) {
+      return getLoginRedirect();
     }
     return response;
   }
@@ -47,19 +55,13 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (isDashboard && !user) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("next", request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
+    if (isProtected && !user) {
+      return getLoginRedirect();
     }
   } catch (err) {
     console.warn("Middleware auth check error:", err);
-    if (isDashboard) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("next", request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
+    if (isProtected) {
+      return getLoginRedirect();
     }
   }
 

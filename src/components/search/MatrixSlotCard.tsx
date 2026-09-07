@@ -18,9 +18,10 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 interface MatrixSlotCardProps {
   slot: MatrixSlot;
   view?: "grid" | "list";
+  query?: string;
 }
 
-export function MatrixSlotCard({ slot, view = "grid" }: MatrixSlotCardProps) {
+export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardProps) {
   const [whyOpen, setWhyOpen] = useState(false);
   const {
     slotType,
@@ -40,6 +41,8 @@ export function MatrixSlotCard({ slot, view = "grid" }: MatrixSlotCardProps) {
     savingsVsMarketText,
     tcoBreakdown,
   } = slot;
+
+  const productLink = `/product/${product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
 
   const marketplaceName = matchedOffer.marketplace.toLowerCase().includes("wildberries")
     ? "Wildberries"
@@ -236,7 +239,7 @@ export function MatrixSlotCard({ slot, view = "grid" }: MatrixSlotCardProps) {
 
           {/* Фирменная кнопка wobuy. */}
           <Link
-            href={`/product/${product.id}`}
+            href={productLink}
             className="group/btn relative flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#00FF87] bg-[#12151B] py-3 text-xs font-extrabold text-white shadow-[0_0_12px_rgba(0,255,135,0.15)] transition-all duration-300 hover:bg-[#00FF87] hover:text-black hover:shadow-[0_0_20px_rgba(0,255,135,0.5)]"
           >
             <span>Разбор в</span>
