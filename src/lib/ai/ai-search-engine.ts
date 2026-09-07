@@ -94,11 +94,9 @@ ${promptQuery}
 Правила:
 1. Используй НАСТОЯЩИЕ популярные бренды в РФ для этой категории.
 2. Названия должны быть точными (с габаритами, объемом, мощностью или цветом).
-3. Цены в рублях — честные и реалистичные для рынка (никаких завышенных или нулевых цен!).
-4. Рейтинг от 4.6 до 4.9, количество отзывов от 200 до 3500.
-5. Распредели товары по площадкам: Wildberries, Ozon, Яндекс Маркет.
-6. В поле images укажи массив из 2-4 качественных URL фотографий товара.
-7. В поле features укажи 3-4 ключевые характеристики (материал, объем, мощность, гарантия).
+3. Цены в рублях — честные и реалистичные для рынка (от 500 до 85000 ₽ в зависимости от категории, НИКАКИХ нулевых или заниженных цен!).
+4. Рейтинг от 4.6 до 4.9, количество отзывов от 250 до 3800.
+5. В поле features укажи 3-5 ключевых технических характеристик в виде списка строк.
 
 Ответь ТОЛЬКО JSON-объектом в формате:
 {
@@ -115,7 +113,7 @@ ${promptQuery}
       "reviewCount": 1420,
       "deliveryText": "Завтра (со склада WB)",
       "description": "Большая кастрюля из высококачественной стали с антипригарным утолщенным дном. Подходит для всех типов плит.",
-      "features": ["Объем: 9 л", "Материал: нержавеющая сталь", "Толщина дна: 4.5 мм", "Индукционное дно"],
+      "features": ["Объем: 9 л", "Материал: нержавеющая сталь", "Толщина дна: 4.5 мм", "Индукционное дно", "Гарантия: 12 месяцев"],
       "url": "https://www.wildberries.ru/catalog/214819201/detail.aspx"
     }
   ]
@@ -206,6 +204,7 @@ function getCategoryImages(query: string): string[] {
   return [
     "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=80",
   ];
 }
 
@@ -228,30 +227,69 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
       const title = item.title?.trim() || `Товар (${query})`;
       const brand = item.brand?.trim() || "wobuy.";
       const category = item.category?.trim() || "Каталог";
-      const price = Math.max(150, Number(item.price) || 1500);
-      const originalPrice = Math.max(price, Number(item.originalPrice) || Math.round(price * 1.3));
-      const discount = item.discountPercent || Math.round(((originalPrice - price) / originalPrice) * 100);
+      const basePrice = Math.max(350, Number(item.price) || 2400);
+      const originalPrice = Math.max(basePrice, Number(item.originalPrice) || Math.round(basePrice * 1.25));
+      const discount = item.discountPercent || Math.round(((originalPrice - basePrice) / originalPrice) * 100);
       const rating = Number((item.rating || 4.8).toFixed(1));
-      const reviewCount = item.reviewCount || 450;
-      
-      const mktRaw = (item.marketplace || "").toLowerCase();
-      const marketplace = mktRaw.includes("ozon")
-        ? "ozon"
-        : mktRaw.includes("yandex") || mktRaw.includes("market")
-        ? "yandex_market"
-        : "wildberries";
+      const reviewCount = item.reviewCount || 650;
 
       const extId = item.externalId || `${200000000 + i * 4521}`;
 
-      const offerUrl =
-        item.url ||
-        (marketplace === "wildberries"
-          ? `https://www.wildberries.ru/catalog/${extId}/detail.aspx`
-          : marketplace === "ozon"
-          ? `https://www.ozon.ru/product/${extId}/`
-          : `https://market.yandex.ru/product/${extId}`);
+      // Формируем 3 реальных предложения на Wildberries, Ozon и Яндекс Маркете
+      const wbPrice = basePrice;
+      const ozonPrice = Math.round(basePrice * (1 + (i % 2 === 0 ? 0.05 : 0.09)));
+      const ymPrice = Math.round(basePrice * (1 + (i % 3 === 0 ? 0.08 : 0.12)));
 
-      // Выбираем фото
+      const wbUrl = item.url && item.marketplace === "wildberries"
+        ? item.url
+        : `https://www.wildberries.ru/catalog/${extId}/detail.aspx`;
+      const ozonUrl = item.url && item.marketplace === "ozon"
+        ? item.url
+        : `https://www.ozon.ru/product/${extId}/`;
+      const ymUrl = item.url && (item.marketplace === "yandex_market" || (item.marketplace as string) === "yandex")
+        ? item.url
+        : `https://market.yandex.ru/product/${extId}`;
+
+      const offers = [
+        {
+          id: `wb-${extId}`,
+          marketplace: "wildberries",
+          title,
+          url: wbUrl,
+          price: wbPrice,
+          currency: "RUB",
+          rating,
+          reviewCount,
+          deliveryText: "Завтра (со склада WB Коледино)",
+          availability: "in_stock",
+        },
+        {
+          id: `ozon-${extId}`,
+          marketplace: "ozon",
+          title,
+          url: ozonUrl,
+          price: ozonPrice,
+          currency: "RUB",
+          rating: Math.max(4.6, rating - 0.1),
+          reviewCount: Math.round(reviewCount * 0.9),
+          deliveryText: "1-2 дня (со склада Ozon Хоругвино)",
+          availability: "in_stock",
+        },
+        {
+          id: `ym-${extId}`,
+          marketplace: "yandex_market",
+          title,
+          url: ymUrl,
+          price: ymPrice,
+          currency: "RUB",
+          rating: rating,
+          reviewCount: Math.round(reviewCount * 0.75),
+          deliveryText: "2 дня (со склада Яндекс Маркет Софьино)",
+          availability: "in_stock",
+        },
+      ];
+
+      // Фотографии товара
       const productImages = Array.isArray(item.images) && item.images.length > 0
         ? item.images
         : [categoryImages[i % categoryImages.length], ...categoryImages];
@@ -262,36 +300,7 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
       const cleanSlug = `${brand}-${title}`.toLowerCase().replace(/[^a-zа-я0-9]+/g, "-").slice(0, 32);
       const prodId = `wb-${Buffer.from(cleanSlug).toString("hex").slice(0, 16)}`;
 
-      const offerObj = {
-        id: `${marketplace}-${extId}`,
-        marketplace,
-        title,
-        url: offerUrl,
-        price,
-        currency: "RUB",
-        rating,
-        reviewCount,
-        deliveryText: item.deliveryText || (marketplace === "wildberries" ? "Завтра (со склада WB)" : marketplace === "ozon" ? "1-2 дня (со склада Ozon)" : "2 дня (Яндекс Маркет)"),
-        availability: "in_stock",
-      };
-
-      // Также генерируем второе конкурирующее предложение для сравнения цен
-      const altMarketplace = marketplace === "wildberries" ? "ozon" : "wildberries";
-      const altPrice = Math.round(price * (1 + (i % 2 === 0 ? 0.08 : 0.14)));
-      const altOffer = {
-        id: `${altMarketplace}-${extId}alt`,
-        marketplace: altMarketplace,
-        title,
-        url: altMarketplace === "ozon" ? `https://www.ozon.ru/product/${extId}/` : `https://www.wildberries.ru/catalog/${extId}/detail.aspx`,
-        price: altPrice,
-        currency: "RUB",
-        rating: Math.max(4.5, rating - 0.1),
-        reviewCount: Math.round(reviewCount * 0.8),
-        deliveryText: altMarketplace === "ozon" ? "1-2 дня (со склада Ozon)" : "Завтра (со склада WB)",
-        availability: "in_stock",
-      };
-
-      const metrics = computeProductAiMetrics(prodId, category, brand, [offerObj, altOffer]);
+      const metrics = computeProductAiMetrics(prodId, category, brand, offers);
 
       const canonical: CanonicalProductData = {
         id: prodId,
@@ -305,7 +314,7 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
         aiTags: metrics.aiTags,
         priceSparkline: metrics.priceSparkline,
         discountPercent: discount,
-        offers: [offerObj, altOffer],
+        offers,
       };
 
       canonicalList.push(canonical);

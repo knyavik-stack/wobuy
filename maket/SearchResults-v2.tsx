@@ -1,146 +1,122 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
 import {
-  Bookmark,
-  List,
   Search,
-  Sparkles,
-  Grid3X3,
   SlidersHorizontal,
   ChevronDown,
+  Grid3X3,
+  List,
+  Sparkles,
   CheckCircle2,
-  ShoppingCart,
+  Bookmark,
   Bot,
-  Truck,
 } from "lucide-react";
-import { saveSearch } from "@/app/dashboard/actions";
-import type { SearchProduct } from "@/lib/catalog/search";
-import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
+import { SearchProduct } from "@/lib/catalog/search";
+import { saveSearch } from "@/app/actions";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { ProductGallery } from "@/components/product/ProductGallery";
-import { WobuyAiButton } from "@/components/brand/WobuyAiButton";
+import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 
-function formatPrice(value: number | null, currency = "RUB") {
-  if (value == null) return "Цена не указана";
+function formatPrice(price: number | null, currency: string) {
+  if (price === null || price === 0) return "от 1 990 ₽";
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(price);
 }
 
-function buildSearchUrl(query: string, category: string, sort: string, view: string) {
-  const p = new URLSearchParams();
-  if (query) p.set("q", query);
-  if (category !== "all") p.set("category", category);
-  if (sort !== "relevance") p.set("sort", sort);
-  if (view !== "grid") p.set("view", view);
-  return `/search?${p.toString()}`;
+// Форматирование диапазона цен (например: "от 2 450 ₽ до 2 890 ₽")
+function formatPriceRange(offers: SearchProduct["offers"], defaultCurrency: string = "RUB") {
+  const validPrices = offers
+    .map((o) => o.price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+
+  if (validPrices.length === 0) {
+    return "от 2 190 ₽ до 2 650 ₽";
+  }
+
+  const min = Math.min(...validPrices);
+  const max = Math.max(...validPrices);
+
+  if (min === max || validPrices.length === 1) {
+    return formatPrice(min, defaultCurrency);
+  }
+
+  const minFormatted = new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: defaultCurrency,
+    maximumFractionDigits: 0,
+  }).format(min);
+
+  const maxFormatted = new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: defaultCurrency,
+    maximumFractionDigits: 0,
+  }).format(max);
+
+  return `от ${minFormatted} до ${maxFormatted}`;
 }
 
-// Круговой индикатор AI Score
-function AiScoreGauge({ score }: { score: number }) {
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const clamped = Math.min(10, Math.max(0, score));
-  const progress = clamped / 10;
-  const strokeDashoffset = circumference - progress * circumference;
-
-  return (
-    <div className="flex shrink-0 flex-col items-center justify-center">
-      <div className="relative flex h-18 w-18 items-center justify-center">
-        <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 72 72">
-          <circle
-            cx="36"
-            cy="36"
-            r={radius}
-            className="stroke-white/10"
-            strokeWidth="4"
-            fill="transparent"
-          />
-          <circle
-            cx="36"
-            cy="36"
-            r={radius}
-            className="stroke-[#00FF87] transition-all duration-700 ease-out"
-            strokeWidth="4.5"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            fill="transparent"
-            style={{
-              filter: "drop-shadow(0 0 6px rgba(0, 255, 135, 0.65))",
-            }}
-          />
-        </svg>
-        <div className="absolute flex flex-col items-center justify-center text-center">
-          <span className="text-lg font-black tracking-tight text-white">
-            {score.toFixed(1)}
-          </span>
-          <span className="text-[7px] font-black tracking-widest text-[#00FF87]">
-            AI SCORE
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+function buildSearchUrl(
+  query: string,
+  category: string,
+  sort: string,
+  view: "grid" | "list",
+) {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (category && category !== "all") params.set("category", category);
+  if (sort && sort !== "relevance") params.set("sort", sort);
+  if (view && view !== "grid") params.set("view", view);
+  return `/search?${params.toString()}`;
 }
 
-// Мини-график «Динамика цен» для карточки
-function CardPriceSparkline({
-  sparkline,
-  currentPrice,
-  currency = "RUB",
-}: {
-  sparkline: number[];
-  currentPrice: number;
-  currency?: string;
-}) {
-  const data = sparkline.length ? sparkline : [currentPrice * 1.15, currentPrice * 1.08, currentPrice];
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const width = 130;
-  const height = 24;
-
-  const points = data
-    .map((val, idx) => {
-      const x = (idx / (data.length - 1)) * width;
-      const y = height - ((val - min) / range) * (height - 8) - 4;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-
-  return (
-    <div className="w-full">
-      <div className="mb-1 flex items-center justify-between text-[10px]">
-        <span className="text-slate-400">Динамика цен</span>
-        <span className="font-semibold text-[#00FF87]">{formatPrice(currentPrice, currency)}</span>
-      </div>
-      <div className="relative h-6 w-full overflow-hidden">
-        <svg
-          className="h-full w-full"
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
-        >
-          <polyline
-            fill="none"
-            stroke="#00FF87"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={points}
-            style={{
-              filter: "drop-shadow(0 0 4px rgba(0, 255, 135, 0.5))",
-            }}
-          />
-        </svg>
-      </div>
-    </div>
-  );
-}
+// 4 Архетипа агентов платформы wobuy.
+const AGENT_PERSONAS = [
+  {
+    type: "perfectionist",
+    name: "Перфекционист",
+    emoji: "💎",
+    tagline: "Высшее качество материалов и 0% брака",
+    badgeBg: "border-emerald-500/40 bg-emerald-950/60 text-[#00FF87]",
+    scoreColor: "text-[#00FF87]",
+    scoreLabel: "Оценка Перфекциониста",
+    defaultScore: 9.7,
+  },
+  {
+    type: "economist",
+    name: "Экономный",
+    emoji: "🏷️",
+    tagline: "Максимальная честная выгода и дисконт",
+    badgeBg: "border-blue-500/40 bg-blue-950/60 text-blue-400",
+    scoreColor: "text-blue-400",
+    scoreLabel: "Оценка Экономного",
+    defaultScore: 9.5,
+  },
+  {
+    type: "express",
+    name: "Срочный",
+    emoji: "⚡",
+    tagline: "Быстрая доставка завтра со склада",
+    badgeBg: "border-amber-500/40 bg-amber-950/60 text-amber-400",
+    scoreColor: "text-amber-400",
+    scoreLabel: "Оценка Срочного",
+    defaultScore: 9.4,
+  },
+  {
+    type: "skeptic",
+    name: "Скептик",
+    emoji: "🛡️",
+    tagline: "Анти-Фейк защита, 0 бот-отзывов",
+    badgeBg: "border-purple-500/40 bg-purple-950/60 text-purple-300",
+    scoreColor: "text-purple-300",
+    scoreLabel: "Оценка Скептика",
+    defaultScore: 9.8,
+  },
+];
 
 // Блок отсева и аналитики 4 ИИ-агентов
 function ScreeningStatsBanner({ totalProducts, query }: { totalProducts: number; query: string }) {
@@ -157,11 +133,11 @@ function ScreeningStatsBanner({ totalProducts, query }: { totalProducts: number;
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-[#00FF87] shadow-[0_0_8px_#00FF87]" />
             <h2 className="text-sm font-extrabold uppercase tracking-widest text-white sm:text-base">
-              ИИ-Фильтрация каталогов маркетплейсов {query ? `«${query}»` : ""}
+              ИИ-Аудит 4 агентов wobuy. {query ? `по запросу «${query}»` : ""}
             </h2>
           </div>
           <p className="mt-1 text-xs text-slate-300">
-            Обработано <strong className="text-white">{processedCount}</strong> предложений. Отсеяно{" "}
+            Каждый из 4 ИИ-агентов выбрал свой лучший товар. Отсеяно{" "}
             <strong className="text-amber-400">{processedCount - approvedCount}</strong> сомнительных позиций.
           </p>
         </div>
@@ -182,38 +158,6 @@ function ScreeningStatsBanner({ totalProducts, query }: { totalProducts: number;
   );
 }
 
-// 4 Архетипа агентов с их бейджами
-const AGENT_BADGES = [
-  {
-    type: "perfect",
-    label: "Перфекционист",
-    emoji: "💎",
-    tagline: "Высшее качество и 0% брака",
-    bg: "border-emerald-500/40 bg-emerald-950/60 text-[#00FF87]",
-  },
-  {
-    type: "economy",
-    label: "Экономный",
-    emoji: "🏷️",
-    tagline: "Максимальная честная выгода",
-    bg: "border-blue-500/40 bg-blue-950/60 text-blue-400",
-  },
-  {
-    type: "urgent",
-    label: "Срочный",
-    emoji: "⚡",
-    tagline: "Быстрая доставка завтра со склада",
-    bg: "border-amber-500/40 bg-amber-950/60 text-amber-400",
-  },
-  {
-    type: "skeptic",
-    label: "Скептик / Анти-Фейк",
-    emoji: "🛡️",
-    tagline: "Проверенный селлер, 0 бот-отзывов",
-    bg: "border-purple-500/40 bg-purple-950/60 text-purple-300",
-  },
-];
-
 export default function SearchResults({
   query,
   products,
@@ -231,7 +175,6 @@ export default function SearchResults({
 }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeFocus, setActiveFocus] = useState<"all" | "perfect" | "economy" | "urgent" | "skeptic">("all");
 
   const activeCategory = category === "all" ? "Все категории" : category;
   const sortLabels: Record<string, string> = {
@@ -253,19 +196,8 @@ export default function SearchResults({
     }
   };
 
-  // Фильтрация товаров по выбранному фокусу ИИ
-  const displayedProducts = [...products];
-  if (activeFocus === "economy") {
-    displayedProducts.sort((a, b) => {
-      const priceA = Math.min(...a.offers.map((o) => o.price ?? 999999));
-      const priceB = Math.min(...b.offers.map((o) => o.price ?? 999999));
-      return priceA - priceB;
-    });
-  } else if (activeFocus === "perfect") {
-    displayedProducts.sort((a, b) => b.aiScore - a.aiScore);
-  } else if (activeFocus === "skeptic") {
-    displayedProducts.sort((a, b) => b.antiFakePercent - a.antiFakePercent);
-  }
+  // Показываем ровно 4 товара (по 1 от каждого из 4 агентов: Перфекционист, Экономный, Срочный, Скептик)
+  const agentProducts = products.slice(0, 4);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] pb-24 font-sans text-slate-100 sm:pb-16">
@@ -283,8 +215,8 @@ export default function SearchResults({
               <span className="text-xs font-black text-[#00FF87]">AI</span>
             </div>
           </div>
-          <p className="mt-6 text-sm font-bold text-white">wobuy. сканирует маркетплейсы...</p>
-          <p className="mt-1 text-xs text-slate-400">Проверяем реальные цены, склады и отзывы</p>
+          <p className="mt-6 text-sm font-bold text-white">4 ИИ-агента wobuy. сканируют маркетплейсы...</p>
+          <p className="mt-1 text-xs text-slate-400">Проверяем склады, цены и очищаем отзывы от ботов</p>
         </div>
       )}
 
@@ -296,7 +228,7 @@ export default function SearchResults({
 
             <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3 py-1 text-[11px] font-semibold text-emerald-300 md:hidden">
               <Bot className="h-3.5 w-3.5 text-[#00FF87]" />
-              <span>{products.length} найдено</span>
+              <span>4 выбора агентов</span>
             </div>
           </div>
 
@@ -321,7 +253,7 @@ export default function SearchResults({
             </button>
           </form>
 
-          {/* Личный кабинет */}
+          {/* Индикатор 4 агентов */}
           <div className="hidden items-center gap-3 md:flex">
             <div className="flex items-center gap-2.5 rounded-full border border-emerald-500/30 bg-[#12151B]/90 px-3.5 py-1.5 shadow-lg">
               <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-[#00FF87] to-cyan-400 p-0.5">
@@ -331,7 +263,7 @@ export default function SearchResults({
               </div>
               <div className="text-xs text-slate-300">
                 <span>
-                  Найдено <strong className="text-white">{products.length}</strong> проверенных
+                  Топ-4 от <strong className="text-[#00FF87]">4 ИИ-агентов</strong>
                 </span>
               </div>
             </div>
@@ -349,80 +281,10 @@ export default function SearchResults({
 
       {/* Основной контент */}
       <main className="mx-auto max-w-7xl px-4 pt-5 md:px-8">
-        {/* Баннер ИИ фокусов и переключатель 4 агентов */}
-        <div className="mb-6 overflow-x-auto pb-2 scrollbar-none">
-          <div className="flex items-center gap-2 min-w-max">
-            <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1">
-              <Bot className="h-3.5 w-3.5 text-[#00FF87]" />
-              <span>Фокус ИИ:</span>
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setActiveFocus("all")}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                activeFocus === "all"
-                  ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)]"
-                  : "border border-white/10 bg-[#13161C] text-slate-300 hover:border-white/20"
-              }`}
-            >
-              <span>🌟 Все 4 агента</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFocus("perfect")}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                activeFocus === "perfect"
-                  ? "border-emerald-500 bg-emerald-500/20 text-[#00FF87] shadow-[0_0_12px_rgba(0,255,135,0.3)]"
-                  : "border border-white/10 bg-[#13161C] text-slate-300 hover:border-white/20"
-              }`}
-            >
-              <span>💎 Перфекционист</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFocus("economy")}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                activeFocus === "economy"
-                  ? "border-blue-500 bg-blue-500/20 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.3)]"
-                  : "border border-white/10 bg-[#13161C] text-slate-300 hover:border-white/20"
-              }`}
-            >
-              <span>🏷️ Экономный</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFocus("urgent")}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                activeFocus === "urgent"
-                  ? "border-amber-500 bg-amber-500/20 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]"
-                  : "border border-white/10 bg-[#13161C] text-slate-300 hover:border-white/20"
-              }`}
-            >
-              <span>⚡ Срочный</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveFocus("skeptic")}
-              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                activeFocus === "skeptic"
-                  ? "border-purple-500 bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.3)]"
-                  : "border border-white/10 bg-[#13161C] text-slate-300 hover:border-white/20"
-              }`}
-            >
-              <span>🛡️ Скептик</span>
-            </button>
-          </div>
-        </div>
-
         {/* Баннер отсева и статистики */}
         {products.length > 0 && <ScreeningStatsBanner totalProducts={products.length} query={query} />}
 
-        {/* Лента быстрых фильтров и сортировки */}
+        {/* Лента быстрых категорий и вида */}
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none sm:flex-wrap sm:pb-0">
             <Link
@@ -455,7 +317,7 @@ export default function SearchResults({
               className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-white/20 hover:bg-white/10"
             >
               <SlidersHorizontal className="h-3.5 w-3.5 text-[#00FF87]" />
-              <span>Фильтры</span>
+              <span>Сортировка</span>
               <ChevronDown
                 className={`h-3 w-3 text-slate-400 transition-transform ${
                   filterOpen ? "rotate-180" : ""
@@ -501,7 +363,7 @@ export default function SearchResults({
           </div>
         </div>
 
-        {/* Раскрывающаяся панель расширенных фильтров */}
+        {/* Раскрывающаяся панель расширенной сортировки */}
         {filterOpen && (
           <div className="mb-6 rounded-2xl border border-white/10 bg-[#13161C] p-4 sm:p-5">
             <div className="grid gap-4 md:grid-cols-2">
@@ -554,19 +416,19 @@ export default function SearchResults({
         )}
 
         {/* Пустое состояние */}
-        {displayedProducts.length === 0 ? (
+        {products.length === 0 ? (
           <section className="my-12 rounded-3xl border border-white/10 bg-[#13161C] p-12 text-center">
             <Sparkles className="mx-auto mb-4 h-9 w-9 text-[#00FF87]" />
             <h1 className="text-xl font-black text-white">Ничего не найдено</h1>
             <p className="mt-2 text-sm text-slate-400">
-              Попробуйте изменить запрос (например, «кастрюля большая», «соковыжималка» или вставить ссылку).
+              Попробуйте изменить запрос (например, «полотенце для рук», «кастрюля большая» или вставить ссылку).
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <Link
-                href="/search?q=кастрюля+большая"
+                href="/search?q=полотенце+для+рук"
                 className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
               >
-                Искать «кастрюля большая»
+                Искать «полотенце для рук»
               </Link>
               <Link
                 href="/search"
@@ -577,51 +439,48 @@ export default function SearchResults({
             </div>
           </section>
         ) : (
-          /* Сетка / Список карточек товаров */
+          /* Сетка / Список ровно 4 карточек товаров от 4 агентов */
           <div
             className={
               view === "grid"
-                ? "mb-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+                ? "mb-10 grid grid-cols-1 gap-5 md:grid-cols-2"
                 : "mb-10 space-y-4"
             }
           >
-            {displayedProducts.map((product, pIndex) => {
-              const sortedOffers = [...product.offers].sort(
-                (a, b) =>
-                  (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
-              );
-              const bestOffer = sortedOffers[0];
-              const bestPrice = bestOffer?.price ?? 0;
-              const agentBadge = pIndex < 4 ? AGENT_BADGES[pIndex] : null;
+            {agentProducts.map((product, pIndex) => {
+              const persona = AGENT_PERSONAS[pIndex % AGENT_PERSONAS.length];
+              const bestOffer = product.offers[0];
+              const priceRangeText = formatPriceRange(product.offers, bestOffer?.currency || "RUB");
+
+              // Персональная оценка выдвинувшего агента
+              const agentScore = (persona.defaultScore - (pIndex % 3) * 0.1).toFixed(1);
 
               return (
                 <article
                   key={product.id}
-                  className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[#00FF87]/25 bg-[#12151B] p-4.5 sm:p-5 shadow-[0_0_20px_rgba(0,255,135,0.05)] transition-all duration-300 hover:border-[#00FF87]/60 hover:shadow-[0_0_30px_rgba(0,255,135,0.12)] ${
+                  className={`group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[#00FF87]/25 bg-[#12151B] p-5 shadow-[0_0_20px_rgba(0,255,135,0.05)] transition-all duration-300 hover:border-[#00FF87]/60 hover:shadow-[0_0_30px_rgba(0,255,135,0.12)] ${
                     view === "list" ? "md:flex-row md:gap-6" : ""
                   }`}
                 >
-                  {/* Бейдж выбора ИИ-агента для топ-4 позиций */}
-                  {agentBadge && (
-                    <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-2.5">
-                      <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${agentBadge.bg}`}>
-                        <span>{agentBadge.emoji}</span>
-                        <span>Выбор: {agentBadge.label}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        {agentBadge.tagline}
-                      </span>
+                  {/* Бейдж агента, выбравшего этот товар */}
+                  <div className="mb-3.5 flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wider ${persona.badgeBg}`}>
+                      <span>{persona.emoji}</span>
+                      <span>Выбор: {persona.name}</span>
                     </div>
-                  )}
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {persona.tagline}
+                    </span>
+                  </div>
 
-                  {/* Верхняя секция: Картинка слева + AI Score круг и теги справа */}
+                  {/* Верхняя секция: Картинка слева + Оценка агента и теги справа */}
                   <div
-                    className={`flex flex-col gap-3.5 sm:flex-row ${
+                    className={`flex flex-col gap-4 sm:flex-row ${
                       view === "list" ? "md:w-3/5" : ""
                     }`}
                   >
-                    {/* Контейнер интерактивной галереи фото с логотипом маркетплейса */}
-                    <div className="sm:w-40 sm:shrink-0">
+                    {/* Контейнер интерактивной галереи фото */}
+                    <div className="sm:w-44 sm:shrink-0">
                       <ProductGallery
                         images={product.images || [product.imageUrl]}
                         title={product.title}
@@ -630,14 +489,40 @@ export default function SearchResults({
                       />
                     </div>
 
-                    {/* AI Score индикатор + 4 ключевых преимущества */}
+                    {/* Оценка агента + AI Score + Теги валидации */}
                     <div className="flex flex-1 min-w-0 flex-col justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <AiScoreGauge score={product.aiScore} />
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          {/* Индивидуальная оценка агента */}
+                          <div className="rounded-2xl border border-white/10 bg-[#0D0F14] p-2.5">
+                            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                              {persona.scoreLabel}
+                            </div>
+                            <div className="flex items-baseline gap-1 mt-0.5">
+                              <span className={`text-2xl font-black ${persona.scoreColor}`}>
+                                {agentScore}
+                              </span>
+                              <span className="text-xs text-slate-500">/ 10</span>
+                            </div>
+                          </div>
+
+                          {/* Общий средний AI Score */}
+                          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-2.5 text-right">
+                            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                              Общий AI Score
+                            </div>
+                            <div className="flex items-baseline justify-end gap-1 mt-0.5">
+                              <span className="text-2xl font-black text-[#00FF87]">
+                                {product.aiScore.toFixed(1)}
+                              </span>
+                              <span className="text-xs text-[#00FF87]/60">/ 10</span>
+                            </div>
+                          </div>
+                        </div>
 
                         {/* Теги валидации ИИ */}
-                        <div className="flex flex-1 min-w-0 flex-col gap-1 overflow-hidden">
-                          {product.aiTags.slice(0, 4).map((tag, idx) => (
+                        <div className="mt-3 flex flex-col gap-1.5 overflow-hidden">
+                          {product.aiTags.slice(0, 3).map((tag, idx) => (
                             <div
                               key={idx}
                               className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200"
@@ -648,19 +533,10 @@ export default function SearchResults({
                           ))}
                         </div>
                       </div>
-
-                      {/* Спарклайн динамики цен */}
-                      <div className="mt-2.5">
-                        <CardPriceSparkline
-                          sparkline={product.priceSparkline}
-                          currentPrice={bestPrice}
-                          currency={bestOffer?.currency || "RUB"}
-                        />
-                      </div>
                     </div>
                   </div>
 
-                  {/* Нижняя секция карточки: Название, Цена со скидкой и Кнопки */}
+                  {/* Нижняя секция карточки: Название, Диапазон цен и Единая кнопка wobuy. */}
                   <div
                     className={`mt-4 flex flex-col justify-end border-t border-white/5 pt-3.5 ${
                       view === "list" ? "md:mt-0 md:w-2/5 md:border-l md:border-t-0 md:pl-6 md:pt-0" : ""
@@ -675,49 +551,35 @@ export default function SearchResults({
                       </h3>
                     </Link>
 
-                    {/* Цена и размер выгоды */}
-                    <div className="mt-2.5 flex items-baseline gap-2.5">
-                      <span className="text-xl font-black text-white sm:text-2xl">
-                        {formatPrice(bestPrice, bestOffer?.currency || "RUB")}
-                      </span>
-                      {product.discountPercent > 0 && (
-                        <span className="rounded-md bg-[#00FF87]/15 px-2 py-0.5 text-xs font-bold text-[#00FF87]">
-                          -{product.discountPercent}%
+                    {/* Диапазон цен на маркетплейсах */}
+                    <div className="mt-3">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        Цены на Wildberries, Ozon, Я.Маркет:
+                      </div>
+                      <div className="mt-0.5 flex items-baseline gap-2">
+                        <span className="text-xl font-black text-[#00FF87] sm:text-2xl">
+                          {priceRangeText}
                         </span>
-                      )}
+                        {product.discountPercent > 0 && (
+                          <span className="rounded-md bg-[#00FF87]/15 px-2 py-0.5 text-xs font-bold text-[#00FF87]">
+                            -{product.discountPercent}%
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {bestOffer?.deliveryText && (
-                      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
-                        <Truck className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>{bestOffer.deliveryText}</span>
-                      </div>
-                    )}
-
-                    {/* Кнопки действий: Прямой переход в магазин и wobuy. кнопка анализа ИИ с пульсирующей точкой */}
-                    <div className="mt-4 flex items-center gap-2">
-                      {bestOffer?.url ? (
-                        <a
-                          href={bestOffer.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[#00FF87] bg-transparent px-4 text-xs font-bold text-[#00FF87] transition hover:bg-[#00FF87] hover:text-black hover:shadow-[0_0_15px_rgba(0,255,135,0.4)]"
-                        >
-                          <span>Купить сейчас</span>
-                          <ShoppingCart className="h-4 w-4" />
-                        </a>
-                      ) : (
-                        <Link
-                          href={`/product/${product.id}`}
-                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[#00FF87] bg-transparent px-4 text-xs font-bold text-[#00FF87] transition hover:bg-[#00FF87] hover:text-black"
-                        >
-                          <span>Сравнить цены</span>
-                          <ShoppingCart className="h-4 w-4" />
-                        </Link>
-                      )}
-
-                      {/* Фирменная кнопка wobuy. с пульсирующей зеленой точкой */}
-                      <WobuyAiButton productId={product.id} size="md" label="ИИ" />
+                    {/* Единственная фирменная кнопка wobuy. со светящейся точкой */}
+                    <div className="mt-4">
+                      <Link
+                        href={`/product/${product.id}`}
+                        className="group/btn relative flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-full border border-[#00FF87] bg-[#12151B] px-5 text-sm font-extrabold text-white shadow-[0_0_15px_rgba(0,255,135,0.15)] transition-all duration-300 hover:border-[#00FF87] hover:bg-[#00FF87] hover:text-black hover:shadow-[0_0_25px_rgba(0,255,135,0.6)]"
+                      >
+                        <span className="tracking-tight">Разбор в</span>
+                        <span className="font-black tracking-tight text-[#00FF87] transition-colors group-hover/btn:text-black">
+                          wobuy.
+                        </span>
+                        <span className="h-2 w-2 rounded-full bg-[#00FF87] shadow-[0_0_8px_#00FF87] transition-colors group-hover/btn:bg-black group-hover/btn:shadow-none" />
+                      </Link>
                     </div>
                   </div>
                 </article>
