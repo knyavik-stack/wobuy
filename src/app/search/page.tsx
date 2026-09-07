@@ -11,7 +11,7 @@ export default async function SearchPage({
   const sort = params.sort ?? "relevance";
   const category = params.category ?? "all";
   const view = params.view === "list" ? "list" : "grid";
-  let products = await searchProducts(query);
+  let products = query ? await searchProducts(query) : [];
   const categories = [...new Set(products.map((product) => product.category).filter(Boolean))].sort(
     (a, b) => a.localeCompare(b, "ru"),
   );

@@ -259,59 +259,63 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <div className="rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl">
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
-                    Предложения на маркетплейсах ({offers.length || 3})
+                    Предложения на маркетплейсах (3)
                   </h3>
                   <span className="text-xs font-bold text-[#00FF87]">Лучшая цена проверена</span>
                 </div>
 
                 <div className="space-y-2.5">
-                  {sortedOffers.map((off, idx) => (
-                    <div
-                      key={off.id || idx}
-                      className={`flex flex-col justify-between gap-3 rounded-2xl border p-3.5 transition sm:flex-row sm:items-center ${
-                        idx === 0
-                          ? "border-[#00FF87]/50 bg-emerald-950/20 shadow-[0_0_15px_rgba(0,255,135,0.1)]"
-                          : "border-white/5 bg-[#0D0F14]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <MarketplaceBadge marketplace={off.marketplace} size="md" showLabel={true} />
-                        <div>
-                          <div className="text-sm font-black text-white">
-                            {formatPrice(off.price, off.currency || currency)}
-                          </div>
-                          <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                            {off.rating && (
-                              <span className="flex items-center gap-0.5 text-amber-400 font-bold">
-                                <Star className="h-3 w-3 fill-amber-400" />
-                                {off.rating}
+                  {(analysis?.marketplaceComparison || []).map((mkt, idx) => {
+                    const isBest = mkt.isRecommended;
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex flex-col justify-between gap-3 rounded-2xl border p-3.5 transition sm:flex-row sm:items-center ${
+                          isBest
+                            ? "border-[#00FF87]/50 bg-emerald-950/20 shadow-[0_0_15px_rgba(0,255,135,0.1)]"
+                            : "border-white/5 bg-[#0D0F14]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <MarketplaceBadge marketplace={mkt.marketplace} size="md" showLabel={true} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-white">
+                                {formatPrice(mkt.price, currency)}
                               </span>
-                            )}
-                            <span>•</span>
-                            <span>{off.deliveryText || "Доставка со склада"}</span>
+                              {isBest && (
+                                <span className="rounded bg-[#00FF87]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
+                                  ★ Выбор
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                              <span className="flex items-center gap-0.5 font-bold text-amber-400">
+                                <Star className="h-3 w-3 fill-amber-400" />
+                                {mkt.rating.toFixed(1)}
+                              </span>
+                              <span>•</span>
+                              <span>{mkt.delivery}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {off.url ? (
                         <a
-                          href={off.url}
+                          href={mkt.url}
                           target="_blank"
                           rel="noreferrer"
                           className={`flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
-                            idx === 0
+                            isBest
                               ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)] hover:bg-[#00E576]"
-                              : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                              : "border border-white/10 bg-white/5 text-white hover:border-[#00FF87]/50 hover:bg-white/10"
                           }`}
                         >
-                          <span>В магазин</span>
+                          <span>Купить на {mkt.name}</span>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
-                      ) : (
-                        <span className="text-xs text-slate-500">В наличии</span>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

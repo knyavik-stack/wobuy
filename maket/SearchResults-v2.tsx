@@ -415,29 +415,88 @@ export default function SearchResults({
           </div>
         )}
 
-        {/* Пустое состояние */}
+        {/* Пустое состояние или экран первичного поиска без запроса */}
         {products.length === 0 ? (
-          <section className="my-12 rounded-3xl border border-white/10 bg-[#13161C] p-12 text-center">
-            <Sparkles className="mx-auto mb-4 h-9 w-9 text-[#00FF87]" />
-            <h1 className="text-xl font-black text-white">Ничего не найдено</h1>
-            <p className="mt-2 text-sm text-slate-400">
-              Попробуйте изменить запрос (например, «полотенце для рук», «кастрюля большая» или вставить ссылку).
-            </p>
-            <div className="mt-6 flex justify-center gap-3">
-              <Link
-                href="/search?q=полотенце+для+рук"
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
-              >
-                Искать «полотенце для рук»
-              </Link>
-              <Link
-                href="/search"
-                className="rounded-full bg-[#00FF87] px-4 py-2 text-xs font-bold text-black hover:bg-[#00E576]"
-              >
-                Сбросить поиск
-              </Link>
-            </div>
-          </section>
+          !query ? (
+            <section className="my-6 overflow-hidden rounded-3xl border border-emerald-500/30 bg-[#12151B] p-8 text-center shadow-2xl backdrop-blur-md md:p-12">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-[#00FF87]/40 bg-[#00FF87]/10 text-[#00FF87] shadow-[0_0_25px_rgba(0,255,135,0.3)]">
+                <Bot className="h-8 w-8" />
+              </div>
+
+              <h1 className="mt-5 text-2xl font-black tracking-tight text-white sm:text-3xl">
+                Умный поиск 4 ИИ-агентов <span className="text-[#00FF87]">wobuy.</span>
+              </h1>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
+                Введите название товара или ссылку на Wildberries, Ozon или Яндекс Маркет. 4 независимых ИИ-агента просканируют рынок и выберут лучший вариант под ваши критерии.
+              </p>
+
+              {/* 4 Карточки агентов */}
+              <div className="mt-8 grid grid-cols-1 gap-4 text-left sm:grid-cols-2 lg:grid-cols-4">
+                {AGENT_PERSONAS.map((agent, aIdx) => (
+                  <div
+                    key={aIdx}
+                    className="rounded-2xl border border-white/10 bg-[#0D0F14] p-4 transition hover:border-[#00FF87]/40"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{agent.emoji}</span>
+                      <div>
+                        <div className={`text-xs font-black uppercase tracking-wider ${agent.scoreColor}`}>
+                          {agent.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400">{agent.tagline}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Быстрые популярные запросы */}
+              <div className="mt-8">
+                <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">
+                  Популярные запросы для проверки:
+                </div>
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {[
+                    "Наушники с шумоподавлением",
+                    "Робот-пылесос для дома",
+                    "Полотенце для рук",
+                    "Кофемашина автоматическая",
+                    "Палатка туристическая",
+                  ].map((sampleQuery, idx) => (
+                    <Link
+                      key={idx}
+                      href={`/search?q=${encodeURIComponent(sampleQuery)}`}
+                      className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-[#00FF87]/50 hover:bg-white/10 hover:text-white"
+                    >
+                      {sampleQuery}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : (
+            <section className="my-12 rounded-3xl border border-white/10 bg-[#13161C] p-12 text-center">
+              <Sparkles className="mx-auto mb-4 h-9 w-9 text-[#00FF87]" />
+              <h1 className="text-xl font-black text-white">Ничего не найдено по запросу «{query}»</h1>
+              <p className="mt-2 text-sm text-slate-400">
+                Попробуйте изменить запрос (например, «полотенце для рук», «робот пылесос» или вставить ссылку на товар).
+              </p>
+              <div className="mt-6 flex justify-center gap-3">
+                <Link
+                  href="/search?q=полотенце+для+рук"
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
+                >
+                  Искать «полотенце для рук»
+                </Link>
+                <Link
+                  href="/search"
+                  className="rounded-full bg-[#00FF87] px-4 py-2 text-xs font-bold text-black hover:bg-[#00E576]"
+                >
+                  Сбросить поиск
+                </Link>
+              </div>
+            </section>
+          )
         ) : (
           /* Сетка / Список ровно 4 карточек товаров от 4 агентов */
           <div
