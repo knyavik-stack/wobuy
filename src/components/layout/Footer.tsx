@@ -48,10 +48,10 @@ export function Footer() {
         </div>
 
         {/* Объединенная монолитная строка копирайта и защиты */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-[11px] text-slate-400">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-[6px] text-slate-400">
           <div className="flex flex-wrap items-center gap-2">
             <span>© 2026 <strong className="font-bold text-white">wobuy.</strong> (домен wobuy.ru). Все права защищены.</span>
-            <span className="hidden md:inline text-slate-600">•</span>
+            {/*<span className="hidden md:inline text-slate-600">•</span>*/}
             <span className="inline-flex items-center gap-1 text-slate-300">
               <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" />
               <span>Защищено независимым алгоритмом Анти-Фейк.</span>
