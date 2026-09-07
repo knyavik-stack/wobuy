@@ -17,16 +17,15 @@ interface DeliveryAnalysisCardProps {
   currency?: string;
 }
 
-function normalizeMarketplace(raw: string): "wildberries" | "ozon" | "yandex_market" {
+function normalizeMarketplace(raw: string): "wildberries" | "ozon" {
   const lower = raw.toLowerCase();
   if (lower.includes("ozon") || lower.includes("озон")) return "ozon";
-  if (lower.includes("yandex") || lower.includes("яндекс") || lower.includes("ym") || lower.includes("маркет")) return "yandex_market";
   return "wildberries";
 }
 
 export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: DeliveryAnalysisCardProps) {
-  // Строгая дедупликация: ровно 1 строка на каждый маркетплейс (WB, Ozon, Я.Маркет)
-  const marketplaceMap = new Map<"wildberries" | "ozon" | "yandex_market", OfferDeliveryInfo>();
+  // Строгая дедупликация: ровно 2 маркетплейса (WB и Ozon).
+  const marketplaceMap = new Map<"wildberries" | "ozon", OfferDeliveryInfo>();
 
   for (const off of offers) {
     const key = normalizeMarketplace(off.marketplace);
@@ -34,7 +33,6 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
     // Берем лучшее предложение с честной ценой
     if (!existing || (off.price > 0 && (existing.price <= 0 || off.price < existing.price))) {
       let deliveryText = off.deliveryText || "2-4 дня (со склада)";
-      // Заменяем нереалистичные "завтра" на честные логистические интервалы
       if (deliveryText.toLowerCase().includes("завтра")) {
         deliveryText = "2-3 дня (со склада FBO)";
       }
@@ -42,8 +40,7 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
       let warehouse = off.warehouse;
       if (!warehouse) {
         if (key === "wildberries") warehouse = "Склад WB (Коледино / Электросталь)";
-        else if (key === "ozon") warehouse = "Склад Ozon (Хоругвино / Гривно)";
-        else warehouse = "Склад Яндекс Маркет (Софьино)";
+        else warehouse = "Склад Ozon (Хоругвино / Гривно)";
       }
 
       marketplaceMap.set(key, {
@@ -51,12 +48,12 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
         price: off.price,
         deliveryText,
         warehouse,
-        speedRating: key === "wildberries" ? 9.2 : key === "ozon" ? 9.4 : 9.0,
+        speedRating: key === "wildberries" ? 9.2 : 9.4,
       });
     }
   }
 
-  // Если какого-то маркетплейса нет в офферах, дополняем расчетными данными логистики для полноты картины
+  // Если какого-то маркетплейса нет в офферах, дополняем расчетными данными логистики
   const wbOffer = marketplaceMap.get("wildberries");
   const basePrice = wbOffer?.price || offers[0]?.price || 2500;
 
@@ -78,17 +75,8 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
       speedRating: 9.4,
     });
   }
-  if (!marketplaceMap.has("yandex_market")) {
-    marketplaceMap.set("yandex_market", {
-      marketplace: "yandex_market",
-      price: Math.round(basePrice * 1.05),
-      deliveryText: "3-5 дней (со склада Маркета)",
-      warehouse: "Склад Яндекс Маркет (Софьино)",
-      speedRating: 8.9,
-    });
-  }
 
-  const uniqueOffers = Array.from(marketplaceMap.values()).slice(0, 3);
+  const uniqueOffers = Array.from(marketplaceMap.values()).slice(0, 2);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-2xl backdrop-blur-md sm:p-6">

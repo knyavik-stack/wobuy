@@ -54,9 +54,11 @@ export function MarketplaceComparisonCard({
         )}
       </div>
 
-      {/* Сравнительная сетка предложений маркетплейсов */}
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {items.map((item, idx) => {
+      {/* Сравнительная сетка предложений маркетплейсов: только WB и Ozon. */}
+      <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+        {items
+          .filter((i) => i.marketplace === "wildberries" || i.marketplace === "ozon")
+          .map((item, idx) => {
           const isBest = item.isRecommended || (item.price !== null && item.price === minPrice);
 
           return (
@@ -64,13 +66,13 @@ export function MarketplaceComparisonCard({
               key={idx}
               className={`relative flex flex-col justify-between rounded-2xl border p-5 transition duration-200 ${
                 isBest
-                  ? "border-[#00FF87] bg-emerald-950/25 shadow-[0_0_20px_rgba(0,255,135,0.15)]"
+                  ? "border-[#00FF87] bg-emerald-950/25 shadow-[0_0_25px_rgba(0,255,135,0.2)] ring-1 ring-[#00FF87]/30"
                   : "border-white/10 bg-[#0D0F14] hover:border-white/20"
               }`}
             >
               {isBest && (
-                <div className="absolute -top-3 right-4 rounded-full bg-[#00FF87] px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-black shadow-md">
-                  ★ Выбор wobuy.
+                <div className="absolute -top-3 right-4 rounded-full bg-[#00FF87] px-3.5 py-1 text-[11px] font-black uppercase tracking-wider text-black shadow-lg">
+                  🏆 Победитель дуэли
                 </div>
               )}
 
