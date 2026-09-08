@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowRight,
-  BarChart3,
-  Bot,
   Search,
   ShieldCheck,
   Sparkles,
@@ -148,191 +146,176 @@ export default function HeroSection() {
         </div>
       </section>
 
-      {/* Инфографический блок 1: Как wobuy. экономит твои часы и деньги */}
+      {/* ОБЪЕДИНЕННЫЙ БЛОК: Экономика времени, бюджета и стандарты надежности wobuy. */}
       <section
-        id="savings-infographic"
-        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-10 sm:px-8 lg:px-14"
+        id="value-standards-section"
+        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-12 sm:px-8 lg:px-14"
       >
-        <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#00FF87]">
-              Экономика времени и бюджета
+            <span className="text-[11px] font-black uppercase tracking-wider text-[#00FF87]">
+              Стандарты и экономика селекции
             </span>
-            <h2 className="mt-1 text-2xl font-extrabold text-white sm:text-3xl">
-              Как <BrandLogo size="md" className="inline-flex" /> экономит твои часы и деньги
+            <h2 className="mt-1 text-2xl font-black text-white sm:text-3xl">
+              Честный выбор вместо часов сомнений
             </h2>
+            <p className="mt-1 text-xs sm:text-sm text-slate-300">
+              Математический анализ тысяч предложений без рекламы, ботов и скрытых переплат.
+            </p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-[#00FF87]" />
-              <span>Экономия 3+ часов на поиск</span>
+
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-300">
+            <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[#00FF87]">
+              <Clock className="h-3.5 w-3.5" />
+              <span>3+ часа экономии времени</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Coins className="h-4 w-4 text-cyan-400" />
+            <div className="flex items-center gap-1.5 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-cyan-400">
+              <Coins className="h-3.5 w-3.5" />
               <span>Защита от переплат до 35%</span>
             </div>
           </div>
         </div>
 
-        {/* Иерархическая инфографическая схема */}
-        <div className="relative rounded-3xl border border-white/10 bg-[#0F1218]/70 p-6 sm:p-8 backdrop-blur-xl">
-          {/* Сквозная неоновая направляющая линия (на десктопе горизонтальная, на мобильных вертикальная) */}
-          <div className="pointer-events-none absolute left-8 right-8 top-1/2 hidden h-[2px] -translate-y-1/2 bg-gradient-to-r from-[#00FF87]/20 via-[#00FF87] to-[#00FF87]/20 lg:block" />
-
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-            {/* Узел 1 */}
-            <div className="relative z-10 flex flex-col items-start rounded-2xl border border-white/5 bg-[#141820]/90 p-5 transition hover:border-[#00FF87]/40">
-              <div className="mb-3 flex items-center justify-between w-full">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/10 font-black text-xs text-[#00FF87] border border-[#00FF87]/30">
-                  01
-                </span>
-                <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] font-semibold text-slate-400">
-                  Входной интент
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">Человеческий запрос</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                Задаешь задачу живым языком — ИИ понимает контекст без ручной настройки десятков фильтров.
-              </p>
-            </div>
-
-            {/* Узел 2 */}
-            <div className="relative z-10 flex flex-col items-start rounded-2xl border border-[#00FF87]/30 bg-[#141820]/90 p-5 shadow-[0_0_30px_rgba(0,255,135,0.05)] transition hover:border-[#00FF87]/60">
-              <div className="mb-3 flex items-center justify-between w-full">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87] font-black text-xs text-black shadow-[0_0_12px_#00FF87]">
-                  02
-                </span>
-                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
-                  4 Агента в параллели
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">Мультиагентный скан</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                Скептик и Аналитик синхронно отсекают ботов, проверяют фабричный брак и разоблачают накрученные скидки.
-              </p>
-            </div>
-
-            {/* Узел 3 */}
-            <div className="relative z-10 flex flex-col items-start rounded-2xl border border-white/5 bg-[#141820]/90 p-5 transition hover:border-[#00FF87]/40">
-              <div className="mb-3 flex items-center justify-between w-full">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/10 font-black text-xs text-cyan-400 border border-cyan-500/30">
-                  03
-                </span>
-                <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] font-semibold text-slate-400">
-                  Финал за 3 минуты
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-white">Арбитраж TCO и Дуэль</h3>
-              <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                Получаешь 3 проверенных товара с честной ценой владения и мгновенным выбором между WB и Ozon.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Инфографический блок 2: Почему покупатели доверяют (Инфографика 4 векторов доверия) */}
-      <section
-        id="trust-infographic"
-        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-10 sm:px-8 lg:px-14"
-      >
-        <div className="mb-8">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#00FF87]">
-            Стандарты надежности
-          </span>
-          <h2 className="mt-1 text-2xl font-extrabold text-white sm:text-3xl">
-            Почему покупатели доверяют <BrandLogo size="md" className="inline-flex" />
-          </h2>
-        </div>
-
-        {/* Инфографическая сетка 4 векторов независимости */}
+        {/* 4 емкие карточки стандартов с мгновенным считыванием сути */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-[#00FF87]/40">
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-[#00FF87]">
-              <Bot className="h-5 w-5" />
-            </div>
-            <h3 className="text-sm font-bold text-white">Непредвзятый AI Score</h3>
-            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-              Рейтинг рассчитывается математически без влияния рекламных бюджетов селлеров.
-            </p>
-          </div>
-
-          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-purple-400/40">
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <h3 className="text-sm font-bold text-white">Нейросеть Анти-Фейк</h3>
-            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-              Выявляет и отсекает накрученные пятизвездочные отзывы коммерческих бот-ферм.
-            </p>
-          </div>
-
-          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-cyan-400/40">
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
-              <BarChart3 className="h-5 w-5" />
-            </div>
-            <h3 className="text-sm font-bold text-white">Детектор цен</h3>
-            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-              Разоблачает искусственные завышения цен перед распродажами и акциями.
-            </p>
-          </div>
-
-          <div className="relative rounded-2xl border border-white/10 bg-[#0F1218]/60 p-5 transition hover:border-amber-400/40">
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
-              <Zap className="h-5 w-5" />
-            </div>
-            <h3 className="text-sm font-bold text-white">Дуэль платформ</h3>
-            <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-              Сравнивает идентичные товары на WB и Ozon по честной стоимости владения.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Лаконичный минималистичный манифест */}
-      <section
-        id="manifesto"
-        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-10 sm:px-8 lg:px-14"
-      >
-        <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-[#11141B] to-[#0A0C10] p-6 sm:p-10">
-          <div className="max-w-3xl space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#00FF87]">
-              Манифест независимости
-            </span>
-            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Мы не продаем товары. Мы защищаем твой выбор.
-            </h2>
-            <p className="text-sm sm:text-base leading-relaxed text-slate-300">
-              Маркетплейсы зарабатывают на рекламе продавцов и скрытых комиссиях. wobuy. работает исключительно на покупателя: фильтрует накрученные отзывы, разоблачает мнимые скидки и находит честные предложения.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Импульсивный CTA-блок */}
-      <section
-        id="quick-cta"
-        className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-8 lg:px-14"
-      >
-        <div className="relative overflow-hidden rounded-3xl border border-[#00FF87]/30 bg-gradient-to-r from-emerald-950/50 via-[#10141C] to-[#0D1016] p-6 sm:p-10 shadow-2xl">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-white sm:text-3xl">
-                Найди лучшее за 3 минуты без риска и переплат.
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-                Один запрос отсекает тысячи ботов и находит минимальную цену на проверенный товар.
+          {/* 1. Время */}
+          <div className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0F1218]/80 p-5 transition hover:border-[#00FF87]/50 hover:bg-[#121620]">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-[#00FF87]">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
+                  &lt; 3 минут
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">Время и фокус</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                Один человеческий запрос вместо десятка вкладок, сотен фильтров и часов утомительного скроллинга.
               </p>
             </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] font-medium text-[#00FF87]">
+              3 часа поиска → 1 вердикт
+            </div>
+          </div>
 
-            <div className="shrink-0">
+          {/* 2. Анти-Фейк */}
+          <div className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0F1218]/80 p-5 transition hover:border-purple-400/50 hover:bg-[#121620]">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <span className="rounded-full bg-purple-500/10 px-2.5 py-0.5 text-[10px] font-bold text-purple-300">
+                  96% чистота
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">Анти-Фейк фильтр</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                Нейросеть на лету отсекает заказные отзывы бот-ферм и выявляет скрытый фабричный процент брака.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] font-medium text-purple-300">
+              Отсев платных накруток
+            </div>
+          </div>
+
+          {/* 3. Честная цена TCO */}
+          <div className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0F1218]/80 p-5 transition hover:border-cyan-400/50 hover:bg-[#121620]">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
+                  <Coins className="h-5 w-5" />
+                </div>
+                <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                  TCO-сверка
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">Реальная цена покупки</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                Калькулятор TCO считает полную стоимость с учетом скидок по картам, логистики и рисков возврата.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] font-medium text-cyan-300">
+              Без мнимых скидок маркетплейсов
+            </div>
+          </div>
+
+          {/* 4. Дуэль WB vs Ozon */}
+          <div className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0F1218]/80 p-5 transition hover:border-amber-400/50 hover:bg-[#121620]">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-300">
+                  WB vs Ozon
+                </span>
+              </div>
+              <h3 className="text-sm font-bold text-white">Арбитраж площадок</h3>
+              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                Прямая дуэль между Wildberries и Ozon с четким указанием победителя по цене, рейтингу и скорости доставки.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] font-medium text-amber-300">
+              Побеждает лучший продавец
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ОБЪЕДИНЕННЫЙ БЛОК: Манифест независимости + призыв к действию за 3 минуты */}
+      <section
+        id="manifesto-cta"
+        className="relative z-10 mx-auto max-w-7xl border-t border-white/5 px-4 py-12 sm:px-8 lg:px-14"
+      >
+        <div className="relative overflow-hidden rounded-3xl border border-[#00FF87]/40 bg-gradient-to-br from-emerald-950/40 via-[#10141C] to-[#0D1016] p-6 sm:p-10 shadow-2xl">
+          {/* Деликатное неоновое свечение в углу */}
+          <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-[#00FF87]/10 blur-[100px]" />
+
+          <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-[#00FF87] animate-pulse" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#00FF87]">
+                  Манифест независимости wobuy.
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
+                Мы не продаем товары.<br className="hidden sm:inline" />
+                Мы защищаем твой выбор.
+              </h2>
+
+              <p className="text-sm sm:text-base font-medium leading-relaxed text-slate-300">
+                Маркетплейсы зарабатывают на рекламе продавцов и накрученных акциях. wobuy. работает исключительно в интересах покупателя: независимый математический расчет, чистый отсев ботов и выбор лучшего предложения за 3 минуты.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs">
+                <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+                  ✓ 0% рекламы селлеров
+                </span>
+                <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+                  ✓ Математический AI Score
+                </span>
+                <span className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+                  ✓ Прямая дуэль WB vs Ozon
+                </span>
+              </div>
+            </div>
+
+            {/* Быстрый переход к поиску */}
+            <div className="flex flex-col items-start lg:items-end gap-2 shrink-0">
               <Link
                 href="/search"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#00FF87] px-6 py-3.5 text-xs sm:text-sm font-bold text-black shadow-lg shadow-emerald-500/25 transition hover:bg-[#00E576]"
+                className="group inline-flex items-center justify-center gap-2.5 rounded-2xl bg-[#00FF87] px-8 py-4 text-sm sm:text-base font-black text-black shadow-[0_0_25px_rgba(0,255,135,0.35)] transition-all hover:bg-[#00E576] hover:scale-[1.02]"
               >
-                <span>Найти лучшее сейчас</span>
-                <ArrowRight className="h-4 w-4" />
+                <span>Найти лучшее за 3 минуты</span>
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
+              <span className="text-xs text-slate-400 font-medium">
+                Бесплатно • Без обязательной регистрации
+              </span>
             </div>
           </div>
         </div>
