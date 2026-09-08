@@ -125,7 +125,6 @@ export default async function ProductPage({
     : bestOffer?.marketplace?.toLowerCase().includes("wildberries")
       ? "Wildberries"
       : "Ozon";
-  const winnerPrice = recommendedMkt?.price || bestPrice || 2500;
   const winnerUrl = recommendedMkt?.url || bestOffer?.url || "#";
 
   return (
@@ -192,100 +191,21 @@ export default async function ProductPage({
           <span className="font-semibold text-white">{resolved.brand}</span>
         </div>
 
-        {/* Главный блок товара: Галерея слева + Карточка оффера и AI Score справа */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          {/* Левая колонка: Интерактивная фотогалерея + прямо под фото заключение wobuy. */}
-          <div className="flex flex-col gap-6 lg:col-span-6 xl:col-span-5">
+        {/* Главный блок товара: Галерея слева + Карточка названия и блок дуэли справа (выравнивание нижних границ) */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
+          {/* Левая колонка: Интерактивная фотогалерея */}
+          <div className="lg:col-span-6 xl:col-span-5">
             <ProductGallery
               images={productImages}
               title={resolved.title}
               marketplace={bestOffer?.marketplace}
             />
-
-            {/* Блок: Заключение и рекомендация wobuy. ПРЯМО ПОД ФОТО ТОВАРА */}
-            {analysis?.wobuyDecision && (
-              <section className="overflow-hidden rounded-3xl border border-[#00FF87]/50 bg-gradient-to-br from-emerald-950/60 via-[#13161C] to-[#12151B] p-5 shadow-2xl shadow-emerald-950/20 backdrop-blur-md">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#00FF87] text-black font-black text-xs shadow-md shadow-emerald-500/30">
-                        ✓
-                      </div>
-                      <div className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
-                        Заключение и рекомендация wobuy.
-                      </div>
-                    </div>
-                    <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
-                      98% Уверенность
-                    </span>
-                  </div>
-
-                  <p className="text-sm font-semibold leading-relaxed text-slate-100">
-                    {analysis.wobuyDecision}
-                  </p>
-
-                  <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2 text-xs">
-                    <div className="flex items-center gap-1.5 text-emerald-300">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87] shrink-0" />
-                      <span>Победитель: {winnerMarketplaceName}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-slate-300">
-                      <span className="text-purple-400 font-bold">•</span>
-                      <span>Траст отзывов: {antiFakePercent}%</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
           </div>
 
-          {/* Правая колонка: Аналитика, явный победитель дуэли, выбор маркетплейса и TCO */}
+          {/* Правая колонка: Название + AI Score и под ним блок дуэли маркетплейсов */}
           <div className="flex flex-col gap-6 lg:col-span-6 xl:col-span-7">
-            {/* 1. ГЛАВНЫЙ БАННЕР ПОБЕДИТЕЛЯ ДУЭЛИ: ЯВНО ПОКАЗЫВАЕТ КТО ВЫИГРАЛ */}
-            <div className="relative overflow-hidden rounded-3xl border border-[#00FF87]/50 bg-gradient-to-r from-emerald-950/60 via-[#12151B] to-purple-950/40 p-5 shadow-2xl">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#00FF87] px-3 py-1 text-[11px] font-black uppercase tracking-wider text-black shadow-[0_0_15px_rgba(0,255,135,0.4)]">
-                      🏆 Победитель дуэли маркетплейсов
-                    </span>
-                    <span className="text-xs font-bold text-slate-300">
-                      Выбор аналитиков wobuy.
-                    </span>
-                  </div>
-
-                  <div className="mt-2 flex items-baseline gap-3">
-                    <span className="text-2xl sm:text-3xl font-black text-white">
-                      {winnerMarketplaceName}
-                    </span>
-                    <span className="text-xl sm:text-2xl font-black text-[#00FF87]">
-                      {formatPrice(winnerPrice, currency)}
-                    </span>
-                  </div>
-
-                  <p className="mt-1 text-xs text-slate-300 font-medium">
-                    {recommendedMkt?.price && bestPrice && recommendedMkt.price < bestPrice
-                      ? `Экономия ${(bestPrice - recommendedMkt.price).toLocaleString("ru-RU")} ₽ при быстрой доставке со склада`
-                      : `Оптимальный баланс проверенного продавца, честной TCO-цены и быстрой отгрузки`}
-                  </p>
-                </div>
-
-                {/* Главная кнопка-призыв к действию */}
-                <a
-                  href={winnerUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#00FF87] px-6 py-3.5 text-sm font-black text-black shadow-[0_0_25px_rgba(0,255,135,0.5)] transition hover:bg-[#00E576] hover:scale-[1.02]"
-                >
-                  <ShoppingBag className="h-4 w-4" />
-                  <span>Забрать на {winnerMarketplaceName}</span>
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
-
             {/* Карточка сведений о товаре и общий AI Score в неоновом круге */}
-            <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl sm:flex-row sm:items-center">
+            <div className="flex flex-col justify-between gap-4 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl sm:flex-row sm:items-center">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#00FF87]">
                   <span>{resolved.brand}</span>
@@ -314,7 +234,7 @@ export default async function ProductPage({
               </div>
 
               {/* Неоновый индикатор AI Score */}
-              <div className="mt-4 sm:mt-0 flex justify-center sm:justify-end">
+              <div className="flex justify-center sm:justify-end shrink-0">
                 <NeonScoreCircle
                   score={aggregateScore}
                   size="md"
@@ -338,6 +258,41 @@ export default async function ProductPage({
                 <span className="text-xs font-bold text-[#00FF87]">Проверено wobuy.</span>
               </div>
 
+              {/* Описание и рекомендация wobuy. В САМОМ НАЧАЛЕ ВНУТРИ БЛОКА ДУЭЛИ */}
+              {analysis?.wobuyDecision && (
+                <div className="mb-4 overflow-hidden rounded-2xl border border-[#00FF87]/40 bg-gradient-to-br from-emerald-950/40 via-[#13161C] to-[#12151B] p-4 shadow-lg">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#00FF87] text-black font-black text-[11px] shadow-sm">
+                        ✓
+                      </div>
+                      <span className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
+                        Заключение и рекомендация wobuy.
+                      </span>
+                    </div>
+                    <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
+                      98% Уверенность
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-slate-100">
+                    {analysis.wobuyDecision}
+                  </p>
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87] shrink-0" />
+                      <span>Победитель дуэли: <strong className="text-white">{winnerMarketplaceName}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <span className="text-purple-400 font-bold">•</span>
+                      <span>Траст отзывов: <strong className="text-white">{antiFakePercent}%</strong></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Карточки предложений Wildberries и Ozon */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {marketplaceList.map((mkt, idx) => {
                   const isWinner = mkt.isRecommended;
@@ -390,6 +345,7 @@ export default async function ProductPage({
                             : "border border-white/10 bg-white/5 text-white hover:border-[#00FF87]/40 hover:bg-white/10"
                         }`}
                       >
+                        <ShoppingBag className="h-3.5 w-3.5" />
                         <span>{isWinner ? `Купить у победителя (${mkt.name})` : `Смотреть на ${mkt.name}`}</span>
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
@@ -398,16 +354,16 @@ export default async function ProductPage({
                 })}
               </div>
             </div>
-
-            {/* КАЛЬКУЛЯТОР ЧЕСТНОЙ СТОИМОСТИ (TCO) ДЛЯ РЕКОМЕНДОВАННОГО ВЫБОРА WOBUY. */}
-            <div className="pt-1">
-              <TcoCalculatorCard
-                tco={analysis?.tcoBreakdown}
-                currency={currency}
-                brand={resolved.brand}
-              />
-            </div>
           </div>
+        </div>
+
+        {/* БЛОК: КАЛЬКУЛЯТОР ЧЕСТНОЙ СТОИМОСТИ ПОКУПКИ (TCO) — РАСТЯНУТ ПО ГОРИЗОНТАЛИ */}
+        <div className="mt-8">
+          <TcoCalculatorCard
+            tco={analysis?.tcoBreakdown}
+            currency={currency}
+            brand={resolved.brand}
+          />
         </div>
 
         {/* СЕКЦИЯ: ХАРАКТЕРИСТИКИ И РЕКОМЕНДАТЕЛЬНЫЙ ВЕРДИКТ ИИ WOBUY. (ЖИВЫМ ЧЕЛОВЕЧЕСКИМ ЯЗЫКОМ) */}

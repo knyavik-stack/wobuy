@@ -198,34 +198,58 @@ export function UnifiedAgentsAudit({
         </div>
       )}
 
-      {/* РЕЖИМ 2: БАТТЛ МНЕНИЙ (ДИАЛОГ АГЕНТОВ) */}
+      {/* РЕЖИМ 2: БАТТЛ МНЕНИЙ (ВЕРТИКАЛЬНЫЕ КАРТОЧКИ АНАЛОГИЧНО КАРТОЧКАМ АГЕНТОВ) */}
       {activeTab === "battle" && (
-        <div className="mt-6 space-y-3">
-          {dialogue.map((entry, dIdx) => (
-            <div
-              key={dIdx}
-              className="flex items-start gap-3 rounded-2xl border border-white/5 bg-[#0D0F14] p-4 transition hover:border-white/15"
-            >
-              <span className="text-2xl shrink-0">{entry.emoji}</span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-white">
-                      {entry.name}
-                    </span>
-                    <span className="text-[10px] text-slate-400">({entry.role})</span>
+        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {dialogue.map((entry, dIdx) => {
+            const glow = getGlowColor(dIdx);
+            return (
+              <div
+                key={dIdx}
+                className="relative flex flex-col justify-between rounded-3xl border border-white/10 bg-[#0D0F14] p-5 shadow-lg transition-all duration-300 hover:border-white/20 hover:-translate-y-1"
+              >
+                <div>
+                  {/* Шапка диалога агента с неоновым баллом */}
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">{entry.emoji}</span>
+                      <div>
+                        <div className="text-xs font-black uppercase tracking-wider text-white">
+                          {entry.name}
+                        </div>
+                        <div className="text-[10px] font-semibold text-slate-400">
+                          {entry.role}
+                        </div>
+                      </div>
+                    </div>
+
+                    <NeonScoreCircle
+                      score={entry.score}
+                      size="sm"
+                      label="БАЛЛ"
+                      glowColor={glow}
+                    />
                   </div>
-                  <div className="flex items-center gap-1 text-xs font-black text-[#00FF87]">
-                    <span>Балл:</span>
-                    <span>{entry.score.toFixed(1)}</span>
+
+                  {/* Аргумент в дебатах */}
+                  <div className="mt-4">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      Позиция в баттле:
+                    </span>
+                    <p className="mt-1.5 text-xs leading-relaxed text-slate-200 font-medium italic border-l-2 border-white/20 pl-2.5">
+                      «{entry.argument}»
+                    </p>
                   </div>
                 </div>
-                <p className="mt-1 text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
-                  «{entry.argument}»
-                </p>
+
+                <div className="mt-4 pt-2 text-right">
+                  <span className="text-[10px] font-bold text-slate-500">
+                    Аргумент подтвержден
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
