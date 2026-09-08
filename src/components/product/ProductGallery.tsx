@@ -110,9 +110,9 @@ export function ProductGallery({
 
   // Большой галерейный вид для детальной карточки
   return (
-    <div className={`flex flex-col gap-3 ${className}`}>
+    <div className={`flex flex-col gap-3 h-full ${className}`}>
       {/* Основное большое изображение / видео */}
-      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-[#12151B] p-4 shadow-2xl">
+      <div className="relative flex flex-1 min-h-[360px] sm:min-h-[420px] w-full items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-[#12151B] p-4 shadow-2xl">
         {isVideoPlaying && videoUrl ? (
           <div className="h-full w-full">
             <iframe
@@ -165,7 +165,7 @@ export function ProductGallery({
 
       {/* Горизонтальная лента миниатюр */}
       {(galleryImages.length > 1 || videoUrl) && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex shrink-0 items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {videoUrl && (
             <button
               type="button"

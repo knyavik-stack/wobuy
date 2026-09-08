@@ -192,9 +192,9 @@ export default async function ProductPage({
         </div>
 
         {/* Главный блок товара: Галерея слева + Карточка названия и блок дуэли справа (выравнивание нижних границ) */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Левая колонка: Интерактивная фотогалерея */}
-          <div className="lg:col-span-6 xl:col-span-5">
+          <div className="flex flex-col h-full lg:col-span-6 xl:col-span-5">
             <ProductGallery
               images={productImages}
               title={resolved.title}
@@ -203,7 +203,7 @@ export default async function ProductPage({
           </div>
 
           {/* Правая колонка: Название + AI Score и под ним блок дуэли маркетплейсов */}
-          <div className="flex flex-col gap-6 lg:col-span-6 xl:col-span-7">
+          <div className="flex flex-col justify-between gap-6 lg:col-span-6 xl:col-span-7 h-full">
             {/* Карточка сведений о товаре и общий AI Score в неоновом круге */}
             <div className="flex flex-col justify-between gap-4 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl sm:flex-row sm:items-center">
               <div className="space-y-2">
@@ -245,52 +245,54 @@ export default async function ProductPage({
             </div>
 
             {/* ДУЭЛЬ ПРЕДЛОЖЕНИЙ: WILDBERRIES VS OZON (СТРОГО 2 МАРКЕТПЛЕЙСА) */}
-            <div id="product-duel-section" className="rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
-                    Дуэль маркетплейсов: Wildberries vs Ozon (2)
-                  </h3>
-                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black text-[#00FF87]">
-                    TCO-Сверка
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-[#00FF87]">Проверено wobuy.</span>
-              </div>
-
-              {/* Описание и рекомендация wobuy. В САМОМ НАЧАЛЕ ВНУТРИ БЛОКА ДУЭЛИ */}
-              {analysis?.wobuyDecision && (
-                <div className="mb-4 overflow-hidden rounded-2xl border border-[#00FF87]/40 bg-gradient-to-br from-emerald-950/40 via-[#13161C] to-[#12151B] p-4 shadow-lg">
-                  <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#00FF87] text-black font-black text-[11px] shadow-sm">
-                        ✓
-                      </div>
-                      <span className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
-                        Заключение и рекомендация wobuy.
-                      </span>
-                    </div>
-                    <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
-                      98% Уверенность
+            <div id="product-duel-section" className="flex flex-1 flex-col justify-between rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl">
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
+                      Дуэль маркетплейсов: Wildberries vs Ozon (2)
+                    </h3>
+                    <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black text-[#00FF87]">
+                      TCO-Сверка
                     </span>
                   </div>
+                  <span className="text-xs font-bold text-[#00FF87]">Проверено wobuy.</span>
+                </div>
 
-                  <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-slate-100">
-                    {analysis.wobuyDecision}
-                  </p>
-
-                  <div className="mt-2.5 flex flex-wrap items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87] shrink-0" />
-                      <span>Победитель дуэли: <strong className="text-white">{winnerMarketplaceName}</strong></span>
+                {/* Описание и рекомендация wobuy. В САМОМ НАЧАЛЕ ВНУТРИ БЛОКА ДУЭЛИ */}
+                {analysis?.wobuyDecision && (
+                  <div className="mb-4 overflow-hidden rounded-2xl border border-[#00FF87]/40 bg-gradient-to-br from-emerald-950/40 via-[#13161C] to-[#12151B] p-4 shadow-lg">
+                    <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#00FF87] text-black font-black text-[11px] shadow-sm">
+                          ✓
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
+                          Заключение и рекомендация wobuy.
+                        </span>
+                      </div>
+                      <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
+                        98% Уверенность
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-300">
-                      <span className="text-purple-400 font-bold">•</span>
-                      <span>Траст отзывов: <strong className="text-white">{antiFakePercent}%</strong></span>
+
+                    <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-slate-100">
+                      {analysis.wobuyDecision}
+                    </p>
+
+                    <div className="mt-2.5 flex flex-wrap items-center gap-4 text-xs">
+                      <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87] shrink-0" />
+                        <span>Победитель дуэли: <strong className="text-white">{winnerMarketplaceName}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-300">
+                        <span className="text-purple-400 font-bold">•</span>
+                        <span>Траст отзывов: <strong className="text-white">{antiFakePercent}%</strong></span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Карточки предложений Wildberries и Ozon */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -357,15 +359,6 @@ export default async function ProductPage({
           </div>
         </div>
 
-        {/* БЛОК: КАЛЬКУЛЯТОР ЧЕСТНОЙ СТОИМОСТИ ПОКУПКИ (TCO) — РАСТЯНУТ ПО ГОРИЗОНТАЛИ */}
-        <div className="mt-8">
-          <TcoCalculatorCard
-            tco={analysis?.tcoBreakdown}
-            currency={currency}
-            brand={resolved.brand}
-          />
-        </div>
-
         {/* СЕКЦИЯ: ХАРАКТЕРИСТИКИ И РЕКОМЕНДАТЕЛЬНЫЙ ВЕРДИКТ ИИ WOBUY. (ЖИВЫМ ЧЕЛОВЕЧЕСКИМ ЯЗЫКОМ) */}
         <section className="mt-8 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
           <div className="flex items-center gap-2.5 text-sm font-extrabold uppercase tracking-wider text-white">
@@ -412,6 +405,15 @@ export default async function ProductPage({
             ))}
           </div>
         </section>
+
+        {/* БЛОК: КАЛЬКУЛЯТОР ЧЕСТНОЙ СТОИМОСТИ ПОКУПКИ (TCO) — РАСТЯНУТ ПО ГОРИЗОНТАЛИ */}
+        <div className="mt-8">
+          <TcoCalculatorCard
+            tco={analysis?.tcoBreakdown}
+            currency={currency}
+            brand={resolved.brand}
+          />
+        </div>
 
         {/* СЕКЦИЯ: ОБЪЕДИНЕННЫЙ МУЛЬТИАГЕНТНЫЙ АУДИТ 4 ИИ-ЭКСПЕРТОВ (КОНФЛИКТ ИНТЕРЕСОВ + НЕОНОВЫЕ КРУГИ) */}
         <section className="mt-8">
