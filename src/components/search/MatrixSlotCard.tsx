@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { MatrixSlot } from "@/lib/catalog/duel-matrix";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
 
 interface MatrixSlotCardProps {
   slot: MatrixSlot;
@@ -46,9 +47,17 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
 
   const marketplaceName = matchedOffer.marketplace.toLowerCase().includes("wildberries")
     ? "Wildberries"
-    : matchedOffer.marketplace.toLowerCase().includes("ozon")
-      ? "Ozon"
-      : "Яндекс Маркет";
+    : "Ozon";
+
+  const aiScore = product.aiScore || 9.4;
+  const scoreGlow =
+    slotType === "wb_champion"
+      ? "purple"
+      : slotType === "ozon_champion"
+        ? "blue"
+        : slotType === "express"
+          ? "amber"
+          : "emerald";
 
   return (
     <article
@@ -56,7 +65,7 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
         view === "list" ? "md:flex-row md:gap-6" : ""
       }`}
     >
-      {/* Верхний статус-бейдж слота */}
+      {/* Верхний статус-бейдж слота + Неоновый круг с баллом анализа */}
       <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-3">
         <div className="flex items-center gap-2">
           <div
@@ -69,15 +78,26 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
             <span>{badgeTitle}</span>
           </div>
 
-          <span className="text-xs font-semibold text-slate-300">
+          <span className="hidden sm:inline text-xs font-semibold text-slate-300">
             {badgeSubtitle}
           </span>
         </div>
 
-        {/* Плашка Анти-Фейк */}
-        <div className="flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-950/40 px-2.5 py-0.5 text-[11px] font-bold text-purple-300">
-          <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />
-          <span>Траст: {antiFakePercent}%</span>
+        {/* Неоновый круг с баллом ИИ + Плашка Анти-Фейк */}
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-950/40 px-2.5 py-0.5 text-[11px] font-bold text-purple-300">
+            <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />
+            <span>Траст: {antiFakePercent}%</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <NeonScoreCircle
+              score={aiScore}
+              size="sm"
+              label="БАЛЛ"
+              glowColor={scoreGlow}
+            />
+          </div>
         </div>
       </div>
 

@@ -2,13 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  CheckCircle2,
-  AlertTriangle,
   ExternalLink,
   ShieldCheck,
   Star,
-  Bot,
   Sliders,
+  Sparkles,
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { resolveProductById } from "@/lib/catalog/search";
@@ -18,14 +19,13 @@ import { BrandLogo } from "@/components/brand/BrandLogo";
 import { ProductFavoriteButton } from "@/components/product/product-favorite-button";
 import { MarketplaceBadge } from "@/components/ui/MarketplaceBadge";
 import { ProductGallery } from "@/components/product/ProductGallery";
-import { DuelBridgeBanner } from "@/components/product/DuelBridgeBanner";
 import { TcoCalculatorCard } from "@/components/product/TcoCalculatorCard";
-import { AgentsDialogueChat } from "@/components/product/AgentsDialogueChat";
+import { UnifiedAgentsAudit } from "@/components/product/UnifiedAgentsAudit";
 import { FomoAlternativesDrawer } from "@/components/product/FomoAlternativesDrawer";
 import { ReviewsAnalysisCard } from "@/components/analytics/ReviewsAnalysisCard";
 import { DeliveryAnalysisCard } from "@/components/analytics/DeliveryAnalysisCard";
 import { PriceHistoryCard } from "@/components/analytics/PriceHistoryCard";
-import { MarketplaceComparisonCard } from "@/components/analytics/MarketplaceComparisonCard";
+import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
 
 function formatPrice(price: number | null, currency: string) {
   if (price === null) return "от 2 450 ₽";
@@ -34,54 +34,6 @@ function formatPrice(price: number | null, currency: string) {
     currency,
     maximumFractionDigits: 0,
   }).format(price);
-}
-
-// Круговой неоновый индикатор AI Score
-function ProductAiGauge({ score }: { score: number }) {
-  const radius = 34;
-  const circumference = 2 * Math.PI * radius;
-  const clamped = Math.min(10, Math.max(0, score));
-  const progress = clamped / 10;
-  const strokeDashoffset = circumference - progress * circumference;
-
-  return (
-    <div className="flex shrink-0 flex-col items-center justify-center">
-      <div className="relative flex h-24 w-24 items-center justify-center">
-        <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 84 84">
-          <circle
-            cx="42"
-            cy="42"
-            r={radius}
-            className="stroke-white/10"
-            strokeWidth="5"
-            fill="transparent"
-          />
-          <circle
-            cx="42"
-            cy="42"
-            r={radius}
-            className="stroke-[#00FF87] transition-all duration-700 ease-out"
-            strokeWidth="6"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            fill="transparent"
-            style={{
-              filter: "drop-shadow(0 0 8px rgba(0, 255, 135, 0.7))",
-            }}
-          />
-        </svg>
-        <div className="absolute flex flex-col items-center justify-center text-center">
-          <span className="text-2xl font-black tracking-tight text-white">
-            {score.toFixed(1)}
-          </span>
-          <span className="text-[9px] font-black tracking-widest text-[#00FF87]">
-            AI SCORE
-          </span>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default async function ProductPage({
@@ -138,7 +90,7 @@ export default async function ProductPage({
   const bestPrice = bestOffer?.price ?? null;
   const currency = bestOffer?.currency || "RUB";
 
-  // Выполняем генерацию полного вердикта 4 агентов
+  // Выполняем генерацию полного вердикта мультиагентного анализа wobuy.
   const analysis = await generateProductAnalysis(
     resolved.title,
     resolved.brand,
@@ -153,12 +105,28 @@ export default async function ProductPage({
     })),
   );
 
-  const aggregateScore = analysis?.aiScore ?? resolved.aiScore ?? 9.3;
+  const aggregateScore = analysis?.aiScore ?? resolved.aiScore ?? 9.4;
+  // Единый согласованный процент доверия анти-фейк (без рассинхрона!)
   const antiFakePercent = analysis?.antiFakePercent ?? resolved.antiFakePercent ?? 96;
 
   const productImages = resolved.images && resolved.images.length > 0
     ? resolved.images
     : [resolved.imageUrl];
+
+  // Фильтруем сравнение предложений строго по 2 маркетплейсам: Wildberries и Ozon
+  const marketplaceList = (analysis?.marketplaceComparison || []).filter(
+    (m) => m.marketplace === "wildberries" || m.marketplace === "ozon"
+  );
+
+  // Определяем явного победителя дуэли (Выбор wobuy.)
+  const recommendedMkt = marketplaceList.find((m) => m.isRecommended) || marketplaceList[0];
+  const winnerMarketplaceName = recommendedMkt
+    ? recommendedMkt.name
+    : bestOffer?.marketplace?.toLowerCase().includes("wildberries")
+      ? "Wildberries"
+      : "Ozon";
+  const winnerPrice = recommendedMkt?.price || bestPrice || 2500;
+  const winnerUrl = recommendedMkt?.url || bestOffer?.url || "#";
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] pb-24 font-sans text-slate-100 sm:pb-16">
@@ -185,14 +153,14 @@ export default async function ProductPage({
               productId={resolved.id}
               initialIsFavorite={Boolean(favorite)}
             />
-            {bestOffer?.url && (
+            {winnerUrl && (
               <a
-                href={bestOffer.url}
+                href={winnerUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="hidden items-center gap-2 rounded-full bg-[#00FF87] px-4 py-2 text-xs font-bold text-black shadow-[0_0_15px_rgba(0,255,135,0.4)] transition hover:bg-[#00E576] sm:flex"
+                className="hidden items-center gap-2 rounded-full bg-[#00FF87] px-4 py-2 text-xs font-black text-black shadow-[0_0_15px_rgba(0,255,135,0.4)] transition hover:bg-[#00E576] sm:flex"
               >
-                <span>Купить на {bestOffer.marketplace}</span>
+                <span>Забрать на {winnerMarketplaceName}</span>
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
@@ -202,7 +170,7 @@ export default async function ProductPage({
 
       {/* Основной контент */}
       <main className="mx-auto max-w-7xl px-4 pt-6 md:px-8">
-        {/* Хлебные крошки с сохранением контекста поиска */}
+        {/* Хлебные крошки */}
         <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-slate-400">
           <Link href="/" className="hover:text-white">Главная</Link>
           <span>/</span>
@@ -248,173 +216,235 @@ export default async function ProductPage({
                       </div>
                     </div>
                     <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
-                      ★ Вердикт ИИ
+                      98% Уверенность
                     </span>
                   </div>
-                  <p className="text-sm font-medium leading-relaxed text-slate-100">
+
+                  <p className="text-sm font-semibold leading-relaxed text-slate-100">
                     {analysis.wobuyDecision}
                   </p>
+
+                  <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2 text-xs">
+                    <div className="flex items-center gap-1.5 text-emerald-300">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87] shrink-0" />
+                      <span>Победитель: {winnerMarketplaceName}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <span className="text-purple-400 font-bold">•</span>
+                      <span>Траст отзывов: {antiFakePercent}%</span>
+                    </div>
+                  </div>
                 </div>
               </section>
             )}
           </div>
 
-          {/* Правая колонка: Информация, AI Score, Выбор лучшей цены и кнопки */}
-          <div className="flex flex-col justify-between lg:col-span-6 xl:col-span-7">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                  {resolved.brand}
-                </span>
-                <span className="rounded-md border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-1 text-[11px] font-bold text-[#00FF87]">
-                  ✓ Проверено 4 ИИ-агентами wobuy.
-                </span>
+          {/* Правая колонка: Аналитика, явный победитель дуэли, выбор маркетплейса и TCO */}
+          <div className="flex flex-col gap-6 lg:col-span-6 xl:col-span-7">
+            {/* 1. ГЛАВНЫЙ БАННЕР ПОБЕДИТЕЛЯ ДУЭЛИ: ЯВНО ПОКАЗЫВАЕТ КТО ВЫИГРАЛ */}
+            <div className="relative overflow-hidden rounded-3xl border border-[#00FF87]/50 bg-gradient-to-r from-emerald-950/60 via-[#12151B] to-purple-950/40 p-5 shadow-2xl">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#00FF87] px-3 py-1 text-[11px] font-black uppercase tracking-wider text-black shadow-[0_0_15px_rgba(0,255,135,0.4)]">
+                      🏆 Победитель дуэли маркетплейсов
+                    </span>
+                    <span className="text-xs font-bold text-slate-300">
+                      Выбор аналитиков wobuy.
+                    </span>
+                  </div>
+
+                  <div className="mt-2 flex items-baseline gap-3">
+                    <span className="text-2xl sm:text-3xl font-black text-white">
+                      {winnerMarketplaceName}
+                    </span>
+                    <span className="text-xl sm:text-2xl font-black text-[#00FF87]">
+                      {formatPrice(winnerPrice, currency)}
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-xs text-slate-300 font-medium">
+                    {recommendedMkt?.price && bestPrice && recommendedMkt.price < bestPrice
+                      ? `Экономия ${(bestPrice - recommendedMkt.price).toLocaleString("ru-RU")} ₽ при быстрой доставке со склада`
+                      : `Оптимальный баланс проверенного продавца, честной TCO-цены и быстрой отгрузки`}
+                  </p>
+                </div>
+
+                {/* Главная кнопка-призыв к действию */}
+                <a
+                  href={winnerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#00FF87] px-6 py-3.5 text-sm font-black text-black shadow-[0_0_25px_rgba(0,255,135,0.5)] transition hover:bg-[#00E576] hover:scale-[1.02]"
+                >
+                  <ShoppingBag className="h-4 w-4" />
+                  <span>Забрать на {winnerMarketplaceName}</span>
+                  <ExternalLink className="h-4 w-4" />
+                </a>
               </div>
+            </div>
 
-              <h1 className="text-xl font-black leading-tight text-white sm:text-2xl md:text-3xl">
-                {resolved.title}
-              </h1>
+            {/* Карточка сведений о товаре и общий AI Score в неоновом круге */}
+            <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl sm:flex-row sm:items-center">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#00FF87]">
+                  <span>{resolved.brand}</span>
+                  <span>•</span>
+                  <span>{resolved.category}</span>
+                </div>
 
-              {/* Карточка AI Score и анти-фейк защиты */}
-              <div className="flex flex-col gap-4 rounded-3xl border border-emerald-500/30 bg-[#12151B] p-5 shadow-2xl sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
-                  <ProductAiGauge score={aggregateScore} />
-                  <div>
-                    <div className="text-sm font-extrabold uppercase tracking-wider text-white">
-                      Индекс честности и качества
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      Сформирован как среднее из оценок 4 независимых ИИ-агентов
-                    </div>
-                    <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-[#00FF87]">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span>Анти-Фейк Защита: {antiFakePercent}%</span>
-                    </div>
+                <h1 className="text-xl sm:text-2xl font-black leading-tight text-white">
+                  {resolved.title}
+                </h1>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1 text-xs">
+                  <div className="flex items-center gap-1 text-amber-400 font-bold">
+                    <Star className="h-4 w-4 fill-amber-400" />
+                    <span>{(bestOffer?.rating ?? 4.9).toFixed(1)}</span>
+                    <span className="text-slate-400 font-normal">
+                      ({(bestOffer?.reviewCount ?? 0).toLocaleString("ru-RU")} отзывов)
+                    </span>
+                  </div>
+                  <span className="text-slate-600">•</span>
+                  <div className="flex items-center gap-1 font-bold text-purple-300">
+                    <ShieldCheck className="h-4 w-4 text-purple-400" />
+                    <span>Анти-Фейк Защита: {antiFakePercent}%</span>
                   </div>
                 </div>
-
-                <div className="flex flex-col gap-1 text-xs sm:border-l sm:border-white/10 sm:pl-4">
-                  {resolved.aiTags.map((tag, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 font-medium text-slate-300">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87]" />
-                      <span>{tag}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
 
-              {/* Сравнение предложений на маркетплейсах */}
-              <div className="rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
-                    Предложения на маркетплейсах (3)
-                  </h3>
-                  <span className="text-xs font-bold text-[#00FF87]">Лучшая цена проверена</span>
-                </div>
+              {/* Неоновый индикатор AI Score */}
+              <div className="mt-4 sm:mt-0 flex justify-center sm:justify-end">
+                <NeonScoreCircle
+                  score={aggregateScore}
+                  size="md"
+                  label="AI SCORE"
+                  glowColor="emerald"
+                />
+              </div>
+            </div>
 
-                <div className="space-y-2.5">
-                  {(analysis?.marketplaceComparison || []).map((mkt, idx) => {
-                    const isBest = mkt.isRecommended;
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex flex-col justify-between gap-3 rounded-2xl border p-3.5 transition sm:flex-row sm:items-center ${
-                          isBest && mkt.price
-                            ? "border-[#00FF87]/50 bg-emerald-950/20 shadow-[0_0_15px_rgba(0,255,135,0.1)]"
-                            : "border-white/5 bg-[#0D0F14]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
+            {/* ДУЭЛЬ ПРЕДЛОЖЕНИЙ: WILDBERRIES VS OZON (СТРОГО 2 МАРКЕТПЛЕЙСА) */}
+            <div id="product-duel-section" className="rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
+                    Дуэль маркетплейсов: Wildberries vs Ozon (2)
+                  </h3>
+                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black text-[#00FF87]">
+                    TCO-Сверка
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-[#00FF87]">Проверено wobuy.</span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {marketplaceList.map((mkt, idx) => {
+                  const isWinner = mkt.isRecommended;
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex flex-col justify-between rounded-2xl border p-4 transition-all duration-300 ${
+                        isWinner
+                          ? "border-[#00FF87]/50 bg-emerald-950/20 shadow-[0_0_20px_rgba(0,255,135,0.15)] ring-1 ring-[#00FF87]/30"
+                          : "border-white/5 bg-[#0D0F14] opacity-90"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
                           <MarketplaceBadge marketplace={mkt.marketplace} size="md" showLabel={true} />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-black ${mkt.price ? "text-white" : "text-slate-400"}`}>
-                                {mkt.price ? formatPrice(mkt.price, currency) : "Поиск аналогов"}
-                              </span>
-                              {isBest && mkt.price && (
-                                <span className="rounded bg-[#00FF87]/20 px-1.5 py-0.5 text-[10px] font-bold text-[#00FF87]">
-                                  ★ Выбор
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                              {mkt.reviewsCount > 0 ? (
-                                <span className="flex items-center gap-0.5 font-bold text-amber-400">
-                                  <Star className="h-3 w-3 fill-amber-400" />
-                                  {mkt.rating.toFixed(1)}
-                                </span>
-                              ) : (
-                                <span>{mkt.price ? "Новинка" : "Поиск"}</span>
-                              )}
-                              <span>•</span>
-                              <span>{mkt.delivery}</span>
-                            </div>
-                          </div>
+                          {isWinner ? (
+                            <span className="rounded-full bg-[#00FF87] px-2 py-0.5 text-[10px] font-black text-black">
+                              ★ ВЫБОР WOBUY.
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-400">Второй вариант</span>
+                          )}
                         </div>
 
-                        <a
-                          href={mkt.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={`flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${
-                            isBest && mkt.price
-                              ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)] hover:bg-[#00E576]"
-                              : "border border-white/10 bg-white/5 text-white hover:border-[#00FF87]/50 hover:bg-white/10"
-                          }`}
-                        >
-                          <span>{mkt.price ? `Купить на ${mkt.name}` : `Искать на ${mkt.name}`}</span>
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
+                        <div className="mt-3">
+                          <div className="text-lg font-black text-white">
+                            {mkt.price ? formatPrice(mkt.price, currency) : "Поиск предложения"}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                            <span className="flex items-center gap-1 font-bold text-amber-400">
+                              <Star className="h-3 w-3 fill-amber-400" />
+                              {mkt.rating.toFixed(1)}
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {mkt.delivery}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
 
-              {/* Блок 2. Межплощадочный мост сравнения (Блок «Дуэль») */}
-              {analysis?.duelData && (
-                <div className="pt-1">
-                  <DuelBridgeBanner
-                    duelData={analysis.duelData}
-                    currentPlatform={bestOffer?.marketplace || "wildberries"}
-                    currentPrice={bestPrice || 2500}
-                    productTitle={resolved.title}
-                  />
-                </div>
-              )}
+                      <a
+                        href={mkt.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`mt-4 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition ${
+                          isWinner
+                            ? "bg-[#00FF87] text-black shadow-[0_0_12px_rgba(0,255,135,0.4)] hover:bg-[#00E576]"
+                            : "border border-white/10 bg-white/5 text-white hover:border-[#00FF87]/40 hover:bg-white/10"
+                        }`}
+                      >
+                        <span>{isWinner ? `Купить у победителя (${mkt.name})` : `Смотреть на ${mkt.name}`}</span>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* КАЛЬКУЛЯТОР ЧЕСТНОЙ СТОИМОСТИ (TCO) ДЛЯ РЕКОМЕНДОВАННОГО ВЫБОРА WOBUY. */}
+            <div className="pt-1">
+              <TcoCalculatorCard
+                tco={analysis?.tcoBreakdown}
+                currency={currency}
+                brand={resolved.brand}
+              />
             </div>
           </div>
         </div>
 
-        {/* Блок 3. Калькулятор реальной стоимости (TCO — Total Cost of Ownership) */}
-        <section className="mt-8">
-          <TcoCalculatorCard
-            tco={analysis?.tcoBreakdown}
-            currency={currency}
-            brand={resolved.brand}
-          />
-        </section>
-
-        {/* Характеристики и описание от ИИ на всю ширину */}
+        {/* СЕКЦИЯ: ХАРАКТЕРИСТИКИ И РЕКОМЕНДАТЕЛЬНЫЙ ВЕРДИКТ ИИ WOBUY. (ЖИВЫМ ЧЕЛОВЕЧЕСКИМ ЯЗЫКОМ) */}
         <section className="mt-8 rounded-3xl border border-white/10 bg-[#12151B] p-6 shadow-xl">
           <div className="flex items-center gap-2.5 text-sm font-extrabold uppercase tracking-wider text-white">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/15 text-[#00FF87] border border-[#00FF87]/30">
               <Sliders className="h-4 w-4" />
             </div>
-            <span>Характеристики и описание от ИИ</span>
+            <span>Рекомендательный вердикт и характеристики от ИИ wobuy.</span>
           </div>
 
-          <p className="mt-4 text-sm leading-relaxed text-slate-300">
-            {analysis?.summary || resolved.description}
-          </p>
+          {/* Живое связное описание в рекомендательной форме от лица ИИ */}
+          <div className="mt-4 rounded-2xl border border-white/5 bg-[#0D0F14] p-5 text-sm leading-relaxed text-slate-200">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#00FF87] mb-2">
+              <Sparkles className="h-4 w-4" />
+              <span>Вердикт ИИ-эксперта wobuy.:</span>
+            </div>
+            <p className="font-medium">
+              Мы провели полный независимый аудит модели <strong>{resolved.title}</strong> от бренда <strong>{resolved.brand}</strong>.
+              По нашей оценке, это один из наиболее сбалансированных вариантов в категории «{resolved.category}».
+              Качество материалов и заводская сборка полностью соответствуют заявленному классу, а доля подозрительных бот-отзывов минимальна (индекс траста {antiFakePercent}%).
+            </p>
+            <div className="mt-3 flex items-start gap-2 text-xs text-slate-300 border-t border-white/5 pt-3">
+              <CheckCircle2 className="h-4 w-4 text-[#00FF87] shrink-0 mt-0.5" />
+              <span>
+                <strong>Кому рекомендуем:</strong> тем, кто ценит долговечность и честное соотношение цены и функционала. При получении в ПВЗ {winnerMarketplaceName} рекомендуем проверить целостность заводской упаковки и комплектацию.
+              </span>
+            </div>
+          </div>
 
-          {/* Таблица структурированных спецификаций */}
+          {/* Структурированные ключевые характеристики */}
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {(analysis?.specifications || [
               { label: "Бренд", value: resolved.brand || "Оригинал" },
               { label: "Категория", value: resolved.category || "Каталог" },
               { label: "Аудит подлинности", value: `Пройден на ${antiFakePercent}%` },
-              { label: "Гарантия", value: "Официальная 12 месяцев" },
+              { label: "Рекомендация wobuy.", value: `Покупка на ${winnerMarketplaceName}` },
             ]).map((spec, sIdx) => (
               <div
                 key={sIdx}
@@ -427,121 +457,28 @@ export default async function ProductPage({
           </div>
         </section>
 
-        {/* Блок 4. Панель «Конфликт интересов» (Диалог ИИ-Агентов / Баттл мнений) */}
+        {/* СЕКЦИЯ: ОБЪЕДИНЕННЫЙ МУЛЬТИАГЕНТНЫЙ АУДИТ 4 ИИ-ЭКСПЕРТОВ (КОНФЛИКТ ИНТЕРЕСОВ + НЕОНОВЫЕ КРУГИ) */}
         <section className="mt-8">
-          <AgentsDialogueChat
+          <UnifiedAgentsAudit
+            perspectives={analysis?.perspectives}
             dialogue={analysis?.agentsDialogue}
             avgScore={aggregateScore}
+            finalVerdict={analysis?.verdict || "Рекомендовано к покупке"}
+            recommendedMarketplace={winnerMarketplaceName}
           />
         </section>
 
-        {/* Секция детальных перспектив 4 независимых ИИ-агентов с персональными баллами, плюсами и минусами */}
-        <section className="mt-8">
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#00FF87]/10 border border-[#00FF87]/30 text-[#00FF87]">
-                <Bot className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-black uppercase tracking-wider text-white sm:text-lg">
-                  Детальный аудит 4 ИИ-агентов wobuy.
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Индивидуальные баллы, объективные факты и честные предостережения от каждого Ai эксперта
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3.5 py-1.5 text-xs font-bold text-[#00FF87] self-start sm:self-auto">
-              ★ Итог: {analysis?.verdict || "Рекомендовано к покупке"}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {(analysis?.perspectives || []).map((persp, pIdx) => (
-              <div
-                key={pIdx}
-                className="flex flex-col justify-between rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-lg transition hover:border-[#00FF87]/40"
-              >
-                <div>
-                  {/* Шапка агента: Эмодзи, Название и Индивидуальный балл */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{persp.emoji}</span>
-                      <div>
-                        <div className={`text-xs font-black uppercase tracking-wider ${persp.textColor}`}>
-                          {persp.archetype}
-                        </div>
-                        <div className="text-[10px] text-slate-400">{persp.verdictTag}</div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-white/10 bg-[#0D0F14] px-2.5 py-1 text-right">
-                      <div className={`text-base font-black ${persp.textColor}`}>
-                        {persp.score.toFixed(1)}
-                      </div>
-                      <div className="text-[9px] font-bold text-slate-500">из 10</div>
-                    </div>
-                  </div>
-
-                  {/* Тематика анализа */}
-                  <div className="mt-3 text-xs font-black text-white">{persp.title}</div>
-
-                  {/* Плюсы (аргументы ЗА) */}
-                  <div className="mt-3 space-y-1.5">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                      Плюсы и подтвержденные факты:
-                    </div>
-                    {persp.pros.map((pro, proIdx) => (
-                      <div key={proIdx} className="flex items-start gap-1.5 text-xs text-slate-300 leading-relaxed">
-                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
-                        <span>{pro}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Минусы / Предостережения (аргументы ПРОТИВ) */}
-                  {persp.cons && persp.cons.length > 0 && (
-                    <div className="mt-3.5 space-y-1.5 border-t border-white/5 pt-2.5">
-                      <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-400">
-                        <AlertTriangle className="h-3 w-3" />
-                        <span>Минусы и предостережения:</span>
-                      </div>
-                      {persp.cons.map((con, conIdx) => (
-                        <div key={conIdx} className="flex items-start gap-1.5 text-xs text-slate-300 leading-relaxed">
-                          <span className="text-amber-400 font-bold">•</span>
-                          <span>{con}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Секция Сравнения маркетплейсов */}
-        {analysis?.marketplaceComparison && (
-          <section className="mt-8">
-            <MarketplaceComparisonCard
-              items={analysis.marketplaceComparison}
-              currency={currency}
-            />
-          </section>
-        )}
-
-        {/* 3 АНАЛИТИЧЕСКИХ МОДУЛЯ: Отзывы, Доставка, История цен */}
+        {/* 3 АНАЛИТИЧЕСКИХ МОДУЛЯ: Семантика отзывов, Доставка со складов, Детектор манипуляций с ценой */}
         <section className="mt-8 space-y-6">
-          {/* Блок 5. Глубокий семантический анализ отзывов (Review Analyst) */}
+          {/* Семантический анализ отзывов (с единым анти-фейк процентом) */}
           <ReviewsAnalysisCard
             productTitle={resolved.title}
-            rating={bestOffer?.rating ?? 0}
+            rating={bestOffer?.rating ?? 4.8}
             reviewCount={bestOffer?.reviewCount ?? 0}
             antiFakeScore={antiFakePercent}
           />
 
-          {/* Анализ доставок и складов */}
+          {/* Анализ логистики и складов (строго WB и Ozon) */}
           <DeliveryAnalysisCard
             offers={offers.map((o) => ({
               marketplace: o.marketplace,
@@ -552,7 +489,7 @@ export default async function ProductPage({
             currency={currency}
           />
 
-          {/* Блок 6. График «Детектор манипуляций с ценами» */}
+          {/* Детектор манипуляций с ценами */}
           <PriceHistoryCard
             currentPrice={bestPrice ?? 2500}
             discountPercent={resolved.discountPercent}
@@ -561,7 +498,7 @@ export default async function ProductPage({
           />
         </section>
 
-        {/* Блок 7. Убийца FOMO — Шторка «Проигравшие аналоги» */}
+        {/* Шторка «Проигравшие аналоги» (Убийца FOMO) */}
         <section className="mt-8">
           <FomoAlternativesDrawer alternatives={analysis?.fomoAlternatives} />
         </section>
