@@ -204,9 +204,16 @@ export function clusterAndDeduplicateOffers(
       "Оригинал",
     ];
 
-    const clusterId = deterministicUuid(
-      `${cluster.canonicalName}:${cluster.brand}:${sortedOffers[0]?.externalId || index}`,
-    );
+    const wbOffer = cluster.offers.find((o) => o.marketplace === "wildberries" && o.externalId);
+    const ozonOffer = cluster.offers.find((o) => o.marketplace === "ozon" && o.externalId);
+
+    const clusterId = wbOffer?.externalId
+      ? `wb-${wbOffer.externalId}`
+      : ozonOffer?.externalId
+        ? `ozon-${ozonOffer.externalId}`
+        : deterministicUuid(
+            `${cluster.canonicalName}:${cluster.brand}:${sortedOffers[0]?.externalId || index}`,
+          );
 
     return {
       id: clusterId,

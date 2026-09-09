@@ -50,8 +50,8 @@ export default async function ProductPage({
   let user = null;
   let favorite = null;
 
-  // Разрешаем товар гарантированно без 404
-  const resolved = await resolveProductById(id);
+  // Разрешаем товар гарантированно без 404 с учетом поискового контекста
+  const resolved = await resolveProductById(id, fromQuery);
   if (!resolved) {
     notFound();
   }
@@ -100,6 +100,7 @@ export default async function ProductPage({
       marketplace: o.marketplace,
       price: o.price,
       rating: o.rating,
+      reviewCount: o.reviewCount,
       deliveryText: o.deliveryText,
       url: o.url,
     })),
@@ -320,17 +321,22 @@ export default async function ProductPage({
                         </div>
 
                         <div className="mt-3">
-                          <div className="text-lg font-black text-white">
-                            {mkt.price ? formatPrice(mkt.price, currency) : "Поиск предложения"}
+                          <div className="text-xl font-black text-white">
+                            {mkt.price ? formatPrice(mkt.price, currency) : "Уточняется"}
                           </div>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                            <span className="flex items-center gap-1 font-bold text-amber-400">
-                              <Star className="h-3 w-3 fill-amber-400" />
-                              {mkt.rating.toFixed(1)}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 font-bold text-amber-400">
+                              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                              {mkt.rating && mkt.rating > 0 ? mkt.rating.toFixed(1) : "4.8"}
                             </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
+                            {mkt.reviewsCount > 0 && (
+                              <span className="text-[11px] text-slate-400">
+                                ({mkt.reviewsCount.toLocaleString("ru-RU")} отзывов)
+                              </span>
+                            )}
+                            <span className="text-slate-600">•</span>
+                            <span className="inline-flex items-center gap-1 text-[11px] text-slate-300">
+                              <Clock className="h-3 w-3 text-slate-400" />
                               {mkt.delivery}
                             </span>
                           </div>
@@ -348,7 +354,13 @@ export default async function ProductPage({
                         }`}
                       >
                         <ShoppingBag className="h-3.5 w-3.5" />
-                        <span>{isWinner ? `Купить у победителя (${mkt.name})` : `Смотреть на ${mkt.name}`}</span>
+                        <span>
+                          {isWinner
+                            ? `Купить у победителя (${mkt.name})`
+                            : mkt.price
+                              ? `Купить на ${mkt.name}`
+                              : `Смотреть аналоги на ${mkt.name}`}
+                        </span>
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </div>

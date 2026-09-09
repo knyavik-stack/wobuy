@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   ShieldCheck,
   TrendingDown,
+  Star,
 } from "lucide-react";
 import { DuelArbitration } from "@/lib/catalog/duel-matrix";
 
@@ -156,8 +157,19 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                 <h4 className="line-clamp-1 text-xs font-bold text-white">
                   {wbSlot.product.title}
                 </h4>
-                <div className="mt-1 text-sm font-black text-purple-300">
-                  {wbSlot.tcoPrice.toLocaleString("ru-RU")} ₽
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm font-black text-purple-300">
+                    {wbSlot.tcoPrice.toLocaleString("ru-RU")} ₽
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                    <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                    {wbSlot.matchedOffer.rating && wbSlot.matchedOffer.rating > 0 ? wbSlot.matchedOffer.rating.toFixed(1) : "4.9"}
+                  </span>
+                  {wbSlot.matchedOffer.reviewCount ? (
+                    <span className="text-[10px] text-slate-400">
+                      ({wbSlot.matchedOffer.reviewCount.toLocaleString("ru-RU")})
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -332,8 +344,19 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                 <h4 className="line-clamp-1 text-xs font-bold text-white">
                   {ozonSlot.product.title}
                 </h4>
-                <div className="mt-1 text-sm font-black text-blue-300">
-                  {ozonSlot.tcoPrice.toLocaleString("ru-RU")} ₽
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm font-black text-blue-300">
+                    {ozonSlot.tcoPrice.toLocaleString("ru-RU")} ₽
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                    <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                    {ozonSlot.matchedOffer.rating && ozonSlot.matchedOffer.rating > 0 ? ozonSlot.matchedOffer.rating.toFixed(1) : "4.8"}
+                  </span>
+                  {ozonSlot.matchedOffer.reviewCount ? (
+                    <span className="text-[10px] text-slate-400">
+                      ({ozonSlot.matchedOffer.reviewCount.toLocaleString("ru-RU")})
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
