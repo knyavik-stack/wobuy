@@ -285,7 +285,7 @@ export default function HeroSection() {
 
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
                 wobuy. на твоей стороне <br className="hidden sm:inline" />
-               # а не на стороне продавцов.
+                {/* а не на стороне продавцов.*/}
               </h2>
 
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
