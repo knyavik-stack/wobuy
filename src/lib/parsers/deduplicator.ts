@@ -215,6 +215,7 @@ export function clusterAndDeduplicateOffers(
       category: cluster.category,
       description: cluster.description,
       imageUrl: cluster.imageUrl,
+      images: cluster.offers[0]?.images || [cluster.imageUrl],
       aiScore,
       antiFakePercent,
       aiTags,

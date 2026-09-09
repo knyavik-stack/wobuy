@@ -16,6 +16,7 @@ export interface RawMarketplaceOffer {
   reviewCount: number | null;
   url: string;
   imageUrl: string;
+  images?: string[];
   deliveryDays?: number;
   deliveryText?: string;
   availability?: string;
@@ -30,6 +31,7 @@ export interface CanonicalProductData {
   category: string;
   description: string;
   imageUrl: string;
+  images?: string[];
   aiScore: number;
   antiFakePercent: number;
   aiTags: string[];

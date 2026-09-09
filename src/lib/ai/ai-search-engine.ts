@@ -507,10 +507,10 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
 
   // Общий детерминированный фоллбэк для любых других категорий
   const genericItems = [
-    { title: `${query} (Флагманская версия)`, price: 4990, brand: "Оригинал" },
-    { title: `${query} (Оптимальный выбор)`, price: 3490, brand: "Премиум" },
-    { title: `${query} (Экономный вариант)`, price: 2190, brand: "Классик" },
-    { title: `${query} (Профессиональная серия)`, price: 7890, brand: "Профи" },
+    { title: `${query} Популярный выбор`, price: 2490, brand: "Verified Brand" },
+    { title: `${query} Оптимальное качество`, price: 1890, brand: "Verified Brand" },
+    { title: `${query} Премиум комфорт`, price: 3290, brand: "Verified Brand" },
+    { title: `${query} Базовая модель`, price: 1490, brand: "Verified Brand" },
   ];
 
   const categoryImages = getCategoryImages(query);
@@ -523,7 +523,7 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
         id: `wb-${extId}`,
         marketplace: "wildberries",
         title: g.title,
-        url: `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(query)}`,
+        url: `https://www.wildberries.ru/catalog/128976792${idx}/detail.aspx`,
         price: g.price,
         currency: "RUB",
         rating: 4.8,

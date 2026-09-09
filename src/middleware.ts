@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
-  const isProtected = pathname.startsWith("/dashboard") || pathname.startsWith("/search");
+  const isProtected = pathname.startsWith("/dashboard");
 
   const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
