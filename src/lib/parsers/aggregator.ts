@@ -1,7 +1,6 @@
 import { RawMarketplaceOffer, CanonicalProductData } from "./types";
 import { searchWildberries, getWildberriesProductDetail } from "./wildberries";
 import { searchOzon } from "./ozon";
-import { searchYandexMarket } from "./yandex";
 import { clusterAndDeduplicateOffers } from "./deduplicator";
 import { searchWithAiMarketEngine } from "@/lib/ai/ai-search-engine";
 
@@ -15,7 +14,7 @@ const SEARCH_CACHE = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 минут
 
 /**
- * Главный конвейер поиска и парсинга маркетплейсов (Wildberries + Ozon + Яндекс Маркет).
+ * Главный конвейер поиска и парсинга маркетплейсов (Wildberries + Ozon).
  * Работает параллельно, кэширует результаты и защищен от таймаутов.
  */
 export async function aggregateMarketplaceSearch(
@@ -45,19 +44,16 @@ export async function aggregateMarketplaceSearch(
   if (isWbArticle) {
     const directWbProduct = await getWildberriesProductDetail(cleanQuery);
     if (directWbProduct) {
-      const [ozonOffers, ymOffers] = await Promise.all([
-        searchOzon(directWbProduct.title || directWbProduct.brand, { limit: 3 }).catch(() => []),
-        searchYandexMarket(directWbProduct.title || directWbProduct.brand, { limit: 3 }).catch(() => []),
-      ]);
-      const canonical = clusterAndDeduplicateOffers([directWbProduct, ...ozonOffers, ...ymOffers]);
+      const ozonOffers = await searchOzon(directWbProduct.title || directWbProduct.brand, { limit: 3 }).catch(() => []);
+      const canonical = clusterAndDeduplicateOffers([directWbProduct, ...ozonOffers]);
       SEARCH_CACHE.set(cacheKey, { timestamp: now, data: canonical });
       return canonical;
     }
   }
 
-  // Параллельный запуск парсеров Wildberries, Ozon и Яндекс Маркет
+  // Параллельный запуск парсеров Wildberries и Ozon
   try {
-    const [wbOffers, ozonOffers, ymOffers] = await Promise.all([
+    const [wbOffers, ozonOffers] = await Promise.all([
       searchWildberries(cleanQuery, {
         limit: options.limit || 15,
         timeoutMs: options.timeoutMs || 7000,
@@ -70,13 +66,6 @@ export async function aggregateMarketplaceSearch(
         timeoutMs: options.timeoutMs || 6000,
       }).catch((err) => {
         console.warn("[Aggregator] Ошибка парсинга Ozon:", err);
-        return [] as RawMarketplaceOffer[];
-      }),
-      searchYandexMarket(cleanQuery, {
-        limit: options.limit || 8,
-        timeoutMs: options.timeoutMs || 6000,
-      }).catch((err) => {
-        console.warn("[Aggregator] Ошибка парсинга Яндекс Маркет:", err);
         return [] as RawMarketplaceOffer[];
       }),
     ]);
@@ -121,7 +110,7 @@ export async function aggregateMarketplaceSearch(
       });
     }
 
-    const combinedOffers = [...wbOffers, ...finalOzonOffers, ...ymOffers];
+    const combinedOffers = [...wbOffers, ...finalOzonOffers];
 
     if (!combinedOffers.length) {
       // Если прямые HTTP-запросы к маркетплейсам заблокированы (429/403), используем ИИ-движок подбора

@@ -284,7 +284,7 @@ export default async function DashboardPage() {
                 <h3 className="font-extrabold text-white">Рекомендации wobuy.</h3>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                Нейросеть мониторит 4 ключевых маркетплейса (Ozon, WB, Яндекс Маркет, Мегамаркет). Как только цена на сохранённый товар упадёт, мы подсветим лучшую сделку.
+                Нейросеть непрерывно мониторит маркетплейсы Wildberries и Ozon. Как только цена на сохранённый товар упадёт, мы подсветим лучшую сделку.
               </p>
 
               <div className="mt-4 space-y-2">

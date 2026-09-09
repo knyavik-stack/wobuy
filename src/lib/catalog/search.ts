@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { aggregateMarketplaceSearch } from "@/lib/parsers/aggregator";
 import { CanonicalProductData } from "@/lib/parsers/types";
 import { upsertProductWithEmbedding } from "./semantic-search";
-import { searchWithAiMarketEngine } from "@/lib/ai/ai-search-engine";
+import { searchWithAiMarketEngine, resolveMarketplaceSearchQuery } from "@/lib/ai/ai-search-engine";
 import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
 import { inferCategoryFromTitle } from "@/lib/parsers/deduplicator";
 
@@ -360,10 +360,21 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
     return [];
   }
 
-  // 1. Всегда запускаем агрегатор реального поиска (WB/Ozon/YM + AI Engine)
+  // Превращаем произвольный текст пользователя в точный поисковый запрос маркетплейсов WB и Ozon
+  let targetQuery = normalizedQuery;
+  try {
+    const resolved = await resolveMarketplaceSearchQuery(normalizedQuery);
+    if (resolved.marketplaceQuery && resolved.marketplaceQuery.trim().length > 0) {
+      targetQuery = resolved.marketplaceQuery.trim();
+    }
+  } catch (err) {
+    console.warn("[searchProducts] Query conversion error:", err);
+  }
+
+  // 1. Всегда запускаем агрегатор реального поиска (Wildberries + Ozon + AI Engine)
   let liveResults: SearchProduct[] = [];
   try {
-    const liveData = await aggregateMarketplaceSearch(normalizedQuery);
+    const liveData = await aggregateMarketplaceSearch(targetQuery);
     if (liveData && liveData.length > 0) {
       liveResults = liveData.map(mapCanonicalToSearchProduct);
 

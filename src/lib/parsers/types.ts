@@ -1,4 +1,4 @@
-export type MarketplaceSource = "wildberries" | "ozon" | "yandex_market";
+export type MarketplaceSource = "wildberries" | "ozon";
 
 export interface RawMarketplaceOffer {
   id: string;

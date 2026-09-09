@@ -3,7 +3,7 @@ import { CanonicalProductData } from "@/lib/parsers/types";
 import { computeProductAiMetrics } from "@/lib/catalog/search";
 
 export interface AiGeneratedProduct {
-  marketplace: "wildberries" | "ozon" | "yandex_market";
+  marketplace: "wildberries" | "ozon";
   externalId?: string;
   title: string;
   brand: string;
@@ -19,6 +19,92 @@ export interface AiGeneratedProduct {
   images?: string[];
   url?: string;
   features?: string[];
+}
+
+/**
+ * Превращает произвольный пользовательский текст (вопрос, совет, длинное описание)
+ * в точный и эффективный поисковый запрос для маркетплейсов Wildberries и Ozon.
+ */
+export async function resolveMarketplaceSearchQuery(rawQuery: string): Promise<{
+  marketplaceQuery: string;
+  categoryHint?: string;
+  isConverted: boolean;
+}> {
+  const trimmed = rawQuery.trim();
+  if (!trimmed) return { marketplaceQuery: "", isConverted: false };
+
+  // Если это артикул WB или прямая ссылка - не модифицируем
+  if (/^\d{6,11}$/.test(trimmed) || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return { marketplaceQuery: trimmed, isConverted: false };
+  }
+
+  const words = trimmed.split(/\s+/);
+  const conversationalKeywords = [
+    "посоветуй", "подскажи", "какой", "какая", "какое", "какие", "где", "купить",
+    "хочу", "нужен", "нужна", "нужно", "выбрать", "лучший", "хороший", "недорогой",
+    "чтобы", "порекомендуй", "посоветуйте", "подскажите", "пожалуйста", "ищу"
+  ];
+  const hasConversational = words.some((w) => conversationalKeywords.includes(w.toLowerCase()));
+
+  // Если это короткий точный товарный запрос (1-3 слова) без разговорных маркеров, оставляем как есть
+  if (!hasConversational && words.length <= 3) {
+    return { marketplaceQuery: trimmed, isConverted: false };
+  }
+
+  // Преобразуем через сверхбыструю нейросеть Groq
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const prompt = `Ты — поисковый нормализатор каталогов маркетплейсов wobuy (Wildberries и Ozon).
+Преврати произвольный текст/вопрос пользователя в максимально емкий, коммерческий поисковый запрос для маркетплейсов (от 2 до 4 ключевых слов в именительном падеже, без предлогов, местоимений и фраз вроде "посоветуй").
+Текст пользователя: "${trimmed}"
+Ответь строго JSON в формате:
+{"marketplaceQuery": "название товара и ключевые свойства", "categoryHint": "категория"}`;
+
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "qwen/qwen3.8-27b",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.1,
+          max_tokens: 150,
+        }),
+      });
+
+      if (res.ok) {
+        const j = await res.json();
+        const parsed = JSON.parse(j.choices?.[0]?.message?.content || "{}");
+        if (parsed.marketplaceQuery && parsed.marketplaceQuery.trim().length > 1) {
+          return {
+            marketplaceQuery: parsed.marketplaceQuery.trim(),
+            categoryHint: parsed.categoryHint?.trim(),
+            isConverted: true,
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("[resolveMarketplaceSearchQuery] Groq error:", e);
+    }
+  }
+
+  // Эвристический fallback: удаляем стоп-слова и разговорные фразы
+  const stopWords = new Set([
+    "посоветуй", "посоветуйте", "пожалуйста", "подскажи", "подскажите", "какой", "какая",
+    "какое", "какие", "где", "купить", "хочу", "нужен", "нужна", "нужно", "выбрать",
+    "лучший", "хороший", "недорогой", "чтобы", "для", "в", "на", "с", "по", "к", "от",
+    "до", "и", "или", "не", "мне", "нам", "порекомендуй", "ищу"
+  ]);
+  const filtered = words.filter((w) => !stopWords.has(w.toLowerCase().replace(/[^а-яa-z0-9]/gi, "")));
+  const cleaned = filtered.slice(0, 4).join(" ").trim();
+
+  return {
+    marketplaceQuery: cleaned || trimmed,
+    isConverted: cleaned.length > 0 && cleaned !== trimmed,
+  };
 }
 
 /**
@@ -58,15 +144,6 @@ export function extractUrlQueryDetails(rawQuery: string): { isUrl: boolean; clea
       };
     }
 
-    // Yandex Market
-    if (host.includes("market.yandex.ru")) {
-      return {
-        isUrl: true,
-        cleanQuery: "Товар с Яндекс Маркета",
-        marketplace: "yandex_market",
-      };
-    }
-
     return { isUrl: true, cleanQuery: "Товар по ссылке" };
   } catch {
     return { isUrl: false, cleanQuery: trimmed };
@@ -74,24 +151,24 @@ export function extractUrlQueryDetails(rawQuery: string): { isUrl: boolean; clea
 }
 
 /**
- * Интеллектуальный ИИ-движок подбора реальных товаров с маркетплейсов Wildberries, Ozon, Yandex Market.
+ * Интеллектуальный ИИ-движок подбора реальных товаров с маркетплейсов Wildberries и Ozon.
  */
 export async function searchWithAiMarketEngine(query: string, limit: number = 8): Promise<CanonicalProductData[]> {
   const { isUrl, cleanQuery, marketplace: urlMarketplace, article: urlArticle } = extractUrlQueryDetails(query);
   if (!cleanQuery) return [];
 
   const promptQuery = isUrl
-    ? `Пользователь вставил ссылку на товар ${urlMarketplace || "маркетплейса"} (артикул: ${urlArticle || "по ссылке"}). Проанализируй этот товар, подбери его точные аналоги и предложения на Wildberries, Ozon и Яндекс Маркете.`
-    : `Пользователь ищет в магазине: "${cleanQuery}".`;
+    ? `Пользователь вставил ссылку на товар ${urlMarketplace || "маркетплейса"} (артикул: ${urlArticle || "по ссылке"}). Проанализируй этот товар, подбери его точные аналоги и предложения на Wildberries и Ozon.`
+    : `Пользователь ищет в каталоге маркетплейсов: "${cleanQuery}".`;
 
   const systemPrompt = `Ты — элитный поисковый движок и аналитик каталогов маркетплейсов платформы wobuy.
 ${promptQuery}
 
 Сгенерируй от 4 до ${Math.max(4, limit)} РЕАЛЬНЫХ, продающихся в России товаров строго по этому запросу.
 Правила:
-1. Используй НАСТОЯЩИЕ популярные бренды в РФ для этой категории (например, если запрос 'кофемашина полярис', используй бренд Polaris и модели серии PACM).
+1. Используй НАСТОЯЩИЕ популярные бренды в РФ для этой категории.
 2. Названия должны быть точными (с габаритами, объемом, мощностью, артикулом или цветом).
-3. Цены в рублях — честные и реалистичные для рынка (от 500 до 85000 ₽ в зависимости от категории, НИКАКИХ нулевых или заниженных цен!).
+3. Цены в рублях — честные и реалистичные для рынка РФ (НИКАКИХ нулевых или заниженных цен!).
 4. Рейтинг от 4.6 до 4.9, количество отзывов от 250 до 3800.
 5. В поле features укажи 3-5 ключевых технических характеристик в виде списка строк.
 
@@ -108,7 +185,7 @@ ${promptQuery}
       "originalPrice": 36990,
       "rating": 4.8,
       "reviewCount": 1420,
-      "deliveryText": "Завтра (со склада WB)",
+      "deliveryText": "Завтра (со склада WB Коледино)",
       "description": "Автоматическая кофемашина с давлением 20 бар, итальянской помпой и сенсорным управлением.",
       "features": ["Давление помпы: 20 бар", "Тип: автоматическая зерновая", "Капучинатор: встроенный", "Объем бака: 1.8 л"],
       "url": "https://www.wildberries.ru/catalog/214819201/detail.aspx"
@@ -116,7 +193,7 @@ ${promptQuery}
   ]
 }`;
 
-  // 1. Попытка через Gemini API (высочайшая точность для сложных запросов)
+  // 1. Попытка через Gemini API (если задан ключ)
   if (process.env.GEMINI_API_KEY) {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -135,32 +212,34 @@ ${promptQuery}
     }
   }
 
-  // 2. Попытка через Groq (llama-3.3-70b-versatile)
+  // 2. Попытка через Groq (qwen/qwen3.8-27b или openai/gpt-oss-120b)
   if (process.env.GROQ_API_KEY) {
-    try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: systemPrompt }],
-          response_format: { type: "json_object" },
-          temperature: 0.1,
-          max_tokens: 2200,
-        }),
-      });
+    for (const model of ["qwen/qwen3.8-27b", "openai/gpt-oss-120b"]) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: systemPrompt }],
+            response_format: { type: "json_object" },
+            temperature: 0.1,
+            max_tokens: 2200,
+          }),
+        });
 
-      if (res.ok) {
-        const json = await res.json();
-        const content = json?.choices?.[0]?.message?.content;
-        const products = parseAndFormatAiProducts(content, cleanQuery);
-        if (products.length > 0) return products;
+        if (res.ok) {
+          const json = await res.json();
+          const content = json?.choices?.[0]?.message?.content;
+          const products = parseAndFormatAiProducts(content, cleanQuery);
+          if (products.length > 0) return products;
+        }
+      } catch (err) {
+        console.warn(`[AI Search Engine] Groq error with ${model}:`, err);
       }
-    } catch (err) {
-      console.warn("[AI Search Engine] Groq error:", err);
     }
   }
 
@@ -255,10 +334,9 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
 
       const extId = item.externalId || `${200000000 + i * 4521}`;
 
-      // Формируем 3 реальных предложения на Wildberries, Ozon и Яндекс Маркете
+      // Формируем 2 реальных предложения дуэли: Wildberries vs Ozon
       const wbPrice = basePrice;
-      const ozonPrice = Math.round(basePrice * (1 + (i % 2 === 0 ? 0.05 : 0.09)));
-      const ymPrice = Math.round(basePrice * (1 + (i % 3 === 0 ? 0.08 : 0.12)));
+      const ozonPrice = Math.round(basePrice * (1 + (i % 2 === 0 ? 0.04 : 0.07)));
 
       const wbUrl = item.url && item.marketplace === "wildberries"
         ? item.url
@@ -266,9 +344,6 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
       const ozonUrl = item.url && item.marketplace === "ozon"
         ? item.url
         : `https://www.ozon.ru/product/${extId}/`;
-      const ymUrl = item.url && (item.marketplace === "yandex_market" || (item.marketplace as string) === "yandex")
-        ? item.url
-        : `https://market.yandex.ru/product/${extId}`;
 
       const offers = [
         {
@@ -293,18 +368,6 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
           rating: Math.max(4.6, rating - 0.1),
           reviewCount: Math.round(reviewCount * 0.9),
           deliveryText: "1-2 дня (со склада Ozon Хоругвино)",
-          availability: "in_stock",
-        },
-        {
-          id: `ym-${extId}`,
-          marketplace: "yandex_market",
-          title,
-          url: ymUrl,
-          price: ymPrice,
-          currency: "RUB",
-          rating: rating,
-          reviewCount: Math.round(reviewCount * 0.75),
-          deliveryText: "2 дня (со склада Яндекс Маркет Софьино)",
           availability: "in_stock",
         },
       ];
@@ -395,7 +458,6 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
       const prodId = `wb-${m.id}`;
       const wbPrice = m.price;
       const ozonPrice = Math.round(m.price * 1.04);
-      const ymPrice = Math.round(m.price * 1.07);
 
       const offers = [
         {
@@ -420,18 +482,6 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
           rating: Math.max(4.6, m.rating - 0.1),
           reviewCount: Math.round(m.reviews * 0.8),
           deliveryText: "1-2 дня (со склада Ozon)",
-          availability: "in_stock",
-        },
-        {
-          id: `ym-${m.id}`,
-          marketplace: "yandex_market",
-          title: m.title,
-          url: `https://market.yandex.ru/search?text=${encodeURIComponent(m.title)}`,
-          price: ymPrice,
-          currency: "RUB",
-          rating: m.rating,
-          reviewCount: Math.round(m.reviews * 0.6),
-          deliveryText: "2 дня (со склада Маркет)",
           availability: "in_stock",
         },
       ];

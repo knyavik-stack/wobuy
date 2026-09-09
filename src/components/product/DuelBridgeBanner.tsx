@@ -6,7 +6,7 @@ import type { DuelData } from "@/lib/ai/analyzer";
 
 interface DuelBridgeBannerProps {
   duelData: DuelData | null | undefined;
-  currentPlatform?: "wildberries" | "ozon" | "yandex_market" | string;
+  currentPlatform?: "wildberries" | "ozon" | string;
   currentPrice: number;
   productTitle?: string;
 }
