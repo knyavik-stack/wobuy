@@ -76,7 +76,7 @@ export default function HeroSection() {
             </div>
 
             <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.08]">
-              Выбирает ИИ.
+              Выбирает wobuy.
               <br />
               <span className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 Покупаешь ты.
@@ -157,7 +157,7 @@ export default function HeroSection() {
             <span>Экономика и защита выбора</span>
           </div>
           <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl lg:text-4xl tracking-tight">
-            Всё просто: меньше тратишь, лучше покупаешь
+            wobuy. - выбирает лучшее, отсекает лишнее
           </h2>
           <p className="mt-1.5 text-xs sm:text-sm text-slate-300 max-w-2xl">
             wobuy. за 3 минуты делает работу, на которую раньше уходили часы сравнений и сомнений.
@@ -284,12 +284,12 @@ export default function HeroSection() {
               </div>
 
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
-                Мы на твоей стороне, <br className="hidden sm:inline" />
-                а не на стороне продавцов.
+                wobuy. на твоей стороне <br className="hidden sm:inline" />
+               # а не на стороне продавцов.
               </h2>
 
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                Маркетплейсы зарабатывают на рекламе селлеров и продвижении неликвида. В wobuy. ни один продавец не может купить место в выдаче — только честная математика, сравнение Wildberries vs Ozon и выбор лучшего за 3 минуты.
+                В wobuy. — только честная математика, сравнение Wildberries vs Ozon и выбор лучшего за 3 минуты.
               </p>
 
               <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-slate-300">
