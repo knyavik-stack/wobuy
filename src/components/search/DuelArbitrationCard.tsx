@@ -11,6 +11,7 @@ import {
   Star,
 } from "lucide-react";
 import { DuelArbitration } from "@/lib/catalog/duel-matrix";
+import { NeonDot } from "@/components/brand/WobuyDot";
 
 interface DuelArbitrationCardProps {
   duel: DuelArbitration;
@@ -54,7 +55,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
           </div>
           <div className="flex items-center gap-1.5 rounded-full border border-[#00FF87]/30 bg-[#00FF87]/10 px-3 py-0.5 text-white shadow-[0_0_10px_rgba(0,255,135,0.2)]">
             <Scale className="h-3 w-3 text-[#00FF87]" />
-            <span>Синхронный арбитраж дуэли wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
+            <span>Синхронный арбитраж дуэли wobuy<NeonDot size="xs" /></span>
           </div>
           <div className="flex items-center gap-1.5 text-blue-300">
             <span>Анализ Слот 2 (Ozon)</span>
@@ -200,7 +201,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                 className="flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-[11px] font-bold text-white transition hover:border-[#00FF87]/40 hover:bg-white/10"
               >
                 <span>Разбор в</span>
-                <span className="font-black text-white">wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
+                <span className="font-black text-white">wobuy<NeonDot size="xs" /></span>
               </Link>
             </div>
           </div>
@@ -391,7 +392,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                 className="flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-[11px] font-bold text-white transition hover:border-[#00FF87]/40 hover:bg-white/10"
               >
                 <span>Разбор в</span>
-                <span className="font-black text-white">wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
+                <span className="font-black text-white">wobuy<NeonDot size="xs" /></span>
               </Link>
             </div>
           </div>

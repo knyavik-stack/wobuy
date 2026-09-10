@@ -16,6 +16,7 @@ import { DuelArbitrationCard } from "@/components/search/DuelArbitrationCard";
 import { MatrixSlotCard } from "@/components/search/MatrixSlotCard";
 import { saveSearch } from "@/app/actions";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { NeonDot } from "@/components/brand/WobuyDot";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 
 // Баннер проверенного аудита поисковой выдачи
@@ -33,7 +34,7 @@ function ScreeningStatsBanner({
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-[#00FF87] shadow-[0_0_8px_#00FF87]" />
             <h2 className="text-sm font-extrabold uppercase tracking-widest text-white sm:text-base">
-              Аудит предложений wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> {query ? `«${query}»` : ""}
+              Аудит предложений wobuy<NeonDot size="xs" /> {query ? `«${query}»` : ""}
             </h2>
           </div>
           <p className="mt-1 text-xs text-slate-300">
@@ -118,7 +119,7 @@ export default function SearchResults({
               <span className="text-xs font-black text-[#00FF87]">AI</span>
             </div>
           </div>
-          <p className="mt-6 text-sm font-bold text-white">Селекция товаров в Матрицу 2+2 wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>...</p>
+          <p className="mt-6 text-sm font-bold text-white">Селекция товаров в Матрицу 2+2 wobuy<NeonDot size="xs" />...</p>
           <p className="mt-1 text-xs text-slate-400">Сравниваем TCO, склады FBO и проводим дуэльный арбитраж WB vs Ozon</p>
         </div>
       )}
@@ -279,7 +280,7 @@ export default function SearchResults({
               </div>
 
               <h1 className="mt-5 text-2xl font-black tracking-tight text-white sm:text-3xl">
-                Гибридная Матрица 2+2 в wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+                Гибридная Матрица 2+2 в wobuy<NeonDot size="md" />
               </h1>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
                 Введите название товара или ссылку на Wildberries или Ozon. Умный конвейер отсеет мусор и представит 4 ключевых финалиста: дуэль WB vs Ozon, лучший по минимальной цене и экспресс-доставку FBO.

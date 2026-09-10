@@ -16,6 +16,7 @@ import { resolveProductById } from "@/lib/catalog/search";
 import { generateProductAnalysis } from "@/lib/ai/analyzer";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { NeonDot } from "@/components/brand/WobuyDot";
 import { ProductFavoriteButton } from "@/components/product/product-favorite-button";
 import { MarketplaceBadge } from "@/components/ui/MarketplaceBadge";
 import { ProductGallery } from "@/components/product/ProductGallery";
@@ -316,7 +317,7 @@ export default async function ProductPage({
                           {triumphData.badgeTitle}
                         </span>
                         <span className="rounded-full border border-[#00FF87]/40 bg-[#00FF87]/10 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
-                          Триумфатор wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+                          Триумфатор wobuy<NeonDot size="xs" />
                         </span>
                       </div>
                       <p className="text-[11px] font-medium text-slate-400">
@@ -334,7 +335,7 @@ export default async function ProductPage({
                 </div>
 
                 <div className="mt-3 rounded-xl border border-white/5 bg-black/30 p-3 text-xs leading-relaxed text-slate-200">
-                  <span className="font-black text-white">Почему wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> выбрал этот товар: </span>
+                  <span className="font-black text-white">Почему wobuy<NeonDot size="xs" /> выбрал этот товар: </span>
                   <span className="text-slate-200">{triumphData.verdict}</span>
                 </div>
               </div>
@@ -352,7 +353,7 @@ export default async function ProductPage({
                       TCO-Сверка
                     </span>
                   </div>
-                  <span className="text-xs font-bold text-white">Проверено wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
+                  <span className="text-xs font-bold text-white">Проверено wobuy<NeonDot size="xs" /></span>
                 </div>
 
                 {/* Описание и рекомендация wobuy. В САМОМ НАЧАЛЕ ВНУТРИ БЛОКА ДУЭЛИ */}
@@ -364,7 +365,7 @@ export default async function ProductPage({
                           ✓
                         </div>
                         <span className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
-                          Заключение и рекомендация wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+                          Заключение и рекомендация wobuy<NeonDot size="xs" />
                         </span>
                       </div>
                       <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
@@ -407,8 +408,8 @@ export default async function ProductPage({
                         <div className="flex items-center justify-between">
                           <MarketplaceBadge marketplace={mkt.marketplace} size="md" showLabel={true} />
                           {isWinner ? (
-                            <span className="rounded-full bg-[#00FF87] px-2 py-0.5 text-[10px] font-black text-black">
-                              ★ ВЫБОР WOBUY.
+                            <span className="inline-flex items-baseline rounded-full bg-[#00FF87] px-2 py-0.5 text-[10px] font-black text-black">
+                              ★ Выбор wobuy<NeonDot size="xs" animated={false} />
                             </span>
                           ) : (
                             <span className="text-[10px] font-bold text-slate-400">Второй вариант</span>
@@ -472,14 +473,14 @@ export default async function ProductPage({
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/15 text-[#00FF87] border border-[#00FF87]/30">
               <Sliders className="h-4 w-4" />
             </div>
-            <span>Рекомендательный вердикт и характеристики от ИИ wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
+            <span>Рекомендательный вердикт и характеристики от ИИ wobuy<NeonDot size="sm" /></span>
           </div>
 
           {/* Живое связное описание в рекомендательной форме от лица ИИ */}
           <div className="mt-4 rounded-2xl border border-white/5 bg-[#0D0F14] p-5 text-sm leading-relaxed text-slate-200">
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white mb-2">
               <Sparkles className="h-4 w-4 text-[#00FF87]" />
-              <span>Вердикт ИИ-эксперта wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>:</span>
+              <span>Вердикт ИИ-эксперта wobuy<NeonDot size="xs" />:</span>
             </div>
             <p className="font-medium">
               Мы провели полный независимый аудит модели <strong>{resolved.title}</strong> от бренда <strong>{resolved.brand}</strong>.
@@ -500,13 +501,21 @@ export default async function ProductPage({
               { label: "Бренд", value: resolved.brand || "Оригинал" },
               { label: "Категория", value: resolved.category || "Каталог" },
               { label: "Аудит подлинности", value: `Пройден на ${antiFakePercent}%` },
-              { label: "Рекомендация wobuy.", value: `Покупка на ${winnerMarketplaceName}` },
+              { label: "Рекомендация wobuy", value: `Покупка на ${winnerMarketplaceName}` },
             ]).map((spec, sIdx) => (
               <div
                 key={sIdx}
                 className="flex items-center justify-between rounded-2xl border border-white/5 bg-[#0D0F14] p-4 text-xs"
               >
-                <span className="text-slate-400">{spec.label}</span>
+                <span className="flex items-center text-slate-400">
+                  {spec.label === "Рекомендация wobuy" ? (
+                    <span className="inline-flex items-baseline">
+                      Рекомендация wobuy<NeonDot size="xs" />
+                    </span>
+                  ) : (
+                    spec.label
+                  )}
+                </span>
                 <strong className="font-bold text-white text-right">{spec.value}</strong>
               </div>
             ))}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { NeonDot } from "@/components/brand/WobuyDot";
 import { ShieldCheck, Sparkles, Scale } from "lucide-react";
 
 export function Footer() {
@@ -12,7 +13,7 @@ export function Footer() {
             <BrandLogo size="sm" />
             <span className="hidden sm:inline text-slate-600">•</span>
             <span className="text-xs text-slate-300 font-medium">
-              Сервис честной селекции товаров wobuy.
+              Сервис честной селекции товаров wobuy<NeonDot size="xs" />
             </span>
           </div>
 
@@ -50,7 +51,7 @@ export function Footer() {
         {/* Объединенная монолитная строка копирайта и защиты */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-[11px] text-slate-400">
           <div className="flex flex-wrap items-center gap-2">
-            <span>© 2026 <strong className="font-bold text-white">wobuy.</strong> (домен wobuy.ru). Все права защищены.</span>
+            <span>© 2026 <strong className="font-bold text-white">wobuy<NeonDot size="xs" /></strong> (домен wobuy.ru). Все права защищены.</span>
             <span className="hidden md:inline text-slate-600">•</span>
             <span className="inline-flex items-center gap-1 text-slate-300">
               <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" />

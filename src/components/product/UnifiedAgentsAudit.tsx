@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Bot, CheckCircle2, AlertTriangle, ShieldCheck, Flame } from "lucide-react";
 import type { AgentPerspective, AgentDialogueEntry } from "@/lib/ai/analyzer";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
+import { NeonDot } from "@/components/brand/WobuyDot";
 
 interface UnifiedAgentsAuditProps {
   perspectives: AgentPerspective[] | undefined;
@@ -66,7 +67,7 @@ export function UnifiedAgentsAudit({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
-                Мультиагентный аудит 4 ИИ-экспертов wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+                Мультиагентный аудит 4 ИИ-экспертов wobuy<NeonDot size="sm" />
               </h2>
               <span className="rounded-full border border-purple-500/30 bg-purple-950/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-purple-300">
                 Конфликт интересов
@@ -189,7 +190,7 @@ export function UnifiedAgentsAudit({
                 {/* Нижняя сноска */}
                 <div className="mt-4 pt-2 text-right">
                   <span className="text-[10px] font-bold text-slate-400">
-                    Аудит wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> проверен
+                    Аудит wobuy<NeonDot size="xs" /> проверен
                   </span>
                 </div>
               </div>
@@ -259,7 +260,7 @@ export function UnifiedAgentsAudit({
           <ShieldCheck className="h-5 w-5 text-[#00FF87] shrink-0" />
           <div>
             <div className="text-xs font-black uppercase tracking-wider text-white">
-              Финальный вердикт консенсуса wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+              Финальный вердикт консенсуса wobuy<NeonDot size="xs" />
             </div>
             <p className="text-xs text-slate-200 font-medium mt-0.5">
               {finalVerdict} — рекомендация заказывать на площадке <strong>{recommendedMarketplace}</strong>

@@ -15,6 +15,7 @@ import {
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { RadarScanningLogo } from "@/components/brand/RadarScanningLogo";
+import { NeonDot } from "@/components/brand/WobuyDot";
 
 const POPULAR_QUERIES = [
   "Кемпинговая палатка",
@@ -76,7 +77,7 @@ export default function HeroSection() {
             </div>
 
             <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.08]">
-              Выбирает wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+              Выбирает wobuy<NeonDot size="hero" />
               <br />
               <span className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 Покупаешь ты.
@@ -85,7 +86,7 @@ export default function HeroSection() {
 
             {/* Короткое емкое описание без шума */}
             <p className="text-base sm:text-lg font-medium text-slate-300">
-              Сервис честной селекции товаров wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+              Сервис честной селекции товаров wobuy<NeonDot size="md" />
             </p>
 
             {/* Строка поиска */}
@@ -157,10 +158,10 @@ export default function HeroSection() {
             <span>Экономика и защита выбора</span>
           </div>
           <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl lg:text-4xl tracking-tight">
-            wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> — выбирает лучшее, отсекает лишнее
+            wobuy<NeonDot size="lg" /> — выбирает лучшее, отсекает лишнее
           </h2>
           <p className="mt-1.5 text-xs sm:text-sm text-slate-300 max-w-2xl">
-            wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> за 3 минуты делает работу, на которую раньше уходили часы сравнений и сомнений.
+            wobuy<NeonDot size="sm" /> за 3 минуты делает работу, на которую раньше уходили часы сравнений и сомнений.
           </p>
         </div>
 
@@ -192,7 +193,7 @@ export default function HeroSection() {
               <div className="flex items-center justify-between font-bold text-white">
                 <span className="flex items-center gap-1.5 text-[#00FF87]">
                   <Zap className="h-3.5 w-3.5" />
-                  С wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>:
+                  С wobuy<NeonDot size="xs" />:
                 </span>
                 <span className="text-[#00FF87]">1 точный вердикт</span>
               </div>
@@ -225,7 +226,7 @@ export default function HeroSection() {
               <div className="flex items-center justify-between font-bold text-white">
                 <span className="flex items-center gap-1.5 text-cyan-300">
                   <Coins className="h-3.5 w-3.5" />
-                  С wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>:
+                  С wobuy<NeonDot size="xs" />:
                 </span>
                 <span className="text-cyan-300">Реальная цена покупки</span>
               </div>
@@ -258,7 +259,7 @@ export default function HeroSection() {
               <div className="flex items-center justify-between font-bold text-white">
                 <span className="flex items-center gap-1.5 text-purple-300">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  С wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>:
+                  С wobuy<NeonDot size="xs" />:
                 </span>
                 <span className="text-purple-300">Очищенный рейтинг товара</span>
               </div>
@@ -280,16 +281,16 @@ export default function HeroSection() {
             <div className="max-w-2xl space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold text-[#00FF87]">
                 <span className="h-2 w-2 rounded-full bg-[#00FF87] animate-pulse" />
-                <span>Манифест независимости wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
+                <span>Манифест независимости wobuy<NeonDot size="xs" /></span>
               </div>
 
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
-                wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> на твоей стороне <br className="hidden sm:inline" />
+                wobuy<NeonDot size="lg" /> на твоей стороне <br className="hidden sm:inline" />
                 {/* а не на стороне продавцов.*/}
               </h2>
 
               <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                В wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> — только честная математика, сравнение Wildberries vs Ozon и выбор лучшего за 3 минуты.
+                В wobuy<NeonDot size="sm" /> — только честная математика, сравнение Wildberries vs Ozon и выбор лучшего за 3 минуты.
               </p>
 
               <div className="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-slate-300">

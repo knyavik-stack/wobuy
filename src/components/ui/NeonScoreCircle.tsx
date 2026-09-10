@@ -22,12 +22,36 @@ export function NeonScoreCircle({
   const clamped = Math.min(maxScore, Math.max(0, score));
   const progress = clamped / maxScore;
 
-  // Конфигурация размеров с достаточным внутренним пространством
+  // Конфигурация размеров с выверенным внутренним пространством для гарантированного помещения надписей
   const dimensions = {
-    xs: { svgSize: 48, radius: 18, stroke: 3.5, font: "text-xs font-black", labelFont: "text-[7.5px]" },
-    sm: { svgSize: 64, radius: 24, stroke: 4.5, font: "text-sm font-black", labelFont: "text-[8.5px]" },
-    md: { svgSize: 84, radius: 33, stroke: 5.5, font: "text-xl font-black", labelFont: "text-[9.5px]" },
-    lg: { svgSize: 108, radius: 44, stroke: 6.5, font: "text-3xl font-black", labelFont: "text-xs" },
+    xs: {
+      svgSize: 48,
+      radius: 19,
+      stroke: 3,
+      font: "text-[11px] font-black leading-none",
+      labelFont: "text-[7px] font-bold tracking-wider leading-none",
+    },
+    sm: {
+      svgSize: 62,
+      radius: 24,
+      stroke: 3.5,
+      font: "text-sm font-black leading-none",
+      labelFont: "text-[8px] font-bold tracking-wider leading-none",
+    },
+    md: {
+      svgSize: 84,
+      radius: 33,
+      stroke: 4.5,
+      font: "text-xl font-black leading-none",
+      labelFont: "text-[9.5px] font-bold tracking-wider leading-none",
+    },
+    lg: {
+      svgSize: 108,
+      radius: 43,
+      stroke: 5.5,
+      font: "text-2xl font-black leading-none",
+      labelFont: "text-xs font-bold tracking-wider leading-none",
+    },
   }[size];
 
   const circumference = 2 * Math.PI * dimensions.radius;
@@ -102,13 +126,15 @@ export function NeonScoreCircle({
           />
         </svg>
 
-        {/* Цифра внутри */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center leading-none px-1 pointer-events-none">
+        {/* Цифра и подпись внутри круга — гарантированно помещаются */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-1 pointer-events-none select-none">
           <span className={`text-white ${dimensions.font} tracking-tight font-black`}>
             {score.toFixed(1)}
           </span>
           {label && (
-            <span className={`font-black uppercase tracking-wider ${dimensions.labelFont} ${colorMap.text} mt-0.5 truncate max-w-full`}>
+            <span
+              className={`font-black uppercase tracking-wider ${dimensions.labelFont} ${colorMap.text} mt-0.5 max-w-[85%] truncate`}
+            >
               {label}
             </span>
           )}

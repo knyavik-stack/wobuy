@@ -15,6 +15,7 @@ import {
 import { MatrixSlot } from "@/lib/catalog/duel-matrix";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
+import { NeonDot } from "@/components/brand/WobuyDot";
 
 interface MatrixSlotCardProps {
   slot: MatrixSlot;
@@ -277,13 +278,12 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
           {/* Фирменная кнопка wobuy. */}
           <Link
             href={productLink}
-            className="group/btn relative flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#00FF87] bg-[#12151B] py-3 text-xs font-extrabold text-white shadow-[0_0_12px_rgba(0,255,135,0.15)] transition-all duration-300 hover:bg-[#00FF87] hover:text-black hover:shadow-[0_0_20px_rgba(0,255,135,0.5)]"
+            className="group/btn relative flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-[#00FF87]/50 bg-[#12151B] py-3 text-xs font-extrabold text-white shadow-[0_0_12px_rgba(0,255,135,0.15)] transition-all duration-300 hover:bg-[#00FF87] hover:text-black hover:shadow-[0_0_20px_rgba(0,255,135,0.5)]"
           >
             <span>Разбор в</span>
-            <span className="font-black text-white transition-colors group-hover/btn:text-black">
-              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87] group-hover/btn:text-black group-hover/btn:drop-shadow-none">.</span>
+            <span className="inline-flex items-baseline font-black text-white transition-colors group-hover/btn:text-black">
+              wobuy<NeonDot size="xs" />
             </span>
-            <span className="h-1.5 w-1.5 rounded-full bg-[#00FF87] shadow-[0_0_6px_#00FF87] transition-colors group-hover/btn:bg-black group-hover/btn:shadow-none" />
           </Link>
         </div>
       </div>
