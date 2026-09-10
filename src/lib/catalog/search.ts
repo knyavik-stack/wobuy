@@ -1,40 +1,25 @@
-import { createClient } from "@/lib/supabase/server";
 import { aggregateMarketplaceSearch } from "@/lib/parsers/aggregator";
 import { CanonicalProductData } from "@/lib/parsers/types";
 import { upsertProductWithEmbedding } from "./semantic-search";
 import { searchWithAiMarketEngine, resolveMarketplaceSearchQuery } from "@/lib/ai/ai-search-engine";
 import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
 import { inferCategoryFromTitle } from "@/lib/parsers/deduplicator";
+import { buildOzonProductUrl, buildWildberriesProductUrl } from "@/lib/marketplace-links";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { createClient as createPublicSupabaseClient } from "@/lib/supabase/client";
 
-export type SearchProduct = {
-  id: string;
-  title: string;
-  brand: string;
-  category: string;
-  description: string;
-  imageUrl: string;
-  images?: string[];
-  aiScore: number;
-  antiFakePercent: number;
-  aiTags: string[];
-  priceSparkline: number[];
-  discountPercent: number;
-  offers: Array<{
-    id: string;
-    marketplace: string;
-    title: string;
-    url: string;
-    price: number | null;
-    currency: string;
-    rating: number | null;
-    reviewCount: number | null;
-    deliveryText: string;
-    availability: string;
-  }>;
-};
+function getCatalogSupabase() {
+  try {
+    return getSupabaseAdmin() || createPublicSupabaseClient();
+  } catch {
+    return null;
+  }
+}
 
-// Глобальное хранилище распарсенных товаров для прямого открытия по id без 404
-const LIVE_PRODUCTS_STORE = new Map<string, SearchProduct>();
+export type { SearchProduct } from "./product-types";
+export { LIVE_PRODUCTS_STORE, saveProductToLiveStore } from "./store";
+import type { SearchProduct } from "./product-types";
+import { LIVE_PRODUCTS_STORE } from "./store";
 
 function normalize(value: string | null | undefined) {
   return value?.trim() ?? "";
@@ -210,8 +195,8 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
 
   // 3. Проверяем базу Supabase
   try {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      const supabase = await createClient();
+    const supabase = getCatalogSupabase();
+    if (supabase) {
       const { data, error } = await supabase
         .from("products")
         .select(
@@ -267,7 +252,7 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
             id: wbItem.id,
             marketplace: "wildberries",
             title: wbItem.title,
-            url: wbItem.url || `https://www.wildberries.ru/catalog/${wbItem.externalId}/detail.aspx`,
+            url: buildWildberriesProductUrl(wbItem.url || wbItem.externalId, wbItem.title),
             price: wbPrice,
             currency: wbItem.currency || "RUB",
             rating: wbItem.rating || 4.9,
@@ -279,7 +264,7 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
             id: `ozon-${wbItem.externalId}`,
             marketplace: "ozon",
             title: wbItem.title,
-            url: `https://www.ozon.ru/product/${wbItem.externalId}/`,
+            url: buildOzonProductUrl(wbItem.title, wbItem.externalId),
             price: ozonPrice,
             currency: "RUB",
             rating: ozonRating,
@@ -340,7 +325,7 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
           id: `wb-${id}`,
           marketplace: "wildberries",
           title: cleanLabel || "Товар на Wildberries",
-          url: "https://www.wildberries.ru",
+          url: buildWildberriesProductUrl(id, cleanLabel || "Товар"),
           price: 2890,
           currency: "RUB",
           rating: 4.8,
@@ -352,7 +337,7 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
           id: `ozon-${id}`,
           marketplace: "ozon",
           title: cleanLabel || "Товар на Ozon",
-          url: "https://www.ozon.ru",
+          url: buildOzonProductUrl(cleanLabel || "Товар", id),
           price: 2990,
           currency: "RUB",
           rating: 4.7,
@@ -379,8 +364,8 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
   // Если запрос пустой, возвращаем активные реальные товары из БД
   if (!normalizedQuery) {
     try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        const supabase = await createClient();
+      const supabase = getCatalogSupabase();
+      if (supabase) {
         const { data } = await supabase
           .from("products")
           .select(
@@ -453,8 +438,8 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
 
   // 2. Если живой поиск не ответил, ищем строго по совпадению ключевых слов в БД
   try {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      const supabase = await createClient();
+    const supabase = getCatalogSupabase();
+    if (supabase) {
       const pattern = `%${lowerQuery}%`;
       const { data, error } = await supabase
         .from("products")

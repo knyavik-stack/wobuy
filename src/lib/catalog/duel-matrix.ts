@@ -1,4 +1,6 @@
-import { SearchProduct } from "./search";
+import type { SearchProduct } from "./product-types";
+import { saveProductToLiveStore } from "./store";
+import { buildOzonProductUrl } from "@/lib/marketplace-links";
 
 export type MatrixSlotType = "wb_champion" | "ozon_champion" | "economist" | "express";
 
@@ -194,7 +196,7 @@ export function buildHybridMatrix2x2(
             id: `ozon-${ozonSku}`,
             marketplace: "ozon",
             title: wbProduct.title,
-            url: `https://www.ozon.ru/product/${ozonSku}/`,
+            url: buildOzonProductUrl(wbProduct.title, ozonSku),
             price: Math.round((wbOffer.price || 2400) * 0.98),
             currency: "RUB",
             rating: Math.max(4.6, Number(((wbOffer.rating || 4.9) - 0.1).toFixed(1))),
@@ -227,6 +229,16 @@ export function buildHybridMatrix2x2(
   const ozonDays = parseDeliveryDays(ozonOffer.deliveryText);
 
   // Формируем СЛОТ 1: WB-Чемпион
+  wbProduct.triumph = {
+    slotType: "wb",
+    badgeTitle: "WB-Чемпион",
+    badgeSubtitle: "Лидер маркетплейса Wildberries",
+    marketplace: "wildberries",
+    verdict: `Лучший товар на Wildberries (${wbOffer.rating || 4.9}★) с проверенной логистикой FBO и контролем накруток.`,
+    price: wbOffer.price,
+    deliveryText: wbOffer.deliveryText,
+  };
+
   const wbSlot: MatrixSlot = {
     slotType: "wb_champion",
     badgeTitle: "WB-Чемпион",
@@ -252,6 +264,16 @@ export function buildHybridMatrix2x2(
   };
 
   // Формируем СЛОТ 2: Ozon-Чемпион
+  ozonProduct.triumph = {
+    slotType: "ozon",
+    badgeTitle: "Ozon-Чемпион",
+    badgeSubtitle: "Лидер маркетплейса Ozon",
+    marketplace: "ozon",
+    verdict: `Лидер по выгоде на Ozon: честная цена с Ozon Картой и подтвержденный аудит отзывов без ботов.`,
+    price: ozonOffer.price,
+    deliveryText: ozonOffer.deliveryText,
+  };
+
   const ozonSlot: MatrixSlot = {
     slotType: "ozon_champion",
     badgeTitle: "Ozon-Чемпион",
@@ -389,6 +411,19 @@ export function buildHybridMatrix2x2(
   const economistTco = calculateTco(economistOffer.price || 1200, 2.5, 7);
   const savingsPercent = Math.max(15, Math.round(((medianPrice - economistTco.tcoPrice) / medianPrice) * 100));
 
+  const economistMp = economistOffer.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon";
+  const economistMpLabel = economistMp === "wildberries" ? "Wildberries" : "Ozon";
+
+  economistProduct.triumph = {
+    slotType: "economist",
+    badgeTitle: "Триумф Экономного",
+    badgeSubtitle: "Минимальная цена на рынке",
+    marketplace: economistMp,
+    verdict: `wobuy. выбрал этот товар на ${economistMpLabel}: подтвержденная минимальная цена ${economistOffer.price} ₽ в категории (экономия ${savingsPercent}% от средней цены рынка).`,
+    price: economistOffer.price,
+    deliveryText: economistOffer.deliveryText,
+  };
+
   const economistSlot: MatrixSlot = {
     slotType: "economist",
     badgeTitle: "Триумф Экономного",
@@ -401,10 +436,10 @@ export function buildHybridMatrix2x2(
     matchedOffer: economistOffer,
     tcoPrice: economistTco.tcoPrice,
     deliverySpeedLabel: economistOffer.deliveryText || "2-3 дня",
-    aiVerdict: `Минимальная цена в категории: ${economistTco.tcoPrice.toLocaleString("ru-RU")} ₽ (экономия ${savingsPercent}% от рынка).`,
+    aiVerdict: economistProduct.triumph.verdict,
     savingsVsMarketText: `Дешевле средней цены на ${savingsPercent}%`,
     pros: [
-      `Абсолютно лучшая цена: ${economistTco.tcoPrice.toLocaleString("ru-RU")} ₽`,
+      `Абсолютно лучшая цена: ${economistTco.tcoPrice.toLocaleString("ru-RU")} ₽ на ${economistMpLabel}`,
       `Реальная скидка -${economistProduct.discountPercent || 25}% без скрытых накруток`,
       "Качественный базовый функционал без переплаты за маркетинг",
     ],
@@ -426,6 +461,19 @@ export function buildHybridMatrix2x2(
   const expressOffer = [...expressProduct.offers].sort((a, b) => parseDeliveryDays(a.deliveryText) - parseDeliveryDays(b.deliveryText))[0];
   const expressTco = calculateTco(expressOffer.price || 2100, 1.5, 4);
 
+  const expressMp = expressOffer.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon";
+  const expressMpLabel = expressMp === "wildberries" ? "Wildberries" : "Ozon";
+
+  expressProduct.triumph = {
+    slotType: "express",
+    badgeTitle: "Триумф Срочного",
+    badgeSubtitle: "Экспресс-доставка FBO",
+    marketplace: expressMp,
+    verdict: `wobuy. выбрал этот товар на ${expressMpLabel}: моментальная экспресс-доставка со склада FBO (${expressOffer.deliveryText || "1-2 дня"}), готов к выдаче быстрее всех предложений.`,
+    price: expressOffer.price,
+    deliveryText: expressOffer.deliveryText,
+  };
+
   const expressSlot: MatrixSlot = {
     slotType: "express",
     badgeTitle: "Триумф Срочного",
@@ -438,9 +486,9 @@ export function buildHybridMatrix2x2(
     matchedOffer: expressOffer,
     tcoPrice: expressTco.tcoPrice,
     deliverySpeedLabel: expressOffer.deliveryText || "1-2 дня (со склада)",
-    aiVerdict: `Моментальная отгрузка FBO: готов к выдаче быстрее всех предложений.`,
+    aiVerdict: expressProduct.triumph.verdict,
     pros: [
-      `Экспресс-срок: ${expressOffer.deliveryText || "1-2 дня"} со склада FBO`,
+      `Экспресс-срок: ${expressOffer.deliveryText || "1-2 дня"} со склада FBO на ${expressMpLabel}`,
       "Товар уже упакован и находится в региональном распределительном центре",
       `Высокий рейтинг надежности продавца (${expressProduct.aiScore}/10)`,
     ],
@@ -449,6 +497,12 @@ export function buildHybridMatrix2x2(
     fakeReviewsDetected: Math.round((100 - (expressProduct.antiFakePercent || 95)) * 1.2),
     tcoBreakdown: expressTco,
   };
+
+  // Резервируем товары слотов в хранилище реальных карточек, чтобы при открытии карточки сохранялся статус триумфатора
+  saveProductToLiveStore(wbProduct);
+  saveProductToLiveStore(ozonProduct);
+  saveProductToLiveStore(economistProduct);
+  saveProductToLiveStore(expressProduct);
 
   // Подготовка вариантов для "Быстрого тумблера": СТРОГО товары с конкретного маркетплейса
   const wbAlternatives = screenedPool
@@ -486,7 +540,7 @@ export function buildHybridMatrix2x2(
         currency: "RUB",
         rating: Math.max(4.6, Number(((primaryOffer?.rating || 4.8) - 0.1).toFixed(1))),
         reviewCount: Math.round((primaryOffer?.reviewCount || 200) * 0.85),
-        url: `https://www.ozon.ru/product/${sku}/`,
+        url: buildOzonProductUrl(p.title, sku),
         deliveryDays: 2,
         deliveryText: "2-3 дня (со склада Ozon)",
         availability: "В наличии",

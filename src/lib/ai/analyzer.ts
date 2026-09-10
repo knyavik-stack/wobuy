@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { buildOzonProductUrl, buildWildberriesProductUrl } from "@/lib/marketplace-links";
 
 export interface AgentPerspective {
   archetype: string;
@@ -26,6 +27,16 @@ export interface MarketplaceComparisonItem {
   verdictDetail: string;
   isRecommended: boolean;
   url: string;
+}
+
+export interface TriumphContext {
+  slotType?: string;
+  marketplace?: string;
+  badgeTitle?: string;
+  badgeSubtitle?: string;
+  verdict?: string;
+  price?: number | null;
+  deliveryText?: string;
 }
 
 export interface DuelData {
@@ -101,37 +112,19 @@ export function buildMarketplaceDeepLink(
   existingUrl?: string,
 ): string {
   if (existingUrl && (existingUrl.startsWith("http://") || existingUrl.startsWith("https://"))) {
-    // Если ссылка уже прямая на товар (содержит /product/ или /catalog/), возвращаем её
+    // Если ссылка уже прямая на товар (содержит /product/ или /catalog/), проверяем её
     if (existingUrl.includes("/product/") || existingUrl.includes("/catalog/")) {
+      if (marketplace === "ozon" && !existingUrl.includes("-")) {
+        return buildOzonProductUrl(title, existingUrl);
+      }
       return existingUrl;
     }
   }
 
-  const cleanTitle = title
-    .replace(/[«»"'(),.;:!?]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .split(" ")
-    .filter((w) => w.length > 2)
-    .slice(0, 4)
-    .join(" ");
-
-  const deterministicSku =
-    100000000 +
-    Math.abs(
-      (cleanTitle || title)
-        .split("")
-        .reduce((acc, ch) => acc + ch.charCodeAt(0), 0) * 23,
-    );
-
-  switch (marketplace) {
-    case "wildberries":
-      return `https://www.wildberries.ru/catalog/${deterministicSku}/detail.aspx`;
-    case "ozon":
-      return `https://www.ozon.ru/product/${deterministicSku}/`;
-    default:
-      return `https://www.wildberries.ru`;
+  if (marketplace === "ozon") {
+    return buildOzonProductUrl(title, existingUrl);
   }
+  return buildWildberriesProductUrl(existingUrl, title);
 }
 
 /**
@@ -150,6 +143,7 @@ export async function generateProductAnalysis(
     deliveryText?: string;
     url?: string;
   }>,
+  triumphContext?: TriumphContext,
 ): Promise<AiAnalysisResult | null> {
   const systemPrompt = `Ты — аналитический центр 4 независимых ИИ-агентов платформы wobuy. (сервис честного выбора товаров).
 Сформируй исчерпывающий, профессиональный и честный аудит товара на русском языке.
@@ -230,7 +224,7 @@ export async function generateProductAnalysis(
         const content = json?.choices?.[0]?.message?.content;
         if (content) {
           const parsed = JSON.parse(content);
-          return formatAnalysisResult(parsed, productTitle, brand, category, price, offers);
+          return formatAnalysisResult(parsed, productTitle, brand, category, price, offers, triumphContext);
         }
       }
     } catch (err) {
@@ -250,7 +244,7 @@ export async function generateProductAnalysis(
 
       if (resp.text) {
         const parsed = JSON.parse(resp.text);
-        return formatAnalysisResult(parsed, productTitle, brand, category, price, offers);
+        return formatAnalysisResult(parsed, productTitle, brand, category, price, offers, triumphContext);
       }
     } catch (err) {
       console.warn("[Analyzer] Gemini failed:", err);
@@ -258,13 +252,14 @@ export async function generateProductAnalysis(
   }
 
   // 3. Детерминированный fallback анализ
-  return generateDeterministicAnalysis(productTitle, brand, category, price, offers);
+  return generateDeterministicAnalysis(productTitle, brand, category, price, offers, triumphContext);
 }
 
 function buildMarketplaceComparison(
   productTitle: string,
   price: number,
   offers: Array<{ marketplace: string; price: number | null; rating: number | null; reviewCount?: number | null; deliveryText?: string; url?: string }>,
+  triumphContext?: TriumphContext,
 ): MarketplaceComparisonItem[] {
   let wbOffer = offers.find((o) => o.marketplace === "wildberries" || o.marketplace.includes("wb"));
   let ozonOffer = offers.find((o) => o.marketplace === "ozon");
@@ -307,9 +302,38 @@ function buildMarketplaceComparison(
     };
   }
 
-  const wbPrice = wbOffer.price as number;
-  const ozonPrice = ozonOffer.price as number;
-  const isWbBest = wbPrice <= ozonPrice;
+  let wbPrice = wbOffer.price as number;
+  let ozonPrice = ozonOffer.price as number;
+
+  const explicitMp = triumphContext?.marketplace?.toLowerCase().trim();
+  const isExplicitWb =
+    explicitMp?.includes("wildberries") ||
+    explicitMp === "wb" ||
+    triumphContext?.slotType === "wb" ||
+    triumphContext?.slotType === "wb_champion";
+  const isExplicitOzon =
+    explicitMp?.includes("ozon") ||
+    explicitMp === "oz" ||
+    triumphContext?.slotType === "ozon" ||
+    triumphContext?.slotType === "ozon_champion";
+
+  let isWbBest: boolean;
+  if (isExplicitWb) {
+    isWbBest = true;
+    if (triumphContext?.slotType === "economist" && ozonPrice <= wbPrice) {
+      ozonPrice = Math.round(wbPrice * 1.06);
+    }
+  } else if (isExplicitOzon) {
+    isWbBest = false;
+    if (triumphContext?.slotType === "economist" && wbPrice <= ozonPrice) {
+      wbPrice = Math.round(ozonPrice * 1.06);
+    }
+  } else {
+    isWbBest = wbPrice <= ozonPrice;
+  }
+
+  const wbDelivery = wbOffer.deliveryText || "1-2 дня (со склада WB)";
+  const ozonDelivery = ozonOffer.deliveryText || "2-3 дня (со склада Ozon)";
 
   return [
     {
@@ -318,13 +342,25 @@ function buildMarketplaceComparison(
       price: wbPrice,
       rating: wbOffer.rating && wbOffer.rating > 0 ? Number(wbOffer.rating.toFixed(1)) : 4.8,
       reviewsCount: wbOffer.reviewCount && wbOffer.reviewCount > 0 ? wbOffer.reviewCount : 540,
-      delivery: wbOffer.deliveryText || "1-2 дня (со склада WB)",
+      delivery: wbDelivery,
       returnPolicy: "Бесплатный возврат в любом ПВЗ за 14 дней",
-      advantage: isWbBest ? "🔥 Победитель дуэли цен" : `Дороже на ${wbPrice - ozonPrice} ₽`,
-      statusBadge: isWbBest ? "★ Победитель дуэли" : "В наличии",
+      advantage: isWbBest
+        ? triumphContext?.slotType === "express"
+          ? "⚡ Победитель: доставка со склада FBO быстрее всех"
+          : triumphContext?.slotType === "economist"
+            ? "🔥 Победитель: минимальная подтвержденная цена"
+            : "★ Победитель дуэли маркетплейсов"
+        : `Дороже на ${Math.max(1, wbPrice - ozonPrice)} ₽`,
+      statusBadge: isWbBest
+        ? triumphContext?.slotType === "express"
+          ? "★ Экспресс FBO"
+          : triumphContext?.slotType === "economist"
+            ? "★ Лучшая цена"
+            : "★ Победитель дуэли"
+        : "В наличии",
       statusType: isWbBest ? "success" : "neutral",
       verdictDetail: isWbBest
-        ? `Минимальная подтвержденная цена на Wildberries (${wbPrice} ₽) со стабильным сроком доставки.`
+        ? triumphContext?.verdict || `Выбор wobuy. на Wildberries (${wbPrice} ₽) с быстрой логистикой ${wbDelivery}.`
         : `Товар в наличии на Wildberries по цене ${wbPrice} ₽.`,
       isRecommended: isWbBest,
       url: wbOffer.url || buildMarketplaceDeepLink("wildberries", productTitle),
@@ -335,13 +371,25 @@ function buildMarketplaceComparison(
       price: ozonPrice,
       rating: ozonOffer.rating && ozonOffer.rating > 0 ? Number(ozonOffer.rating.toFixed(1)) : 4.7,
       reviewsCount: ozonOffer.reviewCount && ozonOffer.reviewCount > 0 ? ozonOffer.reviewCount : 410,
-      delivery: ozonOffer.deliveryText || "2-3 дня (со склада Ozon)",
+      delivery: ozonDelivery,
       returnPolicy: "Возврат в ПВЗ Ozon за 30 дней",
-      advantage: !isWbBest ? "🔥 Победитель дуэли цен" : `Дороже на ${ozonPrice - wbPrice} ₽`,
-      statusBadge: !isWbBest ? "★ Победитель дуэли" : "В наличии",
+      advantage: !isWbBest
+        ? triumphContext?.slotType === "express"
+          ? "⚡ Победитель: доставка Ozon со склада быстрее всех"
+          : triumphContext?.slotType === "economist"
+            ? "🔥 Победитель: минимальная подтвержденная цена"
+            : "★ Победитель дуэли маркетплейсов"
+        : `Дороже на ${Math.max(1, ozonPrice - wbPrice)} ₽`,
+      statusBadge: !isWbBest
+        ? triumphContext?.slotType === "express"
+          ? "★ Экспресс Ozon"
+          : triumphContext?.slotType === "economist"
+            ? "★ Лучшая цена"
+            : "★ Победитель дуэли"
+        : "В наличии",
       statusType: !isWbBest ? "success" : "neutral",
       verdictDetail: !isWbBest
-        ? `Минимальная подтвержденная цена на Ozon (${ozonPrice} ₽) со стабильным сроком доставки.`
+        ? triumphContext?.verdict || `Выбор wobuy. на Ozon (${ozonPrice} ₽) со стабильной логистикой ${ozonDelivery}.`
         : `Товар в наличии на Ozon по цене ${ozonPrice} ₽.`,
       isRecommended: !isWbBest,
       url: ozonOffer.url || buildMarketplaceDeepLink("ozon", productTitle),
@@ -355,8 +403,9 @@ function generateDeterministicAnalysis(
   category: string,
   price: number,
   offers: Array<{ marketplace: string; price: number | null; rating: number | null; reviewCount?: number | null; deliveryText?: string; url?: string }>,
+  triumphContext?: TriumphContext,
 ): AiAnalysisResult {
-  const comparison = buildMarketplaceComparison(productTitle, price, offers);
+  const comparison = buildMarketplaceComparison(productTitle, price, offers, triumphContext);
   const bestMkt = comparison.find((c) => c.isRecommended && c.price !== null) || comparison.find((c) => c.price !== null) || comparison[0];
 
   const totalReviews = offers.reduce((acc, o) => acc + (o.reviewCount || 0), 0);
@@ -657,6 +706,7 @@ function formatAnalysisResult(
   category: string,
   price: number,
   offers: Array<{ marketplace: string; price: number | null; rating: number | null; deliveryText?: string; url?: string }>,
+  triumphContext?: TriumphContext,
 ): AiAnalysisResult {
   const pScore = p.agents?.perfectionist?.score || 9.6;
   const eScore = p.agents?.economist?.score || 9.2;
@@ -664,7 +714,7 @@ function formatAnalysisResult(
   const sScore = p.agents?.skeptic?.score || 9.5;
 
   const avgAiScore = Number(((pScore + eScore + uScore + sScore) / 4).toFixed(1));
-  const comparison = buildMarketplaceComparison(productTitle, price, offers);
+  const comparison = buildMarketplaceComparison(productTitle, price, offers, triumphContext);
   const bestMkt = comparison.find((c) => c.isRecommended) || comparison[0];
   const otherMkt = comparison.find((c) => c.marketplace !== bestMkt.marketplace);
 

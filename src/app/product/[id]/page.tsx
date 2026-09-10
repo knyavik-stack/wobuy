@@ -41,7 +41,13 @@ export default async function ProductPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ fromQuery?: string; q?: string }>;
+  searchParams: Promise<{
+    fromQuery?: string;
+    q?: string;
+    fromSlot?: string;
+    slotTitle?: string;
+    slotMarketplace?: string;
+  }>;
 }) {
   const { id } = await params;
   const sParams = await searchParams;
@@ -90,7 +96,20 @@ export default async function ProductPage({
   const bestPrice = bestOffer?.price ?? null;
   const currency = bestOffer?.currency || "RUB";
 
-  // Выполняем генерацию полного вердикта мультиагентного анализа wobuy.
+  // Считываем контекст триумфатора из модели товара или параметров URL
+  const triumphData = resolved.triumph || (sParams.fromSlot ? {
+    slotType: (sParams.fromSlot === "wb_champion" ? "wb" : sParams.fromSlot === "ozon_champion" ? "ozon" : sParams.fromSlot) as "wb" | "ozon" | "economist" | "express",
+    badgeTitle: sParams.slotTitle || (sParams.fromSlot === "express" ? "Триумф Срочного" : sParams.fromSlot === "economist" ? "Триумф Экономного" : "Победитель"),
+    badgeSubtitle: sParams.fromSlot === "express" ? "Экспресс-доставка FBO" : sParams.fromSlot === "economist" ? "Минимальная цена на рынке" : "Лидер маркетплейса",
+    marketplace: sParams.slotMarketplace || (bestOffer?.marketplace?.toLowerCase().includes("wildberries") ? "wildberries" : "ozon"),
+    verdict: sParams.fromSlot === "express"
+      ? "wobuy. выбрал этот товар за лучшую скорость логистики со склада FBO."
+      : sParams.fromSlot === "economist"
+        ? "wobuy. выбрал этот товар за минимальную подтвержденную цену в категории."
+        : "wobuy. выбрал этот товар как абсолютного лидера категории.",
+  } : null);
+
+  // Выполняем генерацию полного вердикта мультиагентного анализа wobuy. с учетом триумфатора
   const analysis = await generateProductAnalysis(
     resolved.title,
     resolved.brand,
@@ -104,6 +123,13 @@ export default async function ProductPage({
       deliveryText: o.deliveryText,
       url: o.url,
     })),
+    triumphData ? {
+      slotType: triumphData.slotType,
+      badgeTitle: triumphData.badgeTitle,
+      badgeSubtitle: triumphData.badgeSubtitle,
+      marketplace: triumphData.marketplace,
+      verdict: triumphData.verdict,
+    } : undefined,
   );
 
   const aggregateScore = analysis?.aiScore ?? resolved.aiScore ?? 9.4;
@@ -115,17 +141,48 @@ export default async function ProductPage({
     : [resolved.imageUrl];
 
   // Фильтруем сравнение предложений строго по 2 маркетплейсам: Wildberries и Ozon
-  const marketplaceList = (analysis?.marketplaceComparison || []).filter(
+  const rawComparison = (analysis?.marketplaceComparison || []).filter(
     (m) => m.marketplace === "wildberries" || m.marketplace === "ozon"
   );
 
+  const triumphMp = triumphData?.marketplace?.toLowerCase().trim();
+  const isTriumphWb = triumphMp?.includes("wildberries") || triumphMp === "wb" || triumphData?.slotType === "wb";
+  const isTriumphOzon = triumphMp?.includes("ozon") || triumphMp === "oz" || triumphData?.slotType === "ozon";
+
+  // Синхронизируем дуэль: триумфатор ОБЯЗАН побеждать в дуэли
+  const marketplaceList = rawComparison.map((m) => {
+    if (isTriumphWb) {
+      const isWb = m.marketplace === "wildberries";
+      return {
+        ...m,
+        isRecommended: isWb,
+        statusBadge: isWb ? (triumphData?.slotType === "express" ? "★ Экспресс FBO" : "★ Победитель дуэли") : "В наличии",
+        statusType: isWb ? ("success" as const) : ("neutral" as const),
+      };
+    }
+    if (isTriumphOzon) {
+      const isOz = m.marketplace === "ozon";
+      return {
+        ...m,
+        isRecommended: isOz,
+        statusBadge: isOz ? (triumphData?.slotType === "express" ? "★ Экспресс Ozon" : "★ Победитель дуэли") : "В наличии",
+        statusType: isOz ? ("success" as const) : ("neutral" as const),
+      };
+    }
+    return m;
+  });
+
   // Определяем явного победителя дуэли (Выбор wobuy.)
   const recommendedMkt = marketplaceList.find((m) => m.isRecommended) || marketplaceList[0];
-  const winnerMarketplaceName = recommendedMkt
-    ? recommendedMkt.name
-    : bestOffer?.marketplace?.toLowerCase().includes("wildberries")
-      ? "Wildberries"
-      : "Ozon";
+  const winnerMarketplaceName = isTriumphWb
+    ? "Wildberries"
+    : isTriumphOzon
+      ? "Ozon"
+      : recommendedMkt
+        ? recommendedMkt.name
+        : bestOffer?.marketplace?.toLowerCase().includes("wildberries")
+          ? "Wildberries"
+          : "Ozon";
   const winnerUrl = recommendedMkt?.url || bestOffer?.url || "#";
 
   return (
@@ -244,6 +301,44 @@ export default async function ProductPage({
                 />
               </div>
             </div>
+
+            {/* СТАТУС ТРИУМФАТОРА WOBUY. (ЕСЛИ ТОВАР ОТОБРАН КАК ТРИУМФАТОР) */}
+            {triumphData && (
+              <div className="mb-4 overflow-hidden rounded-3xl border border-[#00FF87]/50 bg-gradient-to-r from-[#12151B] via-emerald-950/40 to-[#12151B] p-5 shadow-[0_0_30px_rgba(0,255,135,0.15)] ring-1 ring-[#00FF87]/30">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#00FF87] text-black font-black text-sm shadow-md">
+                      ★
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
+                          {triumphData.badgeTitle}
+                        </span>
+                        <span className="rounded-full border border-[#00FF87]/40 bg-[#00FF87]/10 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
+                          Триумфатор wobuy.
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-400">
+                        {triumphData.badgeSubtitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold text-white">
+                    <span className="text-slate-400">Отобран на:</span>
+                    <span className="font-extrabold text-[#00FF87]">
+                      {triumphData.marketplace.toLowerCase().includes("wildberries") || triumphData.marketplace === "wb" ? "Wildberries" : "Ozon"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-xl border border-white/5 bg-black/30 p-3 text-xs leading-relaxed text-slate-200">
+                  <span className="font-black text-white">Почему wobuy. выбрал этот товар: </span>
+                  <span className="text-slate-200">{triumphData.verdict}</span>
+                </div>
+              </div>
+            )}
 
             {/* ДУЭЛЬ ПРЕДЛОЖЕНИЙ: WILDBERRIES VS OZON (СТРОГО 2 МАРКЕТПЛЕЙСА) */}
             <div id="product-duel-section" className="flex flex-1 flex-col justify-between rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl">

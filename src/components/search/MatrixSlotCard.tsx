@@ -43,11 +43,16 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
     tcoBreakdown,
   } = slot;
 
-  const productLink = `/product/${product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
-
   const marketplaceName = matchedOffer.marketplace.toLowerCase().includes("wildberries")
     ? "Wildberries"
     : "Ozon";
+
+  const productLinkParams = new URLSearchParams();
+  if (query) productLinkParams.set("fromQuery", query);
+  productLinkParams.set("fromSlot", slotType);
+  productLinkParams.set("slotTitle", badgeTitle);
+  productLinkParams.set("slotMarketplace", marketplaceName);
+  const productLink = `/product/${product.id}?${productLinkParams.toString()}`;
 
   const aiScore = product.aiScore || 9.4;
   const scoreGlow =
@@ -77,6 +82,18 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
             {slotType === "express" && <span>⚡</span>}
             <span>{badgeTitle}</span>
           </div>
+
+          {(slotType === "economist" || slotType === "express") && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                marketplaceName === "Wildberries"
+                  ? "border border-purple-500/40 bg-purple-950/60 text-purple-300"
+                  : "border border-blue-500/40 bg-blue-950/60 text-blue-300"
+              }`}
+            >
+              на {marketplaceName}
+            </span>
+          )}
 
           <span className="hidden sm:inline text-xs font-semibold text-slate-300">
             {badgeSubtitle}

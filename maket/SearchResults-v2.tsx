@@ -10,8 +10,8 @@ import {
   Bookmark,
   Scale,
 } from "lucide-react";
-import { SearchProduct } from "@/lib/catalog/search";
-import { buildHybridMatrix2x2, HybridMatrix2x2, MatrixSlot } from "@/lib/catalog/duel-matrix";
+import type { SearchProduct } from "@/lib/catalog/product-types";
+import { buildHybridMatrix2x2, type HybridMatrix2x2, type MatrixSlot } from "@/lib/catalog/duel-matrix";
 import { DuelArbitrationCard } from "@/components/search/DuelArbitrationCard";
 import { MatrixSlotCard } from "@/components/search/MatrixSlotCard";
 import { saveSearch } from "@/app/actions";
