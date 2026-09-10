@@ -539,6 +539,8 @@ export default async function ProductPage({
             avgScore={aggregateScore}
             finalVerdict={analysis?.verdict || "Рекомендовано к покупке"}
             recommendedMarketplace={winnerMarketplaceName}
+            funnelStats={analysis?.funnelStats}
+            productTitle={resolved.title}
           />
         </section>
 

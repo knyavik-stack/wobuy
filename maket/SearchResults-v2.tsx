@@ -17,46 +17,8 @@ import { MatrixSlotCard } from "@/components/search/MatrixSlotCard";
 import { saveSearch } from "@/app/actions";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { NeonDot } from "@/components/brand/WobuyDot";
+import { AuditFunnelBanner } from "@/components/brand/AuditFunnelBanner";
 import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
-
-// Баннер проверенного аудита поисковой выдачи
-function ScreeningStatsBanner({
-  totalAnalyzed,
-  query,
-}: {
-  totalAnalyzed: number;
-  query: string;
-}) {
-  return (
-    <section className="mb-6 overflow-hidden rounded-3xl border border-emerald-500/25 bg-[#12151B] p-5 shadow-2xl backdrop-blur-md md:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-[#00FF87] shadow-[0_0_8px_#00FF87]" />
-            <h2 className="text-sm font-extrabold uppercase tracking-widest text-white sm:text-base">
-              Аудит предложений wobuy<NeonDot size="xs" /> {query ? `«${query}»` : ""}
-            </h2>
-          </div>
-          <p className="mt-1 text-xs text-slate-300">
-            Синхронная сверка {totalAnalyzed > 0 ? `${totalAnalyzed} предложений` : "цен"} Wildberries и Ozon. Отобраны товары с подтвержденным рейтингом и быстрой доставкой со склада.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-[11px]">
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-3 py-1.5 font-bold text-emerald-300">
-            ✓ Реальные цены и TCO
-          </div>
-          <div className="rounded-xl border border-purple-500/30 bg-purple-950/40 px-3 py-1.5 font-bold text-purple-300">
-            ★ Проверенный рейтинг 4.5+
-          </div>
-          <div className="rounded-xl border border-blue-500/30 bg-blue-950/40 px-3 py-1.5 font-bold text-blue-300">
-            ⚡ Доставка со склада (FBO)
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function SearchResults({
   query,
@@ -185,8 +147,8 @@ export default function SearchResults({
 
       {/* Основной контент */}
       <main className="mx-auto max-w-7xl px-4 pt-5 md:px-8">
-        {/* Баннер проверенного аудита */}
-        {matrix && <ScreeningStatsBanner totalAnalyzed={products.length} query={query} />}
+        {/* Честная воронка отбора предложений и нагрузка 4 агентов */}
+        {matrix && <AuditFunnelBanner stats={matrix.funnelStats} query={query} className="mb-6" />}
 
         {/* ПАНЕЛЬ УПРАВЛЕНИЯ: Быстрый тумблер маркетплейсов + Категории */}
         <div className="mb-6 flex flex-col gap-4">

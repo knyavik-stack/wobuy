@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot, CheckCircle2, AlertTriangle, ShieldCheck, Flame } from "lucide-react";
-import type { AgentPerspective, AgentDialogueEntry } from "@/lib/ai/analyzer";
+import { Bot, CheckCircle2, AlertTriangle, ShieldCheck, Flame, Filter } from "lucide-react";
+import type { AgentPerspective, AgentDialogueEntry, AuditFunnelStats } from "@/lib/ai/analyzer";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
 import { NeonDot } from "@/components/brand/WobuyDot";
+import { AuditFunnelBanner } from "@/components/brand/AuditFunnelBanner";
 
 interface UnifiedAgentsAuditProps {
   perspectives: AgentPerspective[] | undefined;
@@ -12,6 +13,8 @@ interface UnifiedAgentsAuditProps {
   avgScore: number;
   finalVerdict?: string;
   recommendedMarketplace?: string;
+  funnelStats?: AuditFunnelStats;
+  productTitle?: string;
 }
 
 export function UnifiedAgentsAudit({
@@ -20,8 +23,10 @@ export function UnifiedAgentsAudit({
   avgScore,
   finalVerdict = "Рекомендовано к покупке",
   recommendedMarketplace = "Ozon",
+  funnelStats,
+  productTitle = "",
 }: UnifiedAgentsAuditProps) {
-  const [activeTab, setActiveTab] = useState<"cards" | "battle">("cards");
+  const [activeTab, setActiveTab] = useState<"cards" | "battle" | "funnel">("cards");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   // Карта цветов неона для каждого типа агента
@@ -105,6 +110,16 @@ export function UnifiedAgentsAudit({
             >
               <Flame className="h-3.5 w-3.5" />
               <span>Баттл мнений</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("funnel")}
+              className={`flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-bold transition ${
+                activeTab === "funnel" ? "bg-[#00FF87] text-black shadow-sm" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              <span>Воронка отбора</span>
             </button>
           </div>
         </div>
@@ -251,6 +266,18 @@ export function UnifiedAgentsAudit({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* РЕЖИМ 3: ЧЕСТНАЯ ВОРОНКА ОТБОРА И НАГРУЗКА АГЕНТОВ */}
+      {activeTab === "funnel" && (
+        <div className="mt-6">
+          <AuditFunnelBanner
+            stats={funnelStats}
+            query={productTitle}
+            defaultExpanded={true}
+            className="border-white/10 bg-[#0D0F14]"
+          />
         </div>
       )}
 

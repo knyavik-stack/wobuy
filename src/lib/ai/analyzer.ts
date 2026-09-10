@@ -1,5 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { buildOzonProductUrl, buildWildberriesProductUrl } from "@/lib/marketplace-links";
+import type { AuditFunnelStats } from "@/lib/catalog/product-types";
+import { generateAuditFunnelStats } from "@/lib/catalog/duel-matrix";
+
+export type { AuditFunnelStats };
 
 export interface AgentPerspective {
   archetype: string;
@@ -101,6 +105,7 @@ export interface AiAnalysisResult {
   reviewSummary?: ReviewSummary;
   priceTrend?: PriceTrendData;
   fomoAlternatives?: FomoAlternative[];
+  funnelStats?: AuditFunnelStats;
 }
 
 /**
@@ -683,6 +688,11 @@ function generateDeterministicAnalysis(
         marketplace: "Wildberries",
       },
     ],
+    funnelStats: generateAuditFunnelStats(
+      offers.filter((o) => o.marketplace.toLowerCase().includes("wildberries") || o.marketplace.toLowerCase().includes("wb")).length,
+      offers.filter((o) => o.marketplace.toLowerCase().includes("ozon")).length,
+      productTitle,
+    ),
   };
 }
 
@@ -937,5 +947,10 @@ function formatAnalysisResult(
         marketplace: "Wildberries",
       },
     ],
+    funnelStats: generateAuditFunnelStats(
+      offers.filter((o) => o.marketplace.toLowerCase().includes("wildberries") || o.marketplace.toLowerCase().includes("wb")).length,
+      offers.filter((o) => o.marketplace.toLowerCase().includes("ozon")).length,
+      productTitle,
+    ),
   };
 }

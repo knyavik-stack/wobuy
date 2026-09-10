@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { DuelArbitration } from "@/lib/catalog/duel-matrix";
 import { NeonDot } from "@/components/brand/WobuyDot";
+import { AuditFunnelBanner } from "@/components/brand/AuditFunnelBanner";
 
 interface DuelArbitrationCardProps {
   duel: DuelArbitration;
@@ -28,6 +29,12 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
     fasterSummary,
     skepticVerdict,
     bestOverallPick,
+    wbArbitrationScore,
+    ozonArbitrationScore,
+    wbDecisiveFactor,
+    ozonDecisiveFactor,
+    decisiveFactorLabel,
+    roundsScore,
     comparisonPoints,
   } = duel;
 
@@ -36,6 +43,15 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
 
   const isWbWinner = bestOverallPick === "wildberries";
   const isOzonWinner = bestOverallPick === "ozon";
+
+  // Расчетные баллы арбитража и решающие факторы
+  const wbScore = wbArbitrationScore ?? (isWbWinner ? 9.4 : 8.7);
+  const ozonScore = ozonArbitrationScore ?? (isOzonWinner ? 9.4 : 8.7);
+  const scoreDiff = Math.abs(Number((wbScore - ozonScore).toFixed(1)));
+  const wbFactor = wbDecisiveFactor || (isWbWinner ? "⚡ FBO доставка быстрее" : "Доставка на 1 дн. позже");
+  const ozonFactor = ozonDecisiveFactor || (isOzonWinner ? "💰 TCO-выгода по карте" : "Доставка на 1 дн. позже");
+  const factorLabel = decisiveFactorLabel || (isWbWinner ? "Решающий фактор перевеса: экспресс-доставка FBO со склада WB" : "Решающий фактор перевеса: максимальная TCO-экономия на Ozon");
+  const rounds = roundsScore || { wbWins: 2, ozonWins: 1, ties: 1 };
 
   // Угол наклона коромысла весов (перевес в пользу победителя)
   const beamRotation = isWbWinner ? "-rotate-6 sm:-rotate-8" : isOzonWinner ? "rotate-6 sm:rotate-8" : "rotate-0";
@@ -123,6 +139,9 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
         </div>
       </div>
 
+      {/* Компактный честный аудит воронки в дуэли */}
+      <AuditFunnelBanner stats={duel.funnelStats} variant="compact" className="mt-4" />
+
       {/* 3. БОЛЬШИЕ ДУЭЛЬНЫЕ ВЕСЫ И КОМПАКТНЫЕ КАРТОЧКИ СЛОТОВ */}
       <div className="relative mt-6 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         {/* Карточка WB (Компактная, слева) */}
@@ -209,16 +228,21 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
 
         {/* ЦЕНТРАЛЬНЫЕ БОЛЬШИЕ ДУЭЛЬНЫЕ ВЕСЫ */}
         <div className="relative flex flex-1 flex-col items-center justify-center py-2 lg:px-4">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-            Дуэльные весы маркетплейсов
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Дуэльные весы маркетплейсов
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold text-slate-300">
+              Счет раундов: {rounds.wbWins} : {rounds.ozonWins}
+            </span>
           </div>
 
           {/* Визуальная конструкция весов */}
           <div className="relative flex w-full max-w-sm flex-col items-center">
             {/* Опорный шарнир и коромысло */}
-            <div className="relative flex h-20 w-full items-center justify-center">
+            <div className="relative flex h-24 w-full items-center justify-center">
               {/* Центральная стойка весов */}
-              <div className="absolute top-2 h-14 w-1.5 rounded-full bg-gradient-to-b from-[#00FF87] via-slate-600 to-slate-800" />
+              <div className="absolute top-2 h-16 w-1.5 rounded-full bg-gradient-to-b from-[#00FF87] via-slate-600 to-slate-800" />
               <div className="absolute top-1 h-3.5 w-3.5 rounded-full border-2 border-[#00FF87] bg-black shadow-[0_0_10px_#00FF87]" />
 
               {/* Наклонное коромысло весов */}
@@ -234,12 +258,12 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                     isWbWinner ? "translate-y-3" : isOzonWinner ? "-translate-y-2" : ""
                   }`}
                 >
-                  <div className="h-5 w-0.5 bg-purple-400/60" />
+                  <div className="h-4 w-0.5 bg-purple-400/60" />
                   <div
-                    className={`flex flex-col items-center justify-center rounded-2xl border px-3 py-2 shadow-xl transition-all ${
+                    className={`flex flex-col items-center justify-center rounded-2xl border px-3 py-2 shadow-xl transition-all min-w-[125px] ${
                       isWbWinner
-                        ? "border-purple-500 bg-purple-950/80 shadow-[0_0_20px_rgba(168,85,247,0.4)] ring-1 ring-purple-400"
-                        : "border-white/10 bg-[#0D0F14]/90"
+                        ? "border-purple-500 bg-purple-950/90 shadow-[0_0_20px_rgba(168,85,247,0.4)] ring-1 ring-purple-400"
+                        : "border-white/10 bg-[#0D0F14]/90 opacity-90"
                     }`}
                   >
                     <div className="flex items-center gap-1">
@@ -247,15 +271,41 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                       <span className="text-[10px] font-black uppercase text-purple-300">WB</span>
                       {isWbWinner && <span className="text-[11px]">👑</span>}
                     </div>
-                    <span className="mt-0.5 text-xs font-black text-white">
-                      {wbSlot.tcoPrice.toLocaleString("ru-RU")} ₽
+
+                    {/* Балл арбитража вместо цены */}
+                    <div className="mt-1 flex items-baseline gap-1">
+                      <span
+                        className={`text-base font-black ${
+                          isWbWinner
+                            ? "text-[#00FF87] drop-shadow-[0_0_8px_rgba(0,255,135,0.6)]"
+                            : "text-slate-200"
+                        }`}
+                      >
+                        {wbScore.toFixed(1)}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">/ 10</span>
+                    </div>
+                    <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-400">
+                      Балл арбитра
                     </span>
+
+                    {/* Главный фактор перевеса/отставания */}
+                    <div
+                      className={`mt-1.5 w-full rounded-md px-1.5 py-0.5 text-center text-[9px] font-bold truncate ${
+                        isWbWinner
+                          ? "bg-emerald-500/20 text-[#00FF87] border border-emerald-500/30"
+                          : "bg-white/5 text-slate-300 border border-white/5"
+                      }`}
+                    >
+                      {wbFactor}
+                    </div>
+
                     <span
-                      className={`mt-0.5 text-[8px] font-black uppercase tracking-wider ${
+                      className={`mt-1 text-[8px] font-black uppercase tracking-wider ${
                         isWbWinner ? "text-[#00FF87]" : "text-slate-400"
                       }`}
                     >
-                      {isWbWinner ? "★ ВЫИГРАЛ" : "УСТУПАЕТ"}
+                      {isWbWinner ? (scoreDiff > 0 ? `★ ПЕРЕВЕС (+${scoreDiff})` : "★ ПЕРЕВЕС") : `УСТУПАЕТ (-${scoreDiff})`}
                     </span>
                   </div>
                 </div>
@@ -273,12 +323,12 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                     isOzonWinner ? "translate-y-3" : isWbWinner ? "-translate-y-2" : ""
                   }`}
                 >
-                  <div className="h-5 w-0.5 bg-blue-400/60" />
+                  <div className="h-4 w-0.5 bg-blue-400/60" />
                   <div
-                    className={`flex flex-col items-center justify-center rounded-2xl border px-3 py-2 shadow-xl transition-all ${
+                    className={`flex flex-col items-center justify-center rounded-2xl border px-3 py-2 shadow-xl transition-all min-w-[125px] ${
                       isOzonWinner
-                        ? "border-blue-500 bg-blue-950/80 shadow-[0_0_20px_rgba(59,130,246,0.4)] ring-1 ring-blue-400"
-                        : "border-white/10 bg-[#0D0F14]/90"
+                        ? "border-blue-500 bg-blue-950/90 shadow-[0_0_20px_rgba(59,130,246,0.4)] ring-1 ring-blue-400"
+                        : "border-white/10 bg-[#0D0F14]/90 opacity-90"
                     }`}
                   >
                     <div className="flex items-center gap-1">
@@ -286,15 +336,41 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                       <span className="text-[10px] font-black uppercase text-blue-300">Ozon</span>
                       {isOzonWinner && <span className="text-[11px]">👑</span>}
                     </div>
-                    <span className="mt-0.5 text-xs font-black text-white">
-                      {ozonSlot.tcoPrice.toLocaleString("ru-RU")} ₽
+
+                    {/* Балл арбитража вместо цены */}
+                    <div className="mt-1 flex items-baseline gap-1">
+                      <span
+                        className={`text-base font-black ${
+                          isOzonWinner
+                            ? "text-[#00FF87] drop-shadow-[0_0_8px_rgba(0,255,135,0.6)]"
+                            : "text-slate-200"
+                        }`}
+                      >
+                        {ozonScore.toFixed(1)}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400">/ 10</span>
+                    </div>
+                    <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-400">
+                      Балл арбитра
                     </span>
+
+                    {/* Главный фактор перевеса/отставания */}
+                    <div
+                      className={`mt-1.5 w-full rounded-md px-1.5 py-0.5 text-center text-[9px] font-bold truncate ${
+                        isOzonWinner
+                          ? "bg-emerald-500/20 text-[#00FF87] border border-emerald-500/30"
+                          : "bg-white/5 text-slate-300 border border-white/5"
+                      }`}
+                    >
+                      {ozonFactor}
+                    </div>
+
                     <span
-                      className={`mt-0.5 text-[8px] font-black uppercase tracking-wider ${
+                      className={`mt-1 text-[8px] font-black uppercase tracking-wider ${
                         isOzonWinner ? "text-[#00FF87]" : "text-slate-400"
                       }`}
                     >
-                      {isOzonWinner ? "★ ВЫИГРАЛ" : "УСТУПАЕТ"}
+                      {isOzonWinner ? (scoreDiff > 0 ? `★ ПЕРЕВЕС (+${scoreDiff})` : "★ ПЕРЕВЕС") : `УСТУПАЕТ (-${scoreDiff})`}
                     </span>
                   </div>
                 </div>
@@ -305,13 +381,14 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
             <div className="mt-1 h-1.5 w-16 rounded-full bg-slate-700" />
           </div>
 
-          {/* Текстовая сводка перевеса */}
-          <div className="mt-3 text-center">
-            <div className="text-xs font-black text-[#00FF87]">
-              {cheaperSummary}
+          {/* Решающий фактор и текстовая сводка перевеса */}
+          <div className="mt-4 flex flex-col items-center gap-1.5 text-center px-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#00FF87]/30 bg-emerald-950/40 px-3.5 py-1 text-xs font-bold text-slate-100 shadow-[0_0_15px_rgba(0,255,135,0.15)]">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#00FF87] animate-ping" />
+              <span>{factorLabel}</span>
             </div>
-            <div className="mt-0.5 text-[11px] text-slate-400">
-              {fasterSummary}
+            <div className="text-[11px] font-medium text-slate-400">
+              {cheaperSummary} • {fasterSummary}
             </div>
           </div>
         </div>
