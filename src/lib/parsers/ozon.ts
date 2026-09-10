@@ -1,4 +1,5 @@
 import { RawMarketplaceOffer } from "./types";
+import { buildOzonProductUrl } from "@/lib/marketplace-links";
 
 export const OZON_DEFAULT_HEADERS = {
   Accept: "application/json, text/plain, */*",
@@ -94,8 +95,8 @@ export async function searchOzon(
                   rating: item?.rating ? Number(item.rating) : 4.8,
                   reviewCount: item?.commentsCount || 120,
                   url: item?.action?.link
-                    ? `https://www.ozon.ru${item.action.link}`
-                    : `https://www.ozon.ru/product/${sku}`,
+                    ? (item.action.link.startsWith("http") ? item.action.link : `https://www.ozon.ru${item.action.link}`)
+                    : buildOzonProductUrl(title, sku),
                   imageUrl:
                     item?.image?.link ||
                     item?.tileImage?.link ||

@@ -7,7 +7,7 @@ export default function TermsPage() {
         <Link href="/" className="text-sm font-semibold text-[#00FF87] hover:underline">
           ← На главную
         </Link>
-        <h1 className="mt-8 text-3xl font-extrabold text-white">Условия использования wobuy.</h1>
+        <h1 className="mt-8 text-3xl font-extrabold text-white">Условия использования wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></h1>
         <p className="mt-4 text-sm leading-7 text-slate-400">
           Демонстрационная версия документа для тестового окружения. Финальные условия будут
           опубликованы перед запуском публичного сервиса.
@@ -16,7 +16,7 @@ export default function TermsPage() {
           <div>
             <h2 className="font-bold text-white">1. Назначение сервиса</h2>
             <p>
-              wobuy. помогает сравнивать предложения товаров и формировать рекомендации. В
+              wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> помогает сравнивать предложения товаров и формировать рекомендации. В
               демо-режиме данные не являются коммерческими предложениями.
             </p>
           </div>

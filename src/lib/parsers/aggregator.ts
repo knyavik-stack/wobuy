@@ -3,6 +3,7 @@ import { searchWildberries, getWildberriesProductDetail } from "./wildberries";
 import { searchOzon } from "./ozon";
 import { clusterAndDeduplicateOffers } from "./deduplicator";
 import { searchWithAiMarketEngine } from "@/lib/ai/ai-search-engine";
+import { buildOzonProductUrl } from "@/lib/marketplace-links";
 
 // In-memory cache с временем жизни 10 минут для снижения нагрузки на маркетплейсы
 interface CacheEntry {
@@ -100,7 +101,7 @@ export async function aggregateMarketplaceSearch(
           currency: "RUB",
           rating: wb.rating ? Math.min(5.0, Math.max(4.5, Number((wb.rating - 0.1).toFixed(1)))) : 4.8,
           reviewCount: wb.reviewCount ? Math.max(10, Math.round(wb.reviewCount * 0.85)) : 120,
-          url: `https://www.ozon.ru/product/${sku}/`,
+          url: buildOzonProductUrl(wb.title, sku),
           imageUrl: wb.imageUrl,
           deliveryDays: wb.deliveryDays ? wb.deliveryDays + (idx % 2 === 0 ? 1 : 0) : 2,
           deliveryText: "2-3 дня (со склада Ozon)",

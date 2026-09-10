@@ -52,9 +52,9 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
             <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse shadow-[0_0_6px_#c084fc]" />
             <span>Анализ Слот 1 (Wildberries)</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-[#00FF87]/30 bg-[#00FF87]/10 px-3 py-0.5 text-[#00FF87] shadow-[0_0_10px_rgba(0,255,135,0.2)]">
-            <Scale className="h-3 w-3" />
-            <span>Синхронный арбитраж дуэли wobuy.</span>
+          <div className="flex items-center gap-1.5 rounded-full border border-[#00FF87]/30 bg-[#00FF87]/10 px-3 py-0.5 text-white shadow-[0_0_10px_rgba(0,255,135,0.2)]">
+            <Scale className="h-3 w-3 text-[#00FF87]" />
+            <span>Синхронный арбитраж дуэли wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
           </div>
           <div className="flex items-center gap-1.5 text-blue-300">
             <span>Анализ Слот 2 (Ozon)</span>
@@ -200,7 +200,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                 className="flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-[11px] font-bold text-white transition hover:border-[#00FF87]/40 hover:bg-white/10"
               >
                 <span>Разбор в</span>
-                <span className="font-black text-[#00FF87]">wobuy.</span>
+                <span className="font-black text-white">wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
               </Link>
             </div>
           </div>
@@ -391,7 +391,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                 className="flex items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-[11px] font-bold text-white transition hover:border-[#00FF87]/40 hover:bg-white/10"
               >
                 <span>Разбор в</span>
-                <span className="font-black text-[#00FF87]">wobuy.</span>
+                <span className="font-black text-white">wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></span>
               </Link>
             </div>
           </div>

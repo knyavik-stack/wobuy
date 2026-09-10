@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-09-10 (Обновление 2)
+
+- **Фирменная неоновая точка бренда «wobuy.»**:
+  - Реализован компонент `WobuyDot` / `WobuyWord` (`src/components/brand/WobuyDot.tsx`) и произведена интеграция неонового свечения точки во всех заголовках и ключевых UI-блоках (`hero-section.tsx`, `product/[id]/page.tsx`, `DuelArbitrationCard.tsx`, `MatrixSlotCard.tsx`, `UnifiedAgentsAudit.tsx`, `TcoCalculatorCard.tsx`, `FomoAlternativesDrawer.tsx`, `SearchResults-v2.tsx`, `terms/page.tsx`).
+- **Устранение сбоя UUID при сохранении товаров в БД Supabase (`src/lib/catalog/semantic-search.ts`)**:
+  - Внедрен хелпер `isValidUuid`, предотвращающий попытку передачи внешних строковых ID (например, `wb-137831077`) в поле `id` таблицы `products`, устраняя ошибку `invalid input syntax for type uuid`.
+- **Единый стандарт ссылок на Ozon (`src/lib/parsers/aggregator.ts`, `src/lib/parsers/ozon.ts`, `src/lib/ai/ai-search-engine.ts`)**:
+  - Все генерации ссылок на товары Ozon переведены на использование `buildOzonProductUrl` по стандарту `https://www.ozon.ru/product/{slug}-{sku}/`.
+
 ## 2026-09-10
 
 - **Сквозная прозрачность Триумфов нижнего яруса (`src/lib/catalog/duel-matrix.ts`, `src/lib/catalog/store.ts`, `src/components/search/MatrixSlotCard.tsx`, `src/app/product/[id]/page.tsx`)**:

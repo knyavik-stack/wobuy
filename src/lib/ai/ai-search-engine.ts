@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { CanonicalProductData } from "@/lib/parsers/types";
 import { computeProductAiMetrics } from "@/lib/catalog/search";
+import { buildOzonProductUrl, buildWildberriesProductUrl } from "@/lib/marketplace-links";
 
 export interface AiGeneratedProduct {
   marketplace: "wildberries" | "ozon";
@@ -340,10 +341,10 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
 
       const wbUrl = item.url && item.marketplace === "wildberries"
         ? item.url
-        : `https://www.wildberries.ru/catalog/${extId}/detail.aspx`;
+        : buildWildberriesProductUrl(extId, title);
       const ozonUrl = item.url && item.marketplace === "ozon"
         ? item.url
-        : `https://www.ozon.ru/product/${extId}/`;
+        : buildOzonProductUrl(title, extId);
 
       const offers = [
         {
@@ -476,7 +477,7 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
           id: `ozon-${m.id}`,
           marketplace: "ozon",
           title: m.title,
-          url: `https://www.ozon.ru/product/${m.id}/`,
+          url: buildOzonProductUrl(m.title, m.id),
           price: ozonPrice,
           currency: "RUB",
           rating: Math.max(4.6, m.rating - 0.1),
@@ -523,7 +524,7 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
         id: `wb-${extId}`,
         marketplace: "wildberries",
         title: g.title,
-        url: `https://www.wildberries.ru/catalog/128976792${idx}/detail.aspx`,
+        url: buildWildberriesProductUrl(`128976792${idx}`, g.title),
         price: g.price,
         currency: "RUB",
         rating: 4.8,
@@ -535,7 +536,7 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
         id: `ozon-${extId}`,
         marketplace: "ozon",
         title: g.title,
-        url: `https://www.ozon.ru/product/${extId}/`,
+        url: buildOzonProductUrl(g.title, extId),
         price: Math.round(g.price * 1.05),
         currency: "RUB",
         rating: 4.7,

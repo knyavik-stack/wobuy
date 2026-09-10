@@ -123,6 +123,11 @@ export async function searchProductsSemantically(
   };
 }
 
+function isValidUuid(id?: string): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 /**
  * Сохраняет распарсенный товар в Supabase с генерацией эмбеддинга (LRU / Smart Sync)
  */
@@ -146,9 +151,11 @@ export async function upsertProductWithEmbedding(product: {
   if (!supabase) return null;
 
   try {
+    const hasValidUuid = isValidUuid(product.id);
+
     // 1. Ищем или создаем товар
     let existingQuery = supabase.from("products").select("id").limit(1);
-    if (product.id) {
+    if (hasValidUuid && product.id) {
       existingQuery = existingQuery.eq("id", product.id);
     } else {
       existingQuery = existingQuery.eq("canonical_name", product.canonicalName);
@@ -171,7 +178,7 @@ export async function upsertProductWithEmbedding(product: {
         is_active: true,
       };
 
-      if (product.id) {
+      if (hasValidUuid && product.id) {
         insertPayload.id = product.id;
       }
 

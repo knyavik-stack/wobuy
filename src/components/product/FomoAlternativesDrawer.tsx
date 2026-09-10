@@ -38,7 +38,7 @@ export function FomoAlternativesDrawer({ alternatives }: FomoAlternativesDrawerP
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Показываем, от каких мнимо дешевых покупок с накрученными отзывами wobuy. вас уберег
+              Показываем, от каких мнимо дешевых покупок с накрученными отзывами wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> вас уберег
             </p>
           </div>
         </div>
@@ -52,7 +52,7 @@ export function FomoAlternativesDrawer({ alternatives }: FomoAlternativesDrawerP
       {isOpen && (
         <div className="mt-6 space-y-4 border-t border-white/5 pt-5">
           <div className="rounded-2xl border border-amber-500/20 bg-amber-950/20 p-3.5 text-xs text-amber-300 leading-relaxed">
-            ⚠️ <strong>Принцип честности wobuy.:</strong> Эти товары часто стоят дешевле на маркетплейсах, но наши ИИ-агенты дисквалифицировали их из топа из-за скрытых рисков (боты, высокий процент брака, завышенные сроки доставки).
+            ⚠️ <strong>Принцип честности wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>:</strong> Эти товары часто стоят дешевле на маркетплейсах, но наши ИИ-агенты дисквалифицировали их из топа из-за скрытых рисков (боты, высокий процент брака, завышенные сроки доставки).
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -84,7 +84,7 @@ export function FomoAlternativesDrawer({ alternatives }: FomoAlternativesDrawerP
 
                 <div className="mt-3 flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-slate-500">
                   <span>Статус: Отклонено алгоритмом</span>
-                  <span className="text-[#00FF87] font-bold">✓ wobuy. защитил от покупки</span>
+                  <span className="text-white font-bold">✓ wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> защитил от покупки</span>
                 </div>
               </div>
             ))}

@@ -58,7 +58,7 @@ export function TcoCalculatorCard({
 
       {showTooltip && (
         <div className="mt-4 rounded-2xl border border-[#00FF87]/20 bg-[#0D0F14] p-4 text-xs leading-relaxed text-slate-300">
-          <strong className="text-[#00FF87]">TCO (Total Cost of Ownership) в wobuy.</strong> — это итоговая сумма, которую вы реально заплатите. Мы исключаем навязанные платные подписки, проверяем платность обратной логистики в ваш ПВЗ при отказе и закладываем коэффициент риска брака на основе реальных отзывов.
+          <strong className="text-white">TCO (Total Cost of Ownership) в wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></strong> — это итоговая сумма, которую вы реально заплатите. Мы исключаем навязанные платные подписки, проверяем платность обратной логистики в ваш ПВЗ при отказе и закладываем коэффициент риска брака на основе реальных отзывов.
         </div>
       )}
 
