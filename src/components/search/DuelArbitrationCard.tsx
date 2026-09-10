@@ -148,6 +148,10 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
               <img
                 src={wbSlot.product.imageUrl}
                 alt={wbSlot.product.title}
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  if (el.src.includes("/1.webp")) el.src = el.src.replace("/1.webp", "/2.webp");
+                }}
                 className="h-12 w-12 shrink-0 rounded-xl object-cover border border-white/10"
               />
               <div className="min-w-0">
@@ -335,6 +339,10 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
               <img
                 src={ozonSlot.product.imageUrl}
                 alt={ozonSlot.product.title}
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  if (el.src.includes("/1.webp")) el.src = el.src.replace("/1.webp", "/2.webp");
+                }}
                 className="h-12 w-12 shrink-0 rounded-xl object-cover border border-white/10"
               />
               <div className="min-w-0">

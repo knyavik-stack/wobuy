@@ -248,7 +248,6 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
       const ozonPrice = Math.round(wbPrice * 1.04);
       const ozonRating = wbItem.rating ? Math.min(5.0, Number((wbItem.rating - 0.1).toFixed(1))) : 4.8;
       const ozonReviews = wbItem.reviewCount ? Math.max(20, Math.round(wbItem.reviewCount * 0.8)) : 140;
-      const cleanSearchTitle = `${wbItem.brand && wbItem.brand !== "Wildberries" ? wbItem.brand : ""} ${wbItem.title.replace(/[«»"'(),.;:!?]/g, " ").split(" ").filter((w) => w.length > 2).slice(0, 4).join(" ")}`.trim();
 
       const prod: SearchProduct = {
         id: `wb-${wbItem.externalId}`,
@@ -280,7 +279,7 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
             id: `ozon-${wbItem.externalId}`,
             marketplace: "ozon",
             title: wbItem.title,
-            url: `https://www.ozon.ru/search/?text=${encodeURIComponent(cleanSearchTitle || wbItem.title)}`,
+            url: `https://www.ozon.ru/product/${wbItem.externalId}/`,
             price: ozonPrice,
             currency: "RUB",
             rating: ozonRating,

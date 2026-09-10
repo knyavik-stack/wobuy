@@ -28,6 +28,26 @@ export function ProductGallery({
   const galleryImages = validImages.length > 0 ? validImages : [];
   const activeImage = galleryImages[currentIndex] || "";
 
+  const isVideoMedia = (url: string) =>
+    Boolean(url && (/\.(mp4|webm|ogg|mov)($|\?)/i.test(url) || url.includes("/video/")));
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.currentTarget;
+    // Если упала картинка 1.webp с WB (часто видеообзор), переключаем на 2.webp
+    if (target.src.includes("/images/big/1.webp")) {
+      target.src = target.src.replace("/images/big/1.webp", "/images/big/2.webp");
+      return;
+    }
+    if (target.src.includes("/1.webp")) {
+      target.src = target.src.replace("/1.webp", "/2.webp");
+      return;
+    }
+    // Если в галерее есть следующее фото, пробуем его
+    if (galleryImages.length > 1 && currentIndex === 0) {
+      setCurrentIndex(1);
+    }
+  };
+
   const handlePrev = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -52,14 +72,26 @@ export function ProductGallery({
   if (isCompact) {
     return (
       <div className={`group/gallery relative flex h-44 w-full items-center justify-center overflow-hidden rounded-2xl bg-[#0D0F14] sm:h-40 sm:w-40 sm:shrink-0 ${className}`}>
-        {/* Фотография */}
+        {/* Фотография или видеофайл */}
         {activeImage ? (
-          <img
-            src={activeImage}
-            alt={title}
-            className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover/gallery:scale-105"
-            loading="lazy"
-          />
+          isVideoMedia(activeImage) ? (
+            <video
+              src={activeImage}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="h-full w-full object-contain p-2"
+            />
+          ) : (
+            <img
+              src={activeImage}
+              alt={title}
+              onError={handleImageError}
+              className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover/gallery:scale-105"
+              loading="lazy"
+            />
+          )
         ) : (
           <Sparkles className="h-10 w-10 text-slate-700" />
         )}
@@ -124,11 +156,21 @@ export function ProductGallery({
             />
           </div>
         ) : activeImage ? (
-          <img
-            src={activeImage}
-            alt={title}
-            className="max-h-full max-w-full object-contain"
-          />
+          isVideoMedia(activeImage) ? (
+            <video
+              src={activeImage}
+              controls
+              playsInline
+              className="max-h-full max-w-full rounded-2xl object-contain"
+            />
+          ) : (
+            <img
+              src={activeImage}
+              alt={title}
+              onError={handleImageError}
+              className="max-h-full max-w-full object-contain"
+            />
+          )
         ) : (
           <Sparkles className="h-16 w-16 text-slate-700" />
         )}

@@ -206,14 +206,22 @@ export function formatWbProductToOffer(
       ? "1-2 дня (со склада WB)"
       : "2-3 дня (со склада WB)";
 
-  const imageUrl = getWbImageUrl(p.id, 1);
+  // Если у товара более 1 фото, основным фото берем индекс 2 (индекс 1 на WB часто является видеообзором)
+  const picCount = Math.min(6, Math.max(1, p.pics || 1));
+  const primaryIndex = p.pics && p.pics > 1 ? 2 : 1;
+  const imageUrl = getWbImageUrl(p.id, primaryIndex);
   const realTitle = (detail?.imt_name || p.name || p.brand || `Товар WB ${p.id}`).trim();
 
-  // Собираем галерею фото
-  const picCount = Math.min(6, Math.max(1, p.pics || 1));
+  // Собираем галерею фото: фото 2 на первом месте, затем 1, затем остальные
   const images: string[] = [];
-  for (let i = 1; i <= picCount; i++) {
-    images.push(getWbImageUrl(p.id, i));
+  if (p.pics && p.pics > 1) {
+    images.push(getWbImageUrl(p.id, 2));
+    images.push(getWbImageUrl(p.id, 1));
+    for (let i = 3; i <= picCount; i++) {
+      images.push(getWbImageUrl(p.id, i));
+    }
+  } else {
+    images.push(getWbImageUrl(p.id, 1));
   }
 
   return {
