@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-09-11
+
+- **Реализация реального парсинга Wildberries и Ozon без API (`src/lib/parsers/wb-client.ts`, `src/lib/parsers/wildberries.ts`, `src/lib/parsers/ozon.ts`, `workers/ozon-worker.js`, `src/lib/parsers/deduplicator.ts`)**:
+  - **Парсинг Wildberries в реальном времени**:
+    - Прямой вызов публичного поискового шлюза `search.wb.ru` с полным комплектом современных браузерных заголовков.
+    - Парсинг карточек и селлеров через CDN-кластер `basket-XX.wbbasket.ru` с динамической ротацией корзин (проверка кандидатов ±1, ±2) и кэшированием корзин `NM_BASKET_CACHE`.
+    - Подтягивание реальных цен, скидок, рейтингов, остатков, количества отзывов и юридических названий селлеров.
+  - **Парсинг Ozon и защита от WAF-блокировок**:
+    - Добавлена архитектура бесплатного скрапера `workers/ozon-worker.js` на Cloudflare Workers (100 000 бесплатных вызовов в день), обходящего блокировки IP датацентров Vercel.
+    - Поддержка `OZON_SCRAPER_WORKER_URL` в `src/lib/parsers/ozon.ts`.
+    - Чтение cookies из `cookie.txt` для обхода первичных проверок.
+    - Парсинг блоков `widgetStates` (tileGrid, searchResults, skuGrid) и безопасный fallback при блокировках.
+  - **Обогащение офферов**:
+    - Передача `sellerName` и `sellerRating` в канонические карточки и результаты поиска.
+
+- **Устранение сетевой ошибки парсера Ozon (`src/lib/parsers/ozon.ts`, `src/lib/parsers/aggregator.ts`)**:
+  - Устранена ошибка `[Ozon Search] Запрос к Ozon API: TypeError: fetch failed`. Сетевые вызовы обернуты в перехватчик с таймаутом и безопасным логированием, исключив падение запросов при блокировках датацентров WAF маркетплейса.
+  - Обеспечен мгновенный переход на агрегационный конвейер предложений wobuy.
+
+- **Комплексный аудит безопасности и защита от атак (`src/lib/utils/password-policy.ts`, `src/lib/utils/secure-logger.ts`, `src/lib/utils/rate-limiter.ts`, `next.config.ts`, `src/middleware.ts`, `src/app/api/admin/clean-demo/route.ts`)**:
+  - **Строгая политика паролей**: проверка латиницы (a-z, A-Z, 0-9), длины от 8 символов, наличия заглавных, строчных букв и цифр, запрет кириллицы. Реализован наглядный интерактивный чеклист выполнения критериев и тумблер показа/скрытия пароля в формах регистрации и смены пароля.
+  - **Безопасное логирование**: исключение утечки персональных данных, паролей, Bearer-токенов, cookie и API-ключей в логи (`secure-logger.ts` со стриппингом и маскированием `[REDACTED]`).
+  - **Защита от DDoS и атак перебором**: подключен Rate Limiting на API-маршруты `/api/search` (60 rpm), `/api/ai/analyze` (30 rpm), `/api/parse/wb` (40 rpm), `/api/parse/ozon` (40 rpm) с возвратом статуса `429 Too Many Requests` и заголовком `Retry-After`.
+  - **Защита административного API**: роут `/api/admin/clean-demo` закрыт проверкой заголовка `x-admin-key`, запрещая неавторизованные мутации базы.
+  - **HTTP Security Headers**: добавлены `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
+  - **Защита от Prompt Injection и DoS**: ограничена максимальная длина входящих поисковых и пользовательских строк перед отправкой в AI-модели и поисковый движок.
+
 ## 2026-09-10
 
 - **100% Прозрачная Воронка Отбора и Нагрузка 4 ИИ-Агентов (`src/components/brand/AuditFunnelBanner.tsx`, `src/lib/catalog/duel-matrix.ts`, `src/lib/ai/analyzer.ts`, `maket/SearchResults-v2.tsx`, `src/components/search/DuelArbitrationCard.tsx`, `src/components/product/UnifiedAgentsAudit.tsx`)**:

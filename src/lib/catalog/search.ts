@@ -259,6 +259,8 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
             reviewCount: wbItem.reviewCount || 420,
             deliveryText: wbItem.deliveryText || "1-2 дня (склад WB)",
             availability: wbItem.availability || "in_stock",
+            sellerName: wbItem.sellerName || "Продавец Wildberries",
+            sellerRating: wbItem.sellerRating || 4.7,
           },
           {
             id: `ozon-${wbItem.externalId}`,
@@ -271,6 +273,8 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
             reviewCount: ozonReviews,
             deliveryText: "2-3 дня (со склада Ozon)",
             availability: "in_stock",
+            sellerName: "Ozon Retail / Продавец Ozon",
+            sellerRating: 4.8,
           },
         ],
       };

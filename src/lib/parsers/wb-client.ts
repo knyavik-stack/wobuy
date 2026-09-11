@@ -55,8 +55,11 @@ export interface WbSellerJson {
   trademark?: string;
 }
 
+const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
+
 /**
- * Надежный системный запрос через curl с защитой от таймаута и обходом TLS-блокировок WBAAS
+ * Надежный системный запрос через curl с защитой от таймаута и заголовками реального браузера
  */
 async function curlGet(url: string, timeoutSec = 7): Promise<string | null> {
   try {
@@ -67,10 +70,18 @@ async function curlGet(url: string, timeoutSec = 7): Promise<string | null> {
         "-L",
         "--max-time",
         String(timeoutSec),
+        "-A",
+        BROWSER_USER_AGENT,
         "-H",
-        "Accept: */*",
+        "Accept: application/json, text/plain, */*",
         "-H",
-        "Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8",
+        "Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "-H",
+        "Sec-Fetch-Dest: empty",
+        "-H",
+        "Sec-Fetch-Mode: cors",
+        "-H",
+        "Sec-Fetch-Site: cross-site",
         url,
       ],
       { maxBuffer: 20 * 1024 * 1024 },
@@ -81,6 +92,11 @@ async function curlGet(url: string, timeoutSec = 7): Promise<string | null> {
     try {
       const res = await fetch(url, {
         method: "GET",
+        headers: {
+          "User-Agent": BROWSER_USER_AGENT,
+          Accept: "application/json, text/plain, */*",
+          "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
+        },
         signal: AbortSignal.timeout(timeoutSec * 1000),
       });
       if (res.ok) {
@@ -90,6 +106,11 @@ async function curlGet(url: string, timeoutSec = 7): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Кэш найденных корзин для артикулов (nmId -> basket pad)
+ */
+const NM_BASKET_CACHE = new Map<number, string>();
 
 /**
  * Выполняет реальный поиск товаров на Wildberries через активный каталог v18/v9
@@ -103,10 +124,13 @@ export async function searchWbLive(
   if (!clean) return [];
 
   const endpoints = [
+    `https://search.wb.ru/exactmatch/ru/common/v18/search?appType=1&curr=rub&dest=-1257786&page=${page}&query=${encodeURIComponent(
+      clean,
+    )}&resultset=catalog&sort=popular&spp=30`,
     `https://u-search.wb.ru/exactmatch/ru/common/v18/search?appType=1&curr=rub&dest=-1257786&page=${page}&query=${encodeURIComponent(
       clean,
     )}&resultset=catalog&sort=popular&spp=30`,
-    `https://u-search.wb.ru/exactmatch/ru/common/v9/search?appType=1&curr=rub&dest=-1257786&page=${page}&query=${encodeURIComponent(
+    `https://search.wb.ru/exactmatch/ru/common/v9/search?appType=1&curr=rub&dest=-1257786&page=${page}&query=${encodeURIComponent(
       clean,
     )}&resultset=catalog&sort=popular&spp=30`,
   ];
@@ -130,22 +154,42 @@ export async function searchWbLive(
 }
 
 /**
- * Загружает расширенную карточку (описание, состав, характеристики) с CDN Wildberries
+ * Загружает расширенную карточку (описание, состав, характеристики) с CDN Wildberries.
+ * Проверяет соседние корзины (±1, ±2) для гарантированного нахождения данных.
  */
 export async function getWbCardJson(nmId: number): Promise<WbCardDetailJson | null> {
   const vol = Math.floor(nmId / 100000);
   const part = Math.floor(nmId / 1000);
-  const basket = getWbBasketNumber(vol);
+  const cachedBasket = NM_BASKET_CACHE.get(nmId);
+  const baseBasket = parseInt(cachedBasket || getWbBasketNumber(vol), 10);
 
-  const url = `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/info/ru/card.json`;
-  const raw = await curlGet(url, 4);
-  if (!raw) return null;
+  const basketCandidates = cachedBasket
+    ? [cachedBasket]
+    : [
+        String(baseBasket).padStart(2, "0"),
+        String(Math.max(1, baseBasket - 1)).padStart(2, "0"),
+        String(Math.min(55, baseBasket + 1)).padStart(2, "0"),
+        String(Math.max(1, baseBasket - 2)).padStart(2, "0"),
+        String(Math.min(55, baseBasket + 2)).padStart(2, "0"),
+      ];
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
+  for (const basket of basketCandidates) {
+    const url = `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/info/ru/card.json`;
+    const raw = await curlGet(url, 3);
+    if (!raw || !raw.trim().startsWith("{")) continue;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.imt_id || parsed.imt_name || parsed.description || parsed.options)) {
+        NM_BASKET_CACHE.set(nmId, basket);
+        return parsed;
+      }
+    } catch {
+      continue;
+    }
   }
+
+  return null;
 }
 
 /**
@@ -154,17 +198,36 @@ export async function getWbCardJson(nmId: number): Promise<WbCardDetailJson | nu
 export async function getWbSellerJson(nmId: number): Promise<WbSellerJson | null> {
   const vol = Math.floor(nmId / 100000);
   const part = Math.floor(nmId / 1000);
-  const basket = getWbBasketNumber(vol);
+  const cachedBasket = NM_BASKET_CACHE.get(nmId);
+  const baseBasket = parseInt(cachedBasket || getWbBasketNumber(vol), 10);
 
-  const url = `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/info/sellers.json`;
-  const raw = await curlGet(url, 3);
-  if (!raw) return null;
+  const basketCandidates = cachedBasket
+    ? [cachedBasket]
+    : [
+        String(baseBasket).padStart(2, "0"),
+        String(Math.max(1, baseBasket - 1)).padStart(2, "0"),
+        String(Math.min(55, baseBasket + 1)).padStart(2, "0"),
+        String(Math.max(1, baseBasket - 2)).padStart(2, "0"),
+        String(Math.min(55, baseBasket + 2)).padStart(2, "0"),
+      ];
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
+  for (const basket of basketCandidates) {
+    const url = `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/info/sellers.json`;
+    const raw = await curlGet(url, 3);
+    if (!raw || !raw.trim().startsWith("{")) continue;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.supplierName || parsed.supplierFullName || parsed.inn)) {
+        NM_BASKET_CACHE.set(nmId, basket);
+        return parsed;
+      }
+    } catch {
+      continue;
+    }
   }
+
+  return null;
 }
 
 /**

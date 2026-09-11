@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -12,16 +12,21 @@ import {
   Mail,
   ShieldCheck,
   User,
+  XCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { validatePassword } from "@/lib/utils/password-policy";
+import { secureLogger } from "@/lib/utils/secure-logger";
 
 function translateError(message: string) {
   const normalized = message.toLowerCase();
   if (normalized.includes("already registered") || normalized.includes("already been registered"))
     return "Этот email уже зарегистрирован. Войди в аккаунт или восстанови пароль.";
   if (normalized.includes("password") && normalized.includes("at least"))
-    return "Пароль должен содержать не менее 6 символов.";
+    return "Пароль должен содержать не менее 8 символов (латиница, заглавные, строчные, цифры).";
   if (normalized.includes("rate limit")) return "Слишком много попыток. Попробуй позже.";
   if (normalized.includes("invalid email")) return "Проверь формат электронной почты.";
   return "Не удалось создать аккаунт. Проверь данные и попробуй ещё раз.";
@@ -32,22 +37,37 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const passwordAnalysis = useMemo(() => validatePassword(password), [password]);
+
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
-    if (password !== confirmPassword) return setErrorMessage("Пароли не совпадают.");
-    if (password.length < 6) return setErrorMessage("Пароль должен содержать не менее 6 символов.");
-    if (!agreeToTerms)
+
+    if (!passwordAnalysis.isValid) {
+      return setErrorMessage(
+        passwordAnalysis.errorMessage || "Пароль не соответствует требованиям безопасности.",
+      );
+    }
+
+    if (password !== confirmPassword) {
+      return setErrorMessage("Пароли не совпадают.");
+    }
+
+    if (!agreeToTerms) {
       return setErrorMessage(
         "Необходимо согласиться с политикой конфиденциальности и правилами платформы.",
       );
+    }
 
     setIsLoading(true);
+    secureLogger.info("Регистрация нового пользователя", { email: email.trim() });
+
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
@@ -56,6 +76,7 @@ export default function RegisterPage() {
     });
 
     if (error) {
+      secureLogger.warn("Ошибка регистрации:", error.message);
       setErrorMessage(translateError(error.message));
       setIsLoading(false);
       return;
@@ -201,23 +222,156 @@ export default function RegisterPage() {
                   </div>
                 </label>
                 <label className="block space-y-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Пароль
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Пароль
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-white"
+                    >
+                      {showPassword ? (
+                        <>
+                          <EyeOff className="h-3 w-3 text-slate-400" />
+                          <span>Скрыть</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3 w-3 text-slate-400" />
+                          <span>Показать</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <div className="relative">
                     <input
                       required
-                      minLength={6}
-                      type="password"
+                      minLength={8}
+                      type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete="new-password"
                       disabled={isLoading}
                       placeholder="••••••••"
-                      className="w-full rounded-xl border border-white/10 bg-[#0D0F14]/70 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#00FF87]/50 disabled:opacity-50"
+                      className={`w-full rounded-xl border bg-[#0D0F14]/70 py-3 pl-11 pr-10 text-sm text-white outline-none transition-all disabled:opacity-50 ${
+                        password
+                          ? passwordAnalysis.isValid
+                            ? "border-[#00FF87]/60 focus:border-[#00FF87]"
+                            : "border-amber-500/50 focus:border-amber-500"
+                          : "border-white/10 focus:border-[#00FF87]/50"
+                      }`}
                     />
                     <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
                   </div>
+
+                  {/* Индикатор сложности и требований к паролю */}
+                  {password ? (
+                    <div className="space-y-2.5 rounded-xl border border-white/5 bg-[#090B11] p-3">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Надежность пароля:</span>
+                        <span
+                          className={`font-bold ${
+                            passwordAnalysis.score >= 100
+                              ? "text-[#00FF87]"
+                              : passwordAnalysis.score >= 60
+                                ? "text-amber-400"
+                                : "text-rose-400"
+                          }`}
+                        >
+                          {passwordAnalysis.score >= 100
+                            ? "Отличный"
+                            : passwordAnalysis.score >= 60
+                              ? "Средний"
+                              : "Слабый"}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            passwordAnalysis.score >= 100
+                              ? "bg-[#00FF87]"
+                              : passwordAnalysis.score >= 60
+                                ? "bg-amber-400"
+                                : "bg-rose-500"
+                          }`}
+                          style={{ width: `${passwordAnalysis.score}%` }}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 pt-1 text-[11px]">
+                        <div
+                          className={`flex items-center gap-1.5 ${
+                            passwordAnalysis.criteria.minLength
+                              ? "text-[#00FF87]"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {passwordAnalysis.criteria.minLength ? (
+                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                          ) : (
+                            <XCircle className="h-3 w-3 shrink-0" />
+                          )}
+                          <span>Мин. 8 символов</span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-1.5 ${
+                            passwordAnalysis.criteria.isLatinOnly
+                              ? "text-[#00FF87]"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {passwordAnalysis.criteria.isLatinOnly ? (
+                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                          ) : (
+                            <XCircle className="h-3 w-3 shrink-0" />
+                          )}
+                          <span>Только латиница</span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-1.5 ${
+                            passwordAnalysis.criteria.hasUpper
+                              ? "text-[#00FF87]"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {passwordAnalysis.criteria.hasUpper ? (
+                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                          ) : (
+                            <XCircle className="h-3 w-3 shrink-0" />
+                          )}
+                          <span>Заглавная (A-Z)</span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-1.5 ${
+                            passwordAnalysis.criteria.hasLower
+                              ? "text-[#00FF87]"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {passwordAnalysis.criteria.hasLower ? (
+                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                          ) : (
+                            <XCircle className="h-3 w-3 shrink-0" />
+                          )}
+                          <span>Строчная (a-z)</span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-1.5 ${
+                            passwordAnalysis.criteria.hasNumber
+                              ? "text-[#00FF87]"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {passwordAnalysis.criteria.hasNumber ? (
+                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                          ) : (
+                            <XCircle className="h-3 w-3 shrink-0" />
+                          )}
+                          <span>Цифра (0-9)</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </label>
                 <label className="block space-y-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -226,17 +380,28 @@ export default function RegisterPage() {
                   <div className="relative">
                     <input
                       required
-                      minLength={6}
-                      type="password"
+                      minLength={8}
+                      type={showPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       autoComplete="new-password"
                       disabled={isLoading}
                       placeholder="••••••••"
-                      className="w-full rounded-xl border border-white/10 bg-[#0D0F14]/70 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#00FF87]/50 disabled:opacity-50"
+                      className={`w-full rounded-xl border bg-[#0D0F14]/70 py-3 pl-11 pr-4 text-sm text-white outline-none transition-all disabled:opacity-50 ${
+                        confirmPassword
+                          ? password === confirmPassword
+                            ? "border-[#00FF87]/60 focus:border-[#00FF87]"
+                            : "border-rose-500/60 focus:border-rose-500"
+                          : "border-white/10 focus:border-[#00FF87]/50"
+                      }`}
                     />
                     <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
                   </div>
+                  {confirmPassword && password !== confirmPassword ? (
+                    <span className="text-[11px] font-medium text-rose-400">
+                      Пароли не совпадают
+                    </span>
+                  ) : null}
                 </label>
                 <label className="flex items-start gap-2.5 pt-2 text-xs leading-relaxed text-slate-400">
                   <input

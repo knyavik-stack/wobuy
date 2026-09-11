@@ -68,5 +68,7 @@ export type SearchProduct = {
     reviewCount: number | null;
     deliveryText: string;
     availability: string;
+    sellerName?: string;
+    sellerRating?: number;
   }>;
 };

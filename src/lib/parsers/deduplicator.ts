@@ -239,6 +239,8 @@ export function clusterAndDeduplicateOffers(
         reviewCount: o.reviewCount,
         deliveryText: o.deliveryText || "2-3 дня (со склада)",
         availability: o.availability || "В наличии",
+        sellerName: o.sellerName || (o.marketplace === "wildberries" ? "Продавец Wildberries" : "Ozon Retail"),
+        sellerRating: o.sellerRating || 4.8,
       })),
     };
   });

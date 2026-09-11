@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { checkRateLimit } from "@/lib/utils/rate-limiter";
+import { secureLogger } from "@/lib/utils/secure-logger";
 
 interface AnalyzeRequestBody {
   productTitle: string;
@@ -10,13 +12,27 @@ interface AnalyzeRequestBody {
 }
 
 export async function POST(req: NextRequest) {
+  // Защита от спама и DDoS (макс. 30 запросов в минуту на IP)
+  const rateLimit = checkRateLimit(req, { limit: 30, windowMs: 60_000 }, "ai-analyze");
+  if (!rateLimit.allowed && rateLimit.response) {
+    secureLogger.warn("Превышен лимит запросов к AI анализу", { remaining: rateLimit.remaining });
+    return rateLimit.response;
+  }
+
   try {
     const body = (await req.json()) as AnalyzeRequestBody;
     const { productTitle, brand = "", category = "", price = 0, offers = [] } = body;
 
-    if (!productTitle) {
+    if (!productTitle || typeof productTitle !== "string") {
       return NextResponse.json({ error: "Название товара обязательно" }, { status: 400 });
     }
+
+    // Ограничение длины строки для предотвращения атак переполнения промпта (Prompt Injection / Denial of Service)
+    const sanitizedTitle = productTitle.slice(0, 300).trim();
+    const sanitizedBrand = String(brand).slice(0, 100).trim();
+    const sanitizedCategory = String(category).slice(0, 100).trim();
+
+    secureLogger.info("Запуск анализа ИИ для товара", { title: sanitizedTitle, brand: sanitizedBrand, category: sanitizedCategory });
 
     const systemPrompt = `Ты — ядро 4 ИИ-агентов платформы wobuy. (сервис честного и осознанного выбора товаров на маркетплейсах РФ).
 Твоя задача — проанализировать товар и сгенерировать объективный честный разбор по 4 архетипам покупателей на чистом русском языке.
@@ -48,9 +64,9 @@ export async function POST(req: NextRequest) {
   }
 }`;
 
-    const userPrompt = `Товар: "${productTitle}"
-Бренд: "${brand}"
-Категория: "${category}"
+    const userPrompt = `Товар: "${sanitizedTitle}"
+Бренд: "${sanitizedBrand}"
+Категория: "${sanitizedCategory}"
 Лучшая цена: ${price} ₽
 Предложения маркетплейсов: ${JSON.stringify(offers)}`;
 

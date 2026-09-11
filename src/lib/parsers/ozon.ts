@@ -1,7 +1,10 @@
+import fs from "fs";
+import path from "path";
 import { RawMarketplaceOffer } from "./types";
 import { buildOzonProductUrl } from "@/lib/marketplace-links";
+import { secureLogger } from "@/lib/utils/secure-logger";
 
-export const OZON_DEFAULT_HEADERS = {
+export const OZON_DEFAULT_HEADERS: Record<string, string> = {
   Accept: "application/json, text/plain, */*",
   "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
   "User-Agent":
@@ -14,112 +17,102 @@ export const OZON_DEFAULT_HEADERS = {
 };
 
 /**
+ * Читает сохраненные cookies для обхода первичных проверок
+ */
+function getOzonCookies(): string {
+  try {
+    const cookiePath = path.resolve(process.cwd(), "cookie.txt");
+    if (fs.existsSync(cookiePath)) {
+      const content = fs.readFileSync(cookiePath, "utf-8");
+      const pairs: string[] = [];
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const parts = trimmed.split("\t");
+        if (parts.length >= 7) {
+          pairs.push(`${parts[5]}=${parts[6]}`);
+        }
+      }
+      if (pairs.length > 0) return pairs.join("; ");
+    }
+  } catch {}
+  return "";
+}
+
+/**
  * Парсер поиска Ozon.
- * Пытается обратиться к composer-api / mobile web Ozon, а при блокировке Cloudflare
- * формирует точные структурированные предложения с реальными ссылками на Ozon.
+ * 1. Проверяет наличие выделенного Cloudflare Worker скрапера (OZON_SCRAPER_WORKER_URL)
+ * 2. Либо делает прямой защищенный запрос с мобильными заголовками и cookies
+ * 3. При блокировке датацентра WAF Ozon безопасно передает управление конвейеру
  */
 export async function searchOzon(
   query: string,
   options: { page?: number; limit?: number; timeoutMs?: number } = {},
 ): Promise<RawMarketplaceOffer[]> {
-  const { page = 1, limit = 15, timeoutMs = 7000 } = options;
+  const { page = 1, limit = 15, timeoutMs = 4000 } = options;
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
 
+  const workerUrl =
+    process.env.OZON_SCRAPER_WORKER_URL ||
+    process.env.CLOUDFLARE_WORKER_URL ||
+    process.env.SCRAPER_PROXY_URL;
+
+  // 1. Попытка запроса через Cloudflare Worker (рекомендуемый 100% путь)
+  if (workerUrl) {
+    try {
+      const workerSearchUrl = `${workerUrl.replace(/\/$/, "")}/search?q=${encodeURIComponent(
+        cleanQuery,
+      )}&page=${page}`;
+      const res = await fetch(workerSearchUrl, {
+        method: "GET",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (res.ok) {
+        const workerData = await res.json();
+        const parsedOffers = parseOzonWidgetStates(workerData, cleanQuery, limit);
+        if (parsedOffers.length > 0) return parsedOffers;
+      }
+    } catch (workerErr) {
+      secureLogger.debug("[Ozon Worker] Сбой ответа от воркера-скрапера:", (workerErr as Error)?.message);
+    }
+  }
+
+  // 2. Прямая попытка через мобильный composer-api Ozon
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // 1. Попытка запроса к публичному мобильному JSON API Ozon
     const searchUrl = `https://www.ozon.ru/api/composer-api.bx/page/json/v2?url=${encodeURIComponent(
       `/search/?text=${encodeURIComponent(cleanQuery)}&page=${page}`,
     )}`;
 
+    const headers: Record<string, string> = { ...OZON_DEFAULT_HEADERS };
+    const cookies = getOzonCookies();
+    if (cookies) {
+      headers.Cookie = cookies;
+    }
+
     const response = await fetch(searchUrl, {
       method: "GET",
-      headers: OZON_DEFAULT_HEADERS,
+      headers,
       signal: controller.signal,
       next: { revalidate: 300 },
+    }).catch((networkErr) => {
+      // Ozon WAF блокирует прямые серверные запросы датацентров — перехватываем без падения сервера
+      secureLogger.debug("[Ozon Search] Запрос отклонен WAF маркетплейса", {
+        reason: (networkErr as Error)?.message || "network-drop",
+      });
+      return null;
     });
 
-    if (response.ok) {
+    if (response && response.ok) {
       const data = await response.json();
-      const widgetStates = data?.widgetStates;
-
-      if (widgetStates) {
-        const results: RawMarketplaceOffer[] = [];
-        for (const [key, stateStr] of Object.entries(widgetStates)) {
-          if (
-            key.startsWith("tileGrid") ||
-            key.startsWith("searchResults") ||
-            key.startsWith("megaPaginator") ||
-            key.startsWith("webSearchResults") ||
-            key.startsWith("skuGrid")
-          ) {
-            try {
-              const state = typeof stateStr === "string" ? JSON.parse(stateStr) : stateStr;
-              const items = state?.items || [];
-              for (const item of items) {
-                const sku =
-                  item?.sku ||
-                  item?.id ||
-                  Math.abs(cleanQuery.split("").reduce((a, b) => a + b.charCodeAt(0), 0) + results.length);
-                const title = item?.title || item?.name || cleanQuery;
-                const priceStr =
-                  item?.price?.price ||
-                  item?.price?.current ||
-                  item?.mainState?.price ||
-                  "0";
-                const price =
-                  typeof priceStr === "number"
-                    ? priceStr
-                    : parseInt(String(priceStr).replace(/\D/g, ""), 10) || 0;
-                const origPriceStr = item?.price?.original || item?.price?.old;
-                const origPrice = origPriceStr
-                  ? parseInt(String(origPriceStr).replace(/\D/g, ""), 10)
-                  : price;
-
-                results.push({
-                  id: `ozon-${sku}`,
-                  marketplace: "ozon" as const,
-                  externalId: String(sku),
-                  title,
-                  brand: item?.brand || "Ozon Seller",
-                  price: price || 2500,
-                  originalPrice: origPrice || price,
-                  discountPercent:
-                    origPrice > price
-                      ? Math.round(((origPrice - price) / origPrice) * 100)
-                      : 0,
-                  currency: "RUB",
-                  rating: item?.rating ? Number(item.rating) : 4.8,
-                  reviewCount: item?.commentsCount || 120,
-                  url: item?.action?.link
-                    ? (item.action.link.startsWith("http") ? item.action.link : `https://www.ozon.ru${item.action.link}`)
-                    : buildOzonProductUrl(title, sku),
-                  imageUrl:
-                    item?.image?.link ||
-                    item?.tileImage?.link ||
-                    "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80",
-                  deliveryDays: 2,
-                  deliveryText: "1-2 дня (со склада Ozon)",
-                  availability: "В наличии",
-                  sellerName: item?.seller?.name || "Ozon Retail",
-                });
-              }
-            } catch {
-              // Игнорируем отдельные битые блоки виджетов
-            }
-          }
-        }
-        if (results.length > 0) {
-          return results.slice(0, limit);
-        }
-      }
+      return parseOzonWidgetStates(data, cleanQuery, limit);
     }
   } catch (err: unknown) {
     if ((err as Error)?.name !== "AbortError") {
-      console.warn("[Ozon Search] Запрос к Ozon API:", err);
+      secureLogger.debug("[Ozon Search] Ограничение прямого парсинга Ozon:", (err as Error)?.message || err);
     }
   } finally {
     clearTimeout(timer);
@@ -127,4 +120,86 @@ export async function searchOzon(
 
   return [];
 }
+
+/**
+ * Извлекает товары из блоков виджетов Ozon (tileGrid, searchResults, skuGrid и др.)
+ */
+function parseOzonWidgetStates(
+  data: Record<string, unknown> | null | undefined,
+  cleanQuery: string,
+  limit: number,
+): RawMarketplaceOffer[] {
+  const widgetStates = (data?.widgetStates || data) as Record<string, unknown> | undefined;
+  if (!widgetStates || typeof widgetStates !== "object") return [];
+
+  const results: RawMarketplaceOffer[] = [];
+
+  for (const [key, stateStr] of Object.entries(widgetStates)) {
+    if (
+      key.startsWith("tileGrid") ||
+      key.startsWith("searchResults") ||
+      key.startsWith("megaPaginator") ||
+      key.startsWith("webSearchResults") ||
+      key.startsWith("skuGrid")
+    ) {
+      try {
+        const state = typeof stateStr === "string" ? JSON.parse(stateStr) : stateStr;
+        const items = state?.items || [];
+        for (const item of items) {
+          const sku =
+            item?.sku ||
+            item?.id ||
+            Math.abs(cleanQuery.split("").reduce((a, b) => a + b.charCodeAt(0), 0) + results.length);
+          const title = item?.title || item?.name || cleanQuery;
+          const priceStr =
+            item?.price?.price ||
+            item?.price?.current ||
+            item?.mainState?.price ||
+            "0";
+          const price =
+            typeof priceStr === "number"
+              ? priceStr
+              : parseInt(String(priceStr).replace(/\D/g, ""), 10) || 0;
+          const origPriceStr = item?.price?.original || item?.price?.old;
+          const origPrice = origPriceStr
+            ? parseInt(String(origPriceStr).replace(/\D/g, ""), 10)
+            : price;
+
+          results.push({
+            id: `ozon-${sku}`,
+            marketplace: "ozon" as const,
+            externalId: String(sku),
+            title,
+            brand: item?.brand || "Ozon Seller",
+            price: price || 2500,
+            originalPrice: origPrice || price,
+            discountPercent:
+              origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0,
+            currency: "RUB",
+            rating: item?.rating ? Number(item.rating) : 4.8,
+            reviewCount: item?.commentsCount || 120,
+            url: item?.action?.link
+              ? item.action.link.startsWith("http")
+                ? item.action.link
+                : `https://www.ozon.ru${item.action.link}`
+              : buildOzonProductUrl(title, sku),
+            imageUrl:
+              item?.image?.link ||
+              item?.tileImage?.link ||
+              "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80",
+            deliveryDays: 2,
+            deliveryText: "1-2 дня (со склада Ozon)",
+            availability: "В наличии",
+            sellerName: item?.seller?.name || "Ozon Retail",
+          });
+        }
+      } catch {
+        // Пропускаем некорректно сериализованные поддеревья
+      }
+    }
+  }
+
+  return results.slice(0, limit);
+}
+
 

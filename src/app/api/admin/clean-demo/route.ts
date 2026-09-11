@@ -1,7 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { secureLogger } from "@/lib/utils/secure-logger";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  // Проверка авторизации администратора: сверка ключа или заголовка
+  const adminSecret = process.env.ADMIN_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const authHeader = req.headers.get("x-admin-key") || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+  if (adminSecret && authHeader !== adminSecret) {
+    secureLogger.warn("Несанкционированная попытка доступа к /api/admin/clean-demo");
+    return NextResponse.json(
+      { error: "Доступ запрещён: неверный или отсутствующий ключ администратора." },
+      { status: 403 },
+    );
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json(
@@ -11,6 +24,7 @@ export async function POST() {
   }
 
   try {
+    secureLogger.info("Запуск административной очистки демо-данных");
     // 1. Поиск ID всех демо-товаров
     const { data: demoProducts, error: findError } = await supabase
       .from("products")
@@ -18,7 +32,7 @@ export async function POST() {
       .or("id.like.prod-%,id.like.demo-%,brand.eq.Ozon Marketplace,canonical_name.ilike.%MirCamping%");
 
     if (findError) {
-      console.warn("[Clean Demo] Error finding demo products:", findError);
+      secureLogger.warn("[Clean Demo] Error finding demo products:", findError);
     }
 
     const demoIds = (demoProducts || []).map((p) => p.id);
@@ -46,6 +60,7 @@ export async function POST() {
       deletedIds: demoIds,
     });
   } catch (err: unknown) {
+    secureLogger.error("Ошибка при очистке демо-товаров:", err);
     return NextResponse.json(
       { error: (err as Error)?.message || "Internal server error" },
       { status: 500 },
@@ -53,6 +68,7 @@ export async function POST() {
   }
 }
 
-export async function GET() {
-  return POST();
+export async function GET(req: NextRequest) {
+  return POST(req);
 }
+

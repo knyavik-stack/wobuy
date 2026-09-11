@@ -201,9 +201,19 @@ export async function getWildberriesProductDetail(
       getWbSellerJson(nmId).catch(() => null),
     ]);
 
-    // 2. Загружаем актуальную цену и отзывы через поиск по артикулу
-    const searchResult = await searchWbLive(nmId.toString(), 1, 1).catch(() => []);
-    const p: WbProductRaw = searchResult[0] || {
+    // 2. Загружаем актуальную цену и отзывы: сначала пробуем поиск по названию карточки
+    let p: WbProductRaw | null = null;
+    if (detail?.imt_name) {
+      const searchResult = await searchWbLive(detail.imt_name, 1, 10).catch(() => []);
+      p = searchResult.find((item) => item.id === nmId) || searchResult[0] || null;
+    }
+
+    if (!p) {
+      const directSearch = await searchWbLive(nmId.toString(), 1, 5).catch(() => []);
+      p = directSearch.find((item) => item.id === nmId) || directSearch[0] || null;
+    }
+
+    const fallbackProduct: WbProductRaw = p || {
       id: nmId,
       name: detail?.imt_name || `Товар WB ${nmId}`,
       brand: seller?.trademark || "Wildberries",
@@ -212,7 +222,7 @@ export async function getWildberriesProductDetail(
       sizes: [{ price: { product: 199000, basic: 249000 } }],
     };
 
-    return formatWbProductToOffer(p, detail, seller);
+    return formatWbProductToOffer(fallbackProduct, detail, seller);
   } catch (err) {
     console.warn(`[getWildberriesProductDetail] Ошибка загрузки артикула ${nmId}:`, err);
     return null;

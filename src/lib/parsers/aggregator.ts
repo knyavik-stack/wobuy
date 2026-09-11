@@ -4,6 +4,7 @@ import { searchOzon } from "./ozon";
 import { clusterAndDeduplicateOffers } from "./deduplicator";
 import { searchWithAiMarketEngine } from "@/lib/ai/ai-search-engine";
 import { buildOzonProductUrl } from "@/lib/marketplace-links";
+import { secureLogger } from "@/lib/utils/secure-logger";
 
 // In-memory cache с временем жизни 10 минут для снижения нагрузки на маркетплейсы
 interface CacheEntry {
@@ -59,14 +60,14 @@ export async function aggregateMarketplaceSearch(
         limit: options.limit || 15,
         timeoutMs: options.timeoutMs || 7000,
       }).catch((err) => {
-        console.warn("[Aggregator] Ошибка парсинга Wildberries:", err);
+        secureLogger.debug("[Aggregator] Парсер Wildberries вернул ошибку, переход на AI:", (err as Error)?.message || err);
         return [] as RawMarketplaceOffer[];
       }),
       searchOzon(cleanQuery, {
         limit: options.limit || 10,
-        timeoutMs: options.timeoutMs || 6000,
+        timeoutMs: options.timeoutMs || 4000,
       }).catch((err) => {
-        console.warn("[Aggregator] Ошибка парсинга Ozon:", err);
+        secureLogger.debug("[Aggregator] Парсер Ozon вернул ошибку, переход на зеркальный дуэльный пул:", (err as Error)?.message || err);
         return [] as RawMarketplaceOffer[];
       }),
     ]);
