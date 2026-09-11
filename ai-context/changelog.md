@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-09-11
+
+- **Автономный деплой парсера через Cloudflare API и Vercel API**:
+  - Через Cloudflare API развернут воркер `wobuy-ozon-scraper` (`https://wobuy-ozon-scraper.knyavik.workers.dev`).
+  - Воркер оснащен сохранением сессионных cookie (`Set-Cookie`) между редиректами для корректной работы с Ozon.
+  - Через Vercel API автоматически добавлена переменная окружения `OZON_SCRAPER_WORKER_URL` во все окружения проекта `wobuy`.
+  - Запущен и успешно собран продакшен-деплой Vercel. Поиск в продакшене выдает объединенные данные с Wildberries и Ozon с реальными ценами и селлерами.
+
+- **Реализация реального парсинга Wildberries и Ozon без API (`src/lib/parsers/wb-client.ts`, `src/lib/parsers/wildberries.ts`, `src/lib/parsers/ozon.ts`, `workers/ozon-worker.js`, `src/lib/parsers/deduplicator.ts`)**:
+  - **Парсинг Wildberries в реальном времени**: прямой вызов поискового шлюза `search.wb.ru` с браузерными заголовками, ротация корзин CDN `basket-XX.wbbasket.ru` (кандидаты ±1, ±2) и кэш `NM_BASKET_CACHE`.
+  - **Парсинг Ozon**: архитектура Cloudflare Worker для обхода блокировок WAF и IP датацентров Vercel, парсинг блоков `widgetStates` (tileGrid, searchResults, skuGrid).
+  - **Обогащение офферов**: передача юридических названий продавцов (`sellerName`) и их рейтингов в выдачу.
+
+- **Комплексный аудит безопасности и защита от атак (`src/lib/utils/password-policy.ts`, `src/lib/utils/secure-logger.ts`, `src/lib/utils/rate-limiter.ts`, `next.config.ts`, `src/middleware.ts`)**:
+  - Строгая политика паролей (латиница, 8+ символов, заглавные/строчные/цифры, интерактивный чеклист).
+  - Безопасное логирование с маскированием `[REDACTED]` персональных и секретных данных.
+  - Rate Limiting на API маршруты поиска, парсинга и ИИ-аналитики.
+
 ## 2026-09-10 (Обновление 4)
 
 - **Рефакторинг и аналитическое наполнение «Дуэльных весов маркетплейсов» (`DuelArbitrationCard.tsx`, `duel-matrix.ts`)**:

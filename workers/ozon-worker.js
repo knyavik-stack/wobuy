@@ -48,25 +48,88 @@ export default {
         `/search/?text=${encodeURIComponent(query)}&page=${page}`,
       )}`;
 
-      const ozonResponse = await fetch(ozonEndpoint, {
-        method: "GET",
-        headers: {
-          Accept: "application/json, text/plain, */*",
-          "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8",
-          "User-Agent":
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
-          Origin: "https://www.ozon.ru",
-          Referer: "https://www.ozon.ru/",
-          "sec-fetch-dest": "empty",
-          "sec-fetch-mode": "cors",
-          "sec-fetch-site": "same-origin",
-        },
-      });
+      const baseHeaders = {
+        Accept: "application/json, text/plain, */*",
+        "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+        Origin: "https://www.ozon.ru",
+        Referer: "https://www.ozon.ru/",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+      };
 
-      const data = await ozonResponse.json();
+      // Ручное управление редиректами и сохранение cookies между шагами
+      let targetUrl = ozonEndpoint;
+      const cookieJar = {};
+      let ozonResponse = null;
+
+      for (let step = 0; step < 5; step++) {
+        const cookieStr = Object.entries(cookieJar)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("; ");
+
+        const reqHeaders = { ...baseHeaders };
+        if (cookieStr) {
+          reqHeaders.Cookie = cookieStr;
+        }
+
+        const res = await fetch(targetUrl, {
+          method: "GET",
+          headers: reqHeaders,
+          redirect: "manual",
+        });
+
+        // Сбор заголовков Set-Cookie
+        const rawSetCookie = res.headers.get("set-cookie") || "";
+        if (rawSetCookie) {
+          for (const chunk of rawSetCookie.split(",")) {
+            const part = chunk.trim().split(";")[0];
+            const eq = part.indexOf("=");
+            if (eq > 0) {
+              const name = part.slice(0, eq).trim();
+              const val = part.slice(eq + 1).trim();
+              if (name && val) cookieJar[name] = val;
+            }
+          }
+        }
+
+        if (res.status >= 300 && res.status < 400) {
+          const location = res.headers.get("location");
+          if (!location) {
+            ozonResponse = res;
+            break;
+          }
+          targetUrl = location.startsWith("http")
+            ? location
+            : new URL(location, targetUrl).toString();
+          continue;
+        }
+
+        ozonResponse = res;
+        break;
+      }
+
+      if (!ozonResponse) {
+        throw new Error("Не удалось получить ответ от Ozon");
+      }
+
+      const contentType = ozonResponse.headers.get("content-type") || "";
+      let data;
+      if (contentType.includes("application/json")) {
+        data = await ozonResponse.json();
+      } else {
+        const text = await ozonResponse.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { html: text.slice(0, 1000), status: ozonResponse.status };
+        }
+      }
 
       return new Response(JSON.stringify(data), {
-        status: 200,
+        status: ozonResponse.status === 200 ? 200 : ozonResponse.status,
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",

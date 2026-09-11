@@ -2,6 +2,12 @@
 
 ## 2026-09-11
 
+- **Автономный деплой парсера через Cloudflare API и Vercel API**:
+  - Через Cloudflare API развернут воркер `wobuy-ozon-scraper` (`https://wobuy-ozon-scraper.knyavik.workers.dev`).
+  - Воркер оснащен сохранением сессионных cookie (`Set-Cookie`) между редиректами для корректной работы с Ozon.
+  - Через Vercel API автоматически добавлена переменная окружения `OZON_SCRAPER_WORKER_URL` во все окружения проекта `wobuy`.
+  - Запущен и успешно собран продакшен-деплой Vercel. Поиск в продакшене выдает объединенные данные с Wildberries и Ozon с реальными ценами и селлерами.
+
 - **Реализация реального парсинга Wildberries и Ozon без API (`src/lib/parsers/wb-client.ts`, `src/lib/parsers/wildberries.ts`, `src/lib/parsers/ozon.ts`, `workers/ozon-worker.js`, `src/lib/parsers/deduplicator.ts`)**:
   - **Парсинг Wildberries в реальном времени**:
     - Прямой вызов публичного поискового шлюза `search.wb.ru` с полным комплектом современных браузерных заголовков.
