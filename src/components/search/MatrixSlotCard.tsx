@@ -16,6 +16,7 @@ import { MatrixSlot } from "@/lib/catalog/duel-matrix";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
 import { NeonDot } from "@/components/brand/WobuyDot";
+import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
 
 interface MatrixSlotCardProps {
   slot: MatrixSlot;
@@ -47,6 +48,12 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
   const marketplaceName = matchedOffer.marketplace.toLowerCase().includes("wildberries")
     ? "Wildberries"
     : "Ozon";
+
+  const safeOfferUrl = sanitizeMarketplaceOfferUrl(
+    matchedOffer.marketplace,
+    matchedOffer.url,
+    product.title,
+  );
 
   const productLinkParams = new URLSearchParams();
   if (query) productLinkParams.set("fromQuery", query);
@@ -265,7 +272,7 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
         <div className="flex gap-2">
           {/* Переход на маркетплейс */}
           <a
-            href={matchedOffer.url}
+            href={safeOfferUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 py-3 text-xs font-bold text-white transition hover:border-white/20 hover:bg-white/10"

@@ -2,6 +2,14 @@
 
 ## 2026-09-11
 
+- **Устранение битых ссылок Ozon и гарантия 100% работоспособности диплинков (`src/lib/marketplace-links.ts`, `src/lib/catalog/search.ts`, `src/lib/catalog/duel-matrix.ts`, `src/components/search/DuelArbitrationCard.tsx`, `src/components/search/MatrixSlotCard.tsx`, `src/app/product/[id]/page.tsx`, `src/components/product/DuelBridgeBanner.tsx`, `src/components/analytics/MarketplaceComparisonCard.tsx`)**:
+  - **Коренная причина проблемы**: при отсутствии реального SKU на Ozon или при использовании артикула WB генерировалась ссылка вида `https://www.ozon.ru/product/{slug}-{sku}/`. При клике Ozon выполнял редирект на `https://www.ozon.ru/search/?deny_category_prediction=true&from_global=true&text=&product_id={sku}` с пустым `text=` и несуществующим `product_id`, вызывая экран «Произошла ошибка».
+  - **Решение**:
+    - Создана функция `isBrokenOrSyntheticOzonUrl` для фильтрации сбойных редиректов и синтетических артикулов.
+    - В `buildOzonProductUrl` и `buildWildberriesProductUrl` добавлено автоматическое переключение на гарантированно рабочую поисковую ссылку (`buildOzonSearchUrl(cleanTitle)` / `buildWildberriesSearchUrl(cleanTitle)`), которая всегда открывает актуальную товарную выдачу маркетплейса без ошибок 404/«Произошла ошибка».
+    - Создана универсальная утилита `sanitizeMarketplaceOfferUrl` и внедрена во все карточки каталога, слот-матрицу, дуэль маркетплейсов и страницу товара `[id]`.
+    - Все кнопки перехода («В магазин», «Купить на Ozon», «Купить на Wildberries») ведут на проверенные прямые URL либо на чистый поиск точного наименования товара.
+
 - **Автономный деплой парсера через Cloudflare API и Vercel API**:
   - Через Cloudflare API развернут воркер `wobuy-ozon-scraper` (`https://wobuy-ozon-scraper.knyavik.workers.dev`).
   - Воркер оснащен сохранением сессионных cookie (`Set-Cookie`) между редиректами для корректной работы с Ozon.

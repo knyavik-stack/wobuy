@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { buildOzonProductUrl, buildWildberriesProductUrl } from "@/lib/marketplace-links";
+import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
 import type { AuditFunnelStats } from "@/lib/catalog/product-types";
 import { generateAuditFunnelStats } from "@/lib/catalog/duel-matrix";
 
@@ -116,20 +116,7 @@ export function buildMarketplaceDeepLink(
   title: string,
   existingUrl?: string,
 ): string {
-  if (existingUrl && (existingUrl.startsWith("http://") || existingUrl.startsWith("https://"))) {
-    // Если ссылка уже прямая на товар (содержит /product/ или /catalog/), проверяем её
-    if (existingUrl.includes("/product/") || existingUrl.includes("/catalog/")) {
-      if (marketplace === "ozon" && !existingUrl.includes("-")) {
-        return buildOzonProductUrl(title, existingUrl);
-      }
-      return existingUrl;
-    }
-  }
-
-  if (marketplace === "ozon") {
-    return buildOzonProductUrl(title, existingUrl);
-  }
-  return buildWildberriesProductUrl(existingUrl, title);
+  return sanitizeMarketplaceOfferUrl(marketplace, existingUrl || "", title);
 }
 
 /**

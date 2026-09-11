@@ -3,6 +3,7 @@
 import React from "react";
 import { ExternalLink, Zap, Scale } from "lucide-react";
 import type { DuelData } from "@/lib/ai/analyzer";
+import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
 
 interface DuelBridgeBannerProps {
   duelData: DuelData | null | undefined;
@@ -14,6 +15,7 @@ interface DuelBridgeBannerProps {
 export function DuelBridgeBanner({
   duelData,
   currentPrice,
+  productTitle,
 }: DuelBridgeBannerProps) {
   if (!duelData || !duelData.hasMatchingSku) {
     return null;
@@ -22,6 +24,12 @@ export function DuelBridgeBanner({
   const priceDiff = duelData.priceDifference;
   const isAltCheaper = priceDiff < 0;
   const absDiff = Math.abs(priceDiff);
+
+  const safeDuelUrl = sanitizeMarketplaceOfferUrl(
+    duelData.alternativePlatform,
+    duelData.url,
+    productTitle || duelData.alternativePlatform,
+  );
 
   return (
     <div
@@ -67,7 +75,7 @@ export function DuelBridgeBanner({
         </div>
 
         <a
-          href={duelData.url}
+          href={safeDuelUrl}
           target="_blank"
           rel="noreferrer"
           className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-[#00FF87]/40 bg-[#00FF87] px-4 py-2.5 text-xs font-black text-black shadow-[0_0_20px_rgba(0,255,135,0.3)] transition hover:bg-[#00E576] hover:shadow-[0_0_25px_rgba(0,255,135,0.5)]"

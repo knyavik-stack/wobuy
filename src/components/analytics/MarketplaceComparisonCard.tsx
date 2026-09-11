@@ -4,6 +4,7 @@ import React from "react";
 import { ExternalLink, Check, Zap, Sparkles, Star, AlertTriangle, ShieldCheck } from "lucide-react";
 import { MarketplaceBadge } from "@/components/ui/MarketplaceBadge";
 import { MarketplaceComparisonItem } from "@/lib/ai/analyzer";
+import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
 
 function formatPrice(price: number | null, currency: string = "RUB") {
   if (price === null) return "Нет данных";
@@ -152,7 +153,7 @@ export function MarketplaceComparisonCard({
               {/* Кнопка перехода с прямым диплинком на карточку маркетплейса */}
               <div className="mt-5">
                 <a
-                  href={item.url}
+                  href={sanitizeMarketplaceOfferUrl(item.marketplace, item.url, item.name)}
                   target="_blank"
                   rel="noreferrer"
                   className={`flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-extrabold transition ${

@@ -13,6 +13,7 @@ import {
 import { DuelArbitration } from "@/lib/catalog/duel-matrix";
 import { NeonDot } from "@/components/brand/WobuyDot";
 import { AuditFunnelBanner } from "@/components/brand/AuditFunnelBanner";
+import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
 
 interface DuelArbitrationCardProps {
   duel: DuelArbitration;
@@ -40,6 +41,17 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
 
   const wbLink = `/product/${wbSlot.product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
   const ozonLink = `/product/${ozonSlot.product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
+
+  const safeWbUrl = sanitizeMarketplaceOfferUrl(
+    "wildberries",
+    wbSlot.matchedOffer.url,
+    wbSlot.product.title,
+  );
+  const safeOzonUrl = sanitizeMarketplaceOfferUrl(
+    "ozon",
+    ozonSlot.matchedOffer.url,
+    ozonSlot.product.title,
+  );
 
   const isWbWinner = bestOverallPick === "wildberries";
   const isOzonWinner = bestOverallPick === "ozon";
@@ -207,7 +219,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
 
             <div className="flex gap-2">
               <a
-                href={wbSlot.matchedOffer.url}
+                href={safeWbUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-purple-500/40 bg-purple-950/40 py-2 text-[11px] font-bold text-purple-200 transition hover:bg-purple-900/60"
@@ -456,7 +468,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
 
             <div className="flex gap-2">
               <a
-                href={ozonSlot.matchedOffer.url}
+                href={safeOzonUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-blue-500/40 bg-blue-950/40 py-2 text-[11px] font-bold text-blue-200 transition hover:bg-blue-900/60"

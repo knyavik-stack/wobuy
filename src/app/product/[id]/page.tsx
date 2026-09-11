@@ -27,6 +27,7 @@ import { ReviewsAnalysisCard } from "@/components/analytics/ReviewsAnalysisCard"
 import { DeliveryAnalysisCard } from "@/components/analytics/DeliveryAnalysisCard";
 import { PriceHistoryCard } from "@/components/analytics/PriceHistoryCard";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
+import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
 
 function formatPrice(price: number | null, currency: string) {
   if (price === null) return "от 2 450 ₽";
@@ -152,10 +153,12 @@ export default async function ProductPage({
 
   // Синхронизируем дуэль: триумфатор ОБЯЗАН побеждать в дуэли
   const marketplaceList = rawComparison.map((m) => {
+    const sanitizedUrl = sanitizeMarketplaceOfferUrl(m.marketplace, m.url, resolved.title);
     if (isTriumphWb) {
       const isWb = m.marketplace === "wildberries";
       return {
         ...m,
+        url: sanitizedUrl,
         isRecommended: isWb,
         statusBadge: isWb ? (triumphData?.slotType === "express" ? "★ Экспресс FBO" : "★ Победитель дуэли") : "В наличии",
         statusType: isWb ? ("success" as const) : ("neutral" as const),
@@ -165,12 +168,16 @@ export default async function ProductPage({
       const isOz = m.marketplace === "ozon";
       return {
         ...m,
+        url: sanitizedUrl,
         isRecommended: isOz,
         statusBadge: isOz ? (triumphData?.slotType === "express" ? "★ Экспресс Ozon" : "★ Победитель дуэли") : "В наличии",
         statusType: isOz ? ("success" as const) : ("neutral" as const),
       };
     }
-    return m;
+    return {
+      ...m,
+      url: sanitizedUrl,
+    };
   });
 
   // Определяем явного победителя дуэли (Выбор wobuy.)
@@ -184,7 +191,11 @@ export default async function ProductPage({
         : bestOffer?.marketplace?.toLowerCase().includes("wildberries")
           ? "Wildberries"
           : "Ozon";
-  const winnerUrl = recommendedMkt?.url || bestOffer?.url || "#";
+  const winnerUrl = sanitizeMarketplaceOfferUrl(
+    winnerMarketplaceName,
+    recommendedMkt?.url || bestOffer?.url || "",
+    resolved.title,
+  );
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] pb-24 font-sans text-slate-100 sm:pb-16">

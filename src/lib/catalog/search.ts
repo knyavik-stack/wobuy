@@ -4,7 +4,11 @@ import { upsertProductWithEmbedding } from "./semantic-search";
 import { searchWithAiMarketEngine, resolveMarketplaceSearchQuery } from "@/lib/ai/ai-search-engine";
 import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
 import { inferCategoryFromTitle } from "@/lib/parsers/deduplicator";
-import { buildOzonProductUrl, buildWildberriesProductUrl } from "@/lib/marketplace-links";
+import {
+  buildOzonProductUrl,
+  buildWildberriesProductUrl,
+  sanitizeMarketplaceOfferUrl,
+} from "@/lib/marketplace-links";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createClient as createPublicSupabaseClient } from "@/lib/supabase/client";
 
@@ -107,7 +111,11 @@ function mapProduct(product: {
     id: offer.id,
     marketplace: normalize(offer.marketplace),
     title: normalize(offer.title),
-    url: normalize(offer.url),
+    url: sanitizeMarketplaceOfferUrl(
+      offer.marketplace,
+      offer.url,
+      offer.title || product.canonical_name,
+    ),
     price: offer.price ?? null,
     currency: normalize(offer.currency) || "RUB",
     rating: offer.rating ?? null,
@@ -266,7 +274,7 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
             id: `ozon-${wbItem.externalId}`,
             marketplace: "ozon",
             title: wbItem.title,
-            url: buildOzonProductUrl(wbItem.title, wbItem.externalId),
+            url: buildOzonProductUrl(wbItem.title),
             price: ozonPrice,
             currency: "RUB",
             rating: ozonRating,
@@ -341,7 +349,7 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
           id: `ozon-${id}`,
           marketplace: "ozon",
           title: cleanLabel || "Товар на Ozon",
-          url: buildOzonProductUrl(cleanLabel || "Товар", id),
+          url: buildOzonProductUrl(cleanLabel || "Товар"),
           price: 2990,
           currency: "RUB",
           rating: 4.7,
