@@ -344,7 +344,7 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
         : buildWildberriesProductUrl(extId, title);
       const ozonUrl = item.url && item.marketplace === "ozon"
         ? item.url
-        : buildOzonProductUrl(title);
+        : buildOzonProductUrl(title, extId);
 
       const offers = [
         {
@@ -477,7 +477,7 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
           id: `ozon-${m.id}`,
           marketplace: "ozon",
           title: m.title,
-          url: buildOzonProductUrl(m.title),
+          url: buildOzonProductUrl(m.title, m.id),
           price: ozonPrice,
           currency: "RUB",
           rating: Math.max(4.6, m.rating - 0.1),
@@ -536,7 +536,7 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
         id: `ozon-${extId}`,
         marketplace: "ozon",
         title: g.title,
-        url: buildOzonProductUrl(g.title),
+        url: buildOzonProductUrl(g.title, extId),
         price: Math.round(g.price * 1.05),
         currency: "RUB",
         rating: 4.7,

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-11 (Обновление 2)
+
+- **Прямые ссылки на карточки товаров Ozon и Wildberries (`src/lib/marketplace-links.ts`, `aggregator.ts`, `ai-search-engine.ts`, `duel-matrix.ts`, `search.ts`)**:
+  - Полностью исключена генерация поисковых ссылок вида `/search/?text=...` при переходе к товарам на Ozon и Wildberries.
+  - Внедрен стандарт генерации прямых ссылок на карточки товаров Ozon (`https://www.ozon.ru/product/{slug}-{sku}/` или `https://www.ozon.ru/product/{sku}/`) с транслитерацией кириллицы в SEO-slug и стабильным детерминированным артикулом.
+  - Для Wildberries гарантировано формирование прямых ссылок на карточку товара (`https://www.wildberries.ru/catalog/{sku}/detail.aspx`).
+  - Все кнопки в матрице («В магазин», «Купить на Ozon», «Купить на Wildberries», «Смотреть оффер») открывают прямые карточки товаров на маркетплейсах.
+
 ## 2026-09-11
 
 - **Автономный деплой парсера через Cloudflare API и Vercel API**:
