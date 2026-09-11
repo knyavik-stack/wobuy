@@ -2,6 +2,13 @@
 
 ## 2026-09-11
 
+- **Редизайн блока «Дуэльные весы маркетплейсов» (`src/components/search/DuelArbitrationCard.tsx`)**:
+  - Полностью устранены визуальная перегруженность, нагромождение и дублирование карточек между верхним ярусом и блоком весов.
+  - Убраны псевдофизические веревки/коромысла со сжатым текстом и накладывающимися SVG-линиями.
+  - Реализована современная прецизионная электронная шкала баланса (Biometric Balance Bar) со смещением бегунка и наглядным отображением перевеса баллов (WB vs Ozon).
+  - Внедрены 4 четкие сравнительные плашки раундов (TCO Цена, Срок доставки, Индекс антифейка, Рейтинг селлера).
+  - Добавлен компактный вердикт ИИ-Арбитра Скептика с решающим фактором перевеса и аккуратная раскрывающаяся таблица подробного сравнения.
+
 - **Устранение битых ссылок Ozon и гарантия 100% работоспособности диплинков (`src/lib/marketplace-links.ts`, `src/lib/catalog/search.ts`, `src/lib/catalog/duel-matrix.ts`, `src/components/search/DuelArbitrationCard.tsx`, `src/components/search/MatrixSlotCard.tsx`, `src/app/product/[id]/page.tsx`, `src/components/product/DuelBridgeBanner.tsx`, `src/components/analytics/MarketplaceComparisonCard.tsx`)**:
   - **Коренная причина проблемы**: при отсутствии реального SKU на Ozon или при использовании артикула WB генерировалась ссылка вида `https://www.ozon.ru/product/{slug}-{sku}/`. При клике Ozon выполнял редирект на `https://www.ozon.ru/search/?deny_category_prediction=true&from_global=true&text=&product_id={sku}` с пустым `text=` и несуществующим `product_id`, вызывая экран «Произошла ошибка».
   - **Решение**:
