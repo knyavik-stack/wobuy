@@ -155,7 +155,7 @@ export async function searchWbLive(
 
 /**
  * Загружает расширенную карточку (описание, состав, характеристики) с CDN Wildberries.
- * Проверяет соседние корзины (±1, ±2) для гарантированного нахождения данных.
+ * Проверяет корзины параллельно с коротким таймаутом для мгновенного ответа.
  */
 export async function getWbCardJson(nmId: number): Promise<WbCardDetailJson | null> {
   const vol = Math.floor(nmId / 100000);
@@ -169,27 +169,28 @@ export async function getWbCardJson(nmId: number): Promise<WbCardDetailJson | nu
         String(baseBasket).padStart(2, "0"),
         String(Math.max(1, baseBasket - 1)).padStart(2, "0"),
         String(Math.min(55, baseBasket + 1)).padStart(2, "0"),
-        String(Math.max(1, baseBasket - 2)).padStart(2, "0"),
-        String(Math.min(55, baseBasket + 2)).padStart(2, "0"),
       ];
 
-  for (const basket of basketCandidates) {
+  const fetchBasket = async (basket: string): Promise<WbCardDetailJson | null> => {
     const url = `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/info/ru/card.json`;
-    const raw = await curlGet(url, 3);
-    if (!raw || !raw.trim().startsWith("{")) continue;
-
+    const raw = await curlGet(url, 2);
+    if (!raw || !raw.trim().startsWith("{")) return null;
     try {
       const parsed = JSON.parse(raw);
       if (parsed && (parsed.imt_id || parsed.imt_name || parsed.description || parsed.options)) {
         NM_BASKET_CACHE.set(nmId, basket);
         return parsed;
       }
-    } catch {
-      continue;
-    }
-  }
+    } catch {}
+    return null;
+  };
 
-  return null;
+  try {
+    const results = await Promise.all(basketCandidates.map(fetchBasket));
+    return results.find((r): r is WbCardDetailJson => r !== null) || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -207,27 +208,28 @@ export async function getWbSellerJson(nmId: number): Promise<WbSellerJson | null
         String(baseBasket).padStart(2, "0"),
         String(Math.max(1, baseBasket - 1)).padStart(2, "0"),
         String(Math.min(55, baseBasket + 1)).padStart(2, "0"),
-        String(Math.max(1, baseBasket - 2)).padStart(2, "0"),
-        String(Math.min(55, baseBasket + 2)).padStart(2, "0"),
       ];
 
-  for (const basket of basketCandidates) {
+  const fetchSeller = async (basket: string): Promise<WbSellerJson | null> => {
     const url = `https://basket-${basket}.wbbasket.ru/vol${vol}/part${part}/${nmId}/info/sellers.json`;
-    const raw = await curlGet(url, 3);
-    if (!raw || !raw.trim().startsWith("{")) continue;
-
+    const raw = await curlGet(url, 2);
+    if (!raw || !raw.trim().startsWith("{")) return null;
     try {
       const parsed = JSON.parse(raw);
       if (parsed && (parsed.supplierName || parsed.supplierFullName || parsed.inn)) {
         NM_BASKET_CACHE.set(nmId, basket);
         return parsed;
       }
-    } catch {
-      continue;
-    }
-  }
+    } catch {}
+    return null;
+  };
 
-  return null;
+  try {
+    const results = await Promise.all(basketCandidates.map(fetchSeller));
+    return results.find((r): r is WbSellerJson => r !== null) || null;
+  } catch {
+    return null;
+  }
 }
 
 /**

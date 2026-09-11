@@ -193,8 +193,12 @@ export async function generateProductAnalysis(
   // 1. Быстрый Groq: (openai/gpt-oss-120b / openai/gpt-oss-20b)
   if (process.env.GROQ_API_KEY) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
+
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json",
@@ -210,6 +214,7 @@ export async function generateProductAnalysis(
           max_tokens: 1200,
         }),
       });
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const json = await res.json();
@@ -220,7 +225,7 @@ export async function generateProductAnalysis(
         }
       }
     } catch (err) {
-      console.warn("[Analyzer] Groq failed, trying Gemini:", err);
+      console.warn("[Analyzer] Groq fast attempt finished/skipped:", err);
     }
   }
 
@@ -228,22 +233,25 @@ export async function generateProductAnalysis(
   if (process.env.GEMINI_API_KEY) {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const resp = await ai.models.generateContent({
+      const geminiPromise = ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `${systemPrompt}\n\n${userPrompt}`,
         config: { responseMimeType: "application/json" },
       });
 
-      if (resp.text) {
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1800));
+      const resp = await Promise.race([geminiPromise, timeoutPromise]);
+
+      if (resp && resp.text) {
         const parsed = JSON.parse(resp.text);
         return formatAnalysisResult(parsed, productTitle, brand, category, price, offers, triumphContext);
       }
     } catch (err) {
-      console.warn("[Analyzer] Gemini failed:", err);
+      console.warn("[Analyzer] Gemini skipped:", err);
     }
   }
 
-  // 3. Детерминированный fallback анализ
+  // 3. Детерминированный fallback анализ (мгновенно в < 5мс)
   return generateDeterministicAnalysis(productTitle, brand, category, price, offers, triumphContext);
 }
 

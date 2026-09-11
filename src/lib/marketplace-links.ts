@@ -4,31 +4,6 @@
  * Wildberries: https://www.wildberries.ru/catalog/{sku}/detail.aspx или https://www.wildberries.ru/catalog/0/search.aspx?search={cleanTitle}
  */
 
-const RU_TO_LATIN: Record<string, string> = {
-  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh", з: "z", и: "i",
-  й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
-  у: "u", ф: "f", х: "kh", ц: "ts", ч: "ch", ш: "sh", щ: "shch", ъ: "", ы: "y",
-  ь: "", э: "e", ю: "yu", я: "ya",
-};
-
-/**
- * Транслитерация названия товара в slug для ссылок Ozon
- */
-export function slugifyTitle(title: string): string {
-  if (!title) return "product";
-  const clean = title.toLowerCase().replace(/[^a-zа-яё0-9\s-]/gi, " ");
-  let result = "";
-  for (const char of clean) {
-    result += RU_TO_LATIN[char] !== undefined ? RU_TO_LATIN[char] : char;
-  }
-  return result
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 60)
-    .replace(/-+$/, "") || "product";
-}
-
 /**
  * Очистка названия товара от спецсимволов, лишних кавычек и мусора для безопасных запросов
  */
@@ -42,11 +17,63 @@ export function sanitizeSearchQuery(title: string): string {
 }
 
 /**
+ * Извлекает краткий, точный поисковый запрос (Бренд + Тип товара + Модель) без SEO-мусора.
+ * Это гарантирует, что поиск Ozon откроет реальные релевантные товары, а не пустую страницу с ошибкой.
+ */
+export function extractConciseProductQuery(title: string): string {
+  if (!title) return "товары";
+
+  let clean = title
+    .replace(/[«»""''`]/g, " ")
+    .replace(/[\(\)\[\]\{\}]/g, " ")
+    .replace(/[\\/|#?&%$@*!+=<>~]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Удаляем распространенный SEO-мусор из названий маркетплейсов
+  const noisePatterns = [
+    /для\s+(взрослых|детей|дома|кухни|авто|девушек|мужчин|женщин|мальчиков|девочек)/gi,
+    /в\s+подарок/gi,
+    /с\s+гарантией/gi,
+    /оригинал\s*(100%)?/gi,
+    /новинка\s*\d*/gi,
+    /акция|скидка|распродажа|топ\s*продаж|хит\s*продаж/gi,
+    /комплект\s*\d*\s*шт/gi,
+    /набор\s*\d*\s*в\s*\d*/gi,
+    /быстрая\s+доставка/gi,
+    /водонепроницаем\w+/gi,
+    /высокое\s+качество/gi,
+    /премиум\s*качество/gi,
+  ];
+
+  for (const pattern of noisePatterns) {
+    clean = clean.replace(pattern, " ");
+  }
+
+  clean = clean.replace(/\s+/g, " ").trim();
+
+  const words = clean.split(/\s+/).filter((w) => w.length > 1);
+  if (words.length === 0) return "товары";
+
+  const selectedWords: string[] = [];
+  let lengthCount = 0;
+
+  for (const word of words) {
+    if (selectedWords.length >= 5) break;
+    if (lengthCount + word.length + 1 > 45 && selectedWords.length >= 2) break;
+    selectedWords.push(word);
+    lengthCount += word.length + 1;
+  }
+
+  return selectedWords.join(" ") || clean.slice(0, 40).trim();
+}
+
+/**
  * Гарантированно рабочая поисковая ссылка на Ozon.
- * Никогда не выдает ошибку 404 / «Произошла ошибка», открывает актуальную выдачу товара на Ozon.
+ * Использует лаконичный запрос без мусора, никогда не выдает ошибку 404 / «Произошла ошибка».
  */
 export function buildOzonSearchUrl(query: string): string {
-  const clean = sanitizeSearchQuery(query) || "товары";
+  const clean = extractConciseProductQuery(query);
   return `https://www.ozon.ru/search/?text=${encodeURIComponent(clean)}&from_global=true`;
 }
 
@@ -54,7 +81,7 @@ export function buildOzonSearchUrl(query: string): string {
  * Гарантированно рабочая поисковая ссылка на Wildberries.
  */
 export function buildWildberriesSearchUrl(query: string): string {
-  const clean = sanitizeSearchQuery(query) || "товары";
+  const clean = extractConciseProductQuery(query);
   return `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(clean)}`;
 }
 
@@ -63,35 +90,62 @@ export function buildWildberriesSearchUrl(query: string): string {
  */
 export function isBrokenOrSyntheticOzonUrl(url: string): boolean {
   if (!url) return true;
-  const lower = url.toLowerCase();
+  const lower = url.toLowerCase().trim();
+
   // Редирект Ozon при ненайденном товаре с пустым text= и невалидным product_id
   if (
     lower.includes("deny_category_prediction") ||
-    (lower.includes("ozon.ru/search") && (lower.includes("text=&") || lower.endsWith("text=")))
+    (lower.includes("ozon.ru/search") && (lower.includes("text=&") || lower.endsWith("text="))) ||
+    lower.includes("product_id=")
   ) {
     return true;
   }
+
   // Фиктивные/синтетические артикулы или перенесенные из WB
-  if (lower.includes("ozon-gen") || lower.includes("wb-") || lower.includes("wildberries")) {
+  if (
+    lower.includes("ozon-gen") ||
+    lower.includes("wb-") ||
+    lower.includes("wildberries") ||
+    lower.includes("ozon-100") ||
+    lower.includes("ozon-170") ||
+    lower.includes("ozon-200")
+  ) {
     return true;
   }
+
+  // Если это просто домен без пути
+  if (lower === "https://ozon.ru" || lower === "https://www.ozon.ru" || lower === "https://ozon.ru/" || lower === "https://www.ozon.ru/") {
+    return true;
+  }
+
+  // Если это ссылка на /product/ с синтетическим SKU
+  if (lower.includes("/product/")) {
+    const match = lower.match(/\/product\/[^\/]*?(\d{7,12})\/?/);
+    if (match) {
+      const sku = match[1];
+      if (sku.startsWith("100") || sku.startsWith("170") || sku.startsWith("200")) {
+        return true;
+      }
+    } else if (!lower.includes("?asb=") && !lower.includes("&asb=")) {
+      // Ссылка без параметров и без подтвержденного SKU
+      return true;
+    }
+  }
+
   return false;
 }
 
 /**
  * Формирование рабочей ссылки на Ozon:
- * - Если передан реальный относительный путь Ozon API (/product/...), возвращаем абсолютный URL
- * - Если передан реальный проверенный URL Ozon (с параметрами Ozon либо реальным SKU), возвращаем его
- * - Если передан фиктивный SKU / артикул WB (например, 100740640) / ссылка без SKU:
- *   НЕ формируем /product/{slug}-{sku}/, так как несуществующий SKU на Ozon приводит
- *   к 404-редиректу на search?deny_category_prediction=true&text=&product_id=... и показу «Произошла ошибка»!
- *   Вместо этого открываем гарантированно работающий поиск Ozon по точному названию товара.
+ * - Если передан реальный проверенный URL Ozon (с параметрами Ozon API), возвращаем его
+ * - В остальных случаях ВСЕГДА возвращаем проверенную прямую поисковую ссылку Ozon
+ *   по краткому названию товара.
  */
 export function buildOzonProductUrl(title: string, skuOrUrl?: string | number): string {
   const raw = String(skuOrUrl || "").trim();
 
   // Если URL заведомо сломанный (редирект с ошибкой или синтетический префикс)
-  if (isBrokenOrSyntheticOzonUrl(raw)) {
+  if (!raw || isBrokenOrSyntheticOzonUrl(raw)) {
     return buildOzonSearchUrl(title);
   }
 
@@ -112,23 +166,13 @@ export function buildOzonProductUrl(title: string, skuOrUrl?: string | number): 
       return raw;
     }
 
-    // Если это ссылка на карточку товара /product/
-    if (raw.includes("/product/")) {
-      const match = raw.match(/product\/[^\/]+-(\d+)\/?/);
-      if (match) {
-        const sku = match[1];
-        // Если SKU — это сгенерированный в коде хеш (100000000+, 170000000+) или короткий/чужой ID
-        if (sku.startsWith("100") || sku.startsWith("170") || sku.length < 7) {
-          return buildOzonSearchUrl(title);
-        }
-      }
-      // Реальная ссылка Ozon
+    // Если это ссылка на реальную карточку товара /product/ с реальными параметрами
+    if (raw.includes("/product/") && (raw.includes("asb=") || raw.includes("keywords="))) {
       return raw;
     }
   }
 
-  // Во всех остальных случаях (числовой SKU из другого маркетплейса, синтетика, или отсутствие)
-  // формируем официальную глубокую ссылку поиска Ozon
+  // По умолчанию возвращаем гарантированный рабочий поиск Ozon
   return buildOzonSearchUrl(title);
 }
 
@@ -147,8 +191,8 @@ export function buildWildberriesProductUrl(skuOrUrl?: string | number, fallbackT
   }
 
   const digits = raw.replace(/\D/g, "");
-  // Реальный артикул WB — от 6 до 10 цифр, не являющийся синтетическим хешем 200000000
-  if (digits && digits.length >= 6 && !digits.startsWith("200000000")) {
+  // Реальный артикул WB — от 6 до 10 цифр, не являющийся синтетическим хешем 100/170/200...
+  if (digits && digits.length >= 6 && digits.length <= 10 && !digits.startsWith("200000") && !digits.startsWith("100000")) {
     return `https://www.wildberries.ru/catalog/${digits}/detail.aspx`;
   }
 
@@ -172,4 +216,5 @@ export function sanitizeMarketplaceOfferUrl(
   }
   return url || "#";
 }
+
 

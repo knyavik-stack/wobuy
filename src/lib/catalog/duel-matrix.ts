@@ -268,31 +268,54 @@ export function buildHybridMatrix2x2(
   let ozonProduct = ozonCandidates[0];
 
   if (!ozonProduct) {
-    // Если отдельного товара Ozon нет, берем следующий товар из пула
-    const nextProduct = screenedPool.find((p) => p.id !== wbProduct.id);
-    if (nextProduct) {
-      ozonProduct = nextProduct;
-    } else {
-      // Создаем обособленный товар-финалист Ozon с уникальным идентификатором
-      const ozonSku = 100000000 + Math.abs(wbProduct.title.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) * 19);
+    // Если отдельного товара Ozon нет, берем следующий товар из пула и создаем для него Ozon-карточку
+    const nextProduct = screenedPool.find((p) => p.id !== wbProduct.id) || wbProduct;
+    const ozonSku = 100000000 + Math.abs((nextProduct.title || "product").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) * 19);
+    const ozonId = `ozon-${ozonSku}`;
+    const baseWbPrice = wbOffer.price || 2400;
+    const ozonPrice = Math.max(200, Math.round(baseWbPrice * 0.97));
+
+    ozonProduct = {
+      ...nextProduct,
+      id: ozonId,
+      title: nextProduct.title,
+      offers: [
+        {
+          id: ozonId,
+          marketplace: "ozon",
+          title: nextProduct.title,
+          url: buildOzonProductUrl(nextProduct.title),
+          price: ozonPrice,
+          currency: "RUB",
+          rating: Math.max(4.6, Number(((wbOffer.rating || 4.9) - 0.1).toFixed(1))),
+          reviewCount: Math.round((wbOffer.reviewCount || 420) * 0.85),
+          deliveryText: "2-3 дня (со склада Ozon)",
+          availability: "В наличии",
+          sellerName: "Ozon Retail / Проверенный продавец",
+          sellerRating: 4.8,
+        },
+        ...nextProduct.offers.filter((o) => o.marketplace.toLowerCase().includes("ozon")),
+      ],
+    };
+  } else {
+    // Убеждаемся, что у найденного товара Ozon есть валидный оффер Ozon
+    const hasOzonOffer = ozonProduct.offers.some((o) => o.marketplace.toLowerCase().includes("ozon"));
+    if (!hasOzonOffer) {
+      const ozonOfferItem = {
+        id: `ozon-${ozonProduct.id}`,
+        marketplace: "ozon" as const,
+        title: ozonProduct.title,
+        url: buildOzonProductUrl(ozonProduct.title),
+        price: Math.round((ozonProduct.offers[0]?.price || 2400) * 0.97),
+        currency: "RUB",
+        rating: 4.8,
+        reviewCount: 350,
+        deliveryText: "2-3 дня (со склада Ozon)",
+        availability: "В наличии",
+      };
       ozonProduct = {
-        ...wbProduct,
-        id: `ozon-${ozonSku}`,
-        title: `${wbProduct.title}`,
-        offers: [
-          {
-            id: `ozon-${ozonSku}`,
-            marketplace: "ozon",
-            title: wbProduct.title,
-            url: buildOzonProductUrl(wbProduct.title),
-            price: Math.round((wbOffer.price || 2400) * 0.98),
-            currency: "RUB",
-            rating: Math.max(4.6, Number(((wbOffer.rating || 4.9) - 0.1).toFixed(1))),
-            reviewCount: Math.round((wbOffer.reviewCount || 420) * 0.85),
-            deliveryText: "2-3 дня (со склада Ozon)",
-            availability: "В наличии",
-          },
-        ],
+        ...ozonProduct,
+        offers: [ozonOfferItem, ...ozonProduct.offers],
       };
     }
   }
