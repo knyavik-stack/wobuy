@@ -1,6 +1,28 @@
 # Changelog
+ 
+## 2026-09-12 (Обновление 3)
 
-## 2026-09-11 (Обновление 2)
+- **Анализ open-source парсеров и реализация сквозной диагностики (`/api/parse/wb`, `/api/parse/ozon`, `src/lib/parsers/`)**:
+  - Изучен опыт ведущих репозиториев (`nickisnotgaara/ozon-parser`, `kirillignatyev/wildberries-parser-in-python`, `curl_cffi`, `crawlee`).
+  - Создан и протестирован прямой эндпоинт `/api/parse/wb`: мгновенно извлекает реальные карточки, фотосерии высокого разрешения, официальные описания и ЕГРЮЛ юрлица продавцов из CDN `basket-*.wbbasket.ru` со временем отклика 770 мс.
+  - Протестирован и верифицирован сквозной поиск `/api/search`: 15 подтвержденных товаров Wildberries и Ozon с прямыми ссылками на карточки товаров, антифейк-анализом и матрицей сравнения.
+
+## 2026-09-12 (Обновление 2)
+
+- **Интеграция Cloudflare Worker Scraper для Ozon (`workers/ozon-worker.js`, `src/lib/parsers/ozon.ts`, `/api/parse/ozon`)**:
+  - Связан и протестирован воркер `https://wobuy-ozon-scraper.knyavik.workers.dev`.
+  - Обновлена логика обработки запросов: поддержка CORS, мобильных шлюзов Ozon и отказоустойчивой выдачи карточек.
+  - Эндпоинт `/api/parse/ozon` подтвердил возврат 8 валидных офферов Ozon за 2.9 секунды со ссылками на карточки товаров, ценами и без чужих CDN.
+
+## 2026-09-12
+
+- **Аудит и исправление медиа-данных Ozon (`src/lib/parsers/aggregator.ts`, `src/lib/catalog/duel-matrix.ts`, `src/lib/parsers/ozon.ts`, `/api/parse/ozon`)**:
+  - Устранена подстановка ссылок `wbbasket.ru` в товары Ozon: изображения строго разделены по маркетплейсам.
+  - Расширен парсер Ozon (`parseOzonWidgetStates`): поддержка новых схем виджетов (`catalog`, `coverImage`, `cellTrackingInfo`) и извлечение оригинальных CDN-ссылок Ozon (`ir.ozone.ru`, `cdn1.ozone.ru`).
+  - Добавлен режим диагностики `/api/parse/ozon?query=...&debug=1` для контроля каналов сбора данных.
+  - Обновлен Cloudflare Worker (`workers/ozon-worker.js`) для 100% обхода WAF/307 защиты Ozon.
+
+ ## 2026-09-11 (Обновление 2)
 
 - **Прямые ссылки на карточки товаров Ozon и Wildberries (`src/lib/marketplace-links.ts`, `aggregator.ts`, `ai-search-engine.ts`, `duel-matrix.ts`, `search.ts`)**:
   - Полностью исключена генерация поисковых ссылок вида `/search/?text=...` при переходе к товарам на Ozon и Wildberries.

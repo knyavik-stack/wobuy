@@ -1,69 +1,70 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchWildberries, getWildberriesProductDetail } from "@/lib/parsers/wildberries";
-import { checkRateLimit } from "@/lib/utils/rate-limiter";
-import { secureLogger } from "@/lib/utils/secure-logger";
 
+export const dynamic = "force-dynamic";
+
+/**
+ * Диагностический и рабочий эндпоинт прямого парсинга Wildberries
+ * GET /api/parse/wb?query=...&article=...&debug=1
+ */
 export async function GET(req: NextRequest) {
-  const rateLimit = checkRateLimit(req, { limit: 40, windowMs: 60_000 }, "parse-wb");
-  if (!rateLimit.allowed && rateLimit.response) {
-    secureLogger.warn("Превышен лимит запросов к парсеру WB");
-    return rateLimit.response;
-  }
-
   const { searchParams } = new URL(req.url);
-  const article = searchParams.get("article")?.trim();
-  const query = searchParams.get("query")?.trim();
+  const query = searchParams.get("query") || searchParams.get("q") || "";
+  const article = searchParams.get("article") || searchParams.get("id") || "";
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
+  const debug = searchParams.get("debug") === "1";
 
   const startTime = Date.now();
 
-  if (article) {
-    // Валидация артикула (только цифры до 20 символов)
-    const sanitizedArticle = article.slice(0, 20).replace(/\D/g, "");
-    if (!sanitizedArticle) {
-      return NextResponse.json({ error: "Некорректный формат артикула" }, { status: 400 });
-    }
-
-    try {
-      const product = await getWildberriesProductDetail(sanitizedArticle);
-      if (!product) {
-        return NextResponse.json(
-          { error: `Товар с артикулом ${sanitizedArticle} не найден на Wildberries` },
-          { status: 404 },
-        );
-      }
+  try {
+    if (article) {
+      const product = await getWildberriesProductDetail(article);
       return NextResponse.json({
-        success: true,
+        success: !!product,
         source: "wildberries",
-        tookMs: Date.now() - startTime,
+        mode: "direct-article",
+        article,
         product,
-      });
-    } catch (err) {
-      secureLogger.error("Ошибка парсинга товара WB:", err);
-      return NextResponse.json({ error: "Ошибка при получении данных с Wildberries" }, { status: 500 });
-    }
-  }
-
-  if (query) {
-    const sanitizedQuery = query.slice(0, 150).replace(/[<>]/g, "");
-    try {
-      const products = await searchWildberries(sanitizedQuery, { limit: 20 });
-      return NextResponse.json({
-        success: true,
-        source: "wildberries",
-        query: sanitizedQuery,
-        count: products.length,
         tookMs: Date.now() - startTime,
-        products,
       });
-    } catch (err) {
-      secureLogger.error("Ошибка поиска по WB:", err);
-      return NextResponse.json({ error: "Ошибка при поиске на Wildberries" }, { status: 500 });
     }
+
+    if (!query) {
+      return NextResponse.json(
+        {
+          error: "Параметр query или article обязателен",
+          usage: "/api/parse/wb?query=палатка или /api/parse/wb?article=150000000",
+        },
+        { status: 400 },
+      );
+    }
+
+    const products = await searchWildberries(query, { limit });
+
+    return NextResponse.json({
+      success: true,
+      source: "wildberries",
+      query,
+      count: products.length,
+      tookMs: Date.now() - startTime,
+      products,
+      ...(debug
+        ? {
+            diagnostic: {
+              hasProducts: products.length > 0,
+              firstProduct: products[0] || null,
+            },
+          }
+        : {}),
+    });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: (err as Error)?.message || "Ошибка парсинга Wildberries",
+        tookMs: Date.now() - startTime,
+      },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json(
-    { error: "Укажите параметр 'query' (поиск) или 'article' (артикул)" },
-    { status: 400 },
-  );
 }
-

@@ -22,6 +22,12 @@ export async function GET(req: NextRequest) {
 
   const sanitizedQuery = query.slice(0, 150).replace(/[<>]/g, "");
 
+  const debug = searchParams.get("debug") === "1";
+  const workerUrl =
+    process.env.OZON_SCRAPER_WORKER_URL ||
+    process.env.CLOUDFLARE_WORKER_URL ||
+    process.env.SCRAPER_PROXY_URL;
+
   const startTime = Date.now();
   try {
     const products = await searchOzon(sanitizedQuery, { limit: 15 });
@@ -32,7 +38,16 @@ export async function GET(req: NextRequest) {
       query: sanitizedQuery,
       count: products.length,
       tookMs: Date.now() - startTime,
+      workerConfigured: Boolean(workerUrl),
+      workerUrl: workerUrl ? `${workerUrl.slice(0, 20)}...` : null,
       products,
+      diagnostic: debug
+        ? {
+            channel: workerUrl ? "Cloudflare Worker Scraper" : "Direct Datacenter Composer API",
+            hasProducts: products.length > 0,
+            wafBypassRecommended: "Deploy /workers/ozon-worker.js to Cloudflare for 100% stable parsing",
+          }
+        : undefined,
     });
   } catch (err) {
     secureLogger.error("Ошибка при поиске на Ozon:", err);

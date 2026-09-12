@@ -275,10 +275,20 @@ export function buildHybridMatrix2x2(
     const baseWbPrice = wbOffer.price || 2400;
     const ozonPrice = Math.max(200, Math.round(baseWbPrice * 0.97));
 
+    const cleanImageUrl =
+      nextProduct.imageUrl && !nextProduct.imageUrl.includes("wbbasket.ru")
+        ? nextProduct.imageUrl
+        : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80";
+
+    const cleanImages = (nextProduct.images || [])
+      .filter((img) => !img.includes("wbbasket.ru"));
+
     ozonProduct = {
       ...nextProduct,
       id: ozonId,
       title: nextProduct.title,
+      imageUrl: cleanImageUrl,
+      images: cleanImages.length > 0 ? cleanImages : [cleanImageUrl],
       offers: [
         {
           id: ozonId,

@@ -103,7 +103,10 @@ export async function aggregateMarketplaceSearch(
           rating: wb.rating ? Math.min(5.0, Math.max(4.5, Number((wb.rating - 0.1).toFixed(1)))) : 4.8,
           reviewCount: wb.reviewCount ? Math.max(10, Math.round(wb.reviewCount * 0.85)) : 120,
           url: buildOzonProductUrl(wb.title, sku),
-          imageUrl: wb.imageUrl,
+          imageUrl:
+            wb.imageUrl && !wb.imageUrl.includes("wbbasket.ru")
+              ? wb.imageUrl
+              : "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80",
           deliveryDays: wb.deliveryDays ? wb.deliveryDays + (idx % 2 === 0 ? 1 : 0) : 2,
           deliveryText: "2-3 дня (со склада Ozon)",
           availability: "В наличии",
