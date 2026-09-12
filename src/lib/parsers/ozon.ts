@@ -119,42 +119,9 @@ export async function searchOzon(
     clearTimeout(timer);
   }
 
-  // 3. Отказоустойчивый генератор офферов Ozon с прямым целевым поиском на Ozon
-  const hash = Math.abs(
-    cleanQuery
-      .split("")
-      .reduce((acc, ch, idx) => ((acc << 5) - acc + ch.charCodeAt(0) * (idx + 1)) | 0, 0),
-  );
-
-  const fallbackOffers: RawMarketplaceOffer[] = Array.from({ length: Math.min(limit, 8) }).map((_, i) => {
-    const sku = 160000000 + ((hash * (i + 13)) % 750000000);
-    const basePrice = 1400 + ((hash * (i + 7)) % 9200);
-    const origPrice = Math.round(basePrice * 1.25);
-    const title = `${cleanQuery.charAt(0).toUpperCase() + cleanQuery.slice(1)}`;
-
-    return {
-      id: `ozon-item-${i + 1}`,
-      marketplace: "ozon" as const,
-      externalId: String(sku),
-      title,
-      brand: i % 2 === 0 ? "Ozon Original" : "Ozon Premium Seller",
-      category: "Популярные товары",
-      price: basePrice,
-      originalPrice: origPrice,
-      discountPercent: Math.round(((origPrice - basePrice) / origPrice) * 100),
-      currency: "RUB",
-      rating: Number((4.6 + ((hash + i) % 4) * 0.1).toFixed(1)),
-      reviewCount: 35 + ((hash * 11 + i * 9) % 520),
-      url: `https://www.ozon.ru/search/?text=${encodeURIComponent(title)}&from_global=true`,
-      imageUrl: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80",
-      deliveryDays: 2,
-      deliveryText: "1-2 дня (со склада Ozon)",
-      availability: "В наличии",
-      sellerName: i % 2 === 0 ? "Ozon Retail" : "Проверенный продавец Ozon",
-    };
-  });
-
-  return fallbackOffers;
+  // Если прямой парсинг и воркер заблокированы WAF маркетплейса, честно возвращаем пустой список
+  // Без генерации фейковых товаров, выдуманных цен и посторонних картинок
+  return [];
 }
 
 /**
@@ -225,8 +192,8 @@ function parseOzonWidgetStates(
             imageUrl = `https:${imageUrl.startsWith("//") ? "" : "//"}${imageUrl}`;
           }
 
-          if (!imageUrl || imageUrl.includes("wbbasket.ru")) {
-            imageUrl = "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80";
+          if (!imageUrl) {
+            imageUrl = "";
           }
 
           // Извлечение ссылки на товар

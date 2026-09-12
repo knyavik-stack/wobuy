@@ -338,7 +338,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-lg border border-purple-500/30 bg-purple-950/40 px-2.5 py-1 font-bold text-purple-300 hover:bg-purple-900/50 transition"
           >
-            <span>В магазин WB</span>
+            <span>{safeWbUrl.includes("search.aspx") ? "Искать на WB" : "В магазин WB"}</span>
             <ExternalLink className="h-3 w-3" />
           </a>
           <a
@@ -347,7 +347,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-950/40 px-2.5 py-1 font-bold text-blue-300 hover:bg-blue-900/50 transition"
           >
-            <span>В магазин Ozon</span>
+            <span>{safeOzonUrl.includes("/search/") ? "Сверить на Ozon" : "В магазин Ozon"}</span>
             <ExternalLink className="h-3 w-3" />
           </a>
           <span className="text-slate-500">|</span>

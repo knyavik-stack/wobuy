@@ -301,10 +301,24 @@ function getCategoryImages(query: string): string[] {
     ];
   }
 
+  if (lower.includes("самокат") || lower.includes("велосипед") || lower.includes("скейт") || lower.includes("ролик")) {
+    return [
+      "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800&auto=format&fit=crop&q=80",
+    ];
+  }
+
+  if (lower.includes("детск") || lower.includes("игрушк") || lower.includes("малыш")) {
+    return [
+      "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&auto=format&fit=crop&q=80",
+    ];
+  }
+
   return [
-    "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
     "https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&auto=format&fit=crop&q=80",
   ];
 }
 

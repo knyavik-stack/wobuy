@@ -204,13 +204,13 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
     }
   }
 
-  // 3. Если передан артикул Wildberries (wb-12345678 или число)
-  const wbMatch = id.match(/^(?:wb-)?(\d{6,11})$/i);
-  if (wbMatch) {
-    const article = wbMatch[1];
+  // 3. Если передан артикул (Wildberries или связка маркетплейсов с числовым артикулом)
+  const articleMatch = id.match(/(?:wb-|ozon-|oz-|ym-)?(\d{6,11})/i);
+  if (articleMatch) {
+    const article = articleMatch[1];
     try {
       const detailPromise = getWildberriesProductDetail(article);
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1800));
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
       const wbItem = await Promise.race([detailPromise, timeoutPromise]);
 
       if (wbItem) {
@@ -223,16 +223,12 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
         );
 
         const wbPrice = wbItem.price || 2400;
-        const ozonPrice = Math.round(wbPrice * 0.98);
-        const ozonRating = wbItem.rating ? Math.min(5.0, Number((wbItem.rating - 0.1).toFixed(1))) : 4.8;
-        const ozonReviews = wbItem.reviewCount ? Math.max(20, Math.round(wbItem.reviewCount * 0.8)) : 140;
-
         const prod: SearchProduct = {
           id: `wb-${wbItem.externalId}`,
           title: wbItem.title,
           brand: wbItem.brand,
           category,
-          description: wbItem.description || `Оригинальный товар «${wbItem.title}» с Wildberries. Проверен ИИ wobuy.`,
+          description: wbItem.description || `Оригинальный товар «${wbItem.title}». Проверен ИИ wobuy.`,
           imageUrl: wbItem.imageUrl,
           images: [wbItem.imageUrl],
           aiScore: metrics.aiScore,
@@ -259,19 +255,21 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
               id: `ozon-${wbItem.externalId}`,
               marketplace: "ozon",
               title: wbItem.title,
-              url: buildOzonProductUrl(wbItem.title, wbItem.externalId),
-              price: ozonPrice,
+              url: buildOzonProductUrl(wbItem.title),
+              price: wbPrice,
               currency: "RUB",
-              rating: ozonRating,
-              reviewCount: ozonReviews,
+              rating: wbItem.rating || 4.8,
+              reviewCount: wbItem.reviewCount || 100,
               deliveryText: "2-3 дня (со склада Ozon)",
               availability: "in_stock",
-              sellerName: "Ozon Retail / Продавец Ozon",
+              sellerName: "Ozon Retail / Продавцы Ozon",
               sellerRating: 4.8,
             },
           ],
         };
         LIVE_PRODUCTS_STORE.set(id, prod);
+        LIVE_PRODUCTS_STORE.set(`wb-${wbItem.externalId}`, prod);
+        LIVE_PRODUCTS_STORE.set(`ozon-${wbItem.externalId}`, prod);
         return prod;
       }
     } catch (err) {
@@ -301,73 +299,9 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
     console.warn("[ResolveProduct] Supabase fetch error:", err);
   }
 
-  // 5. Финальный детерминированный fallback (гарантия от 404 за 0мс)
-  try {
-    const isOzon = id.startsWith("ozon-");
-    const rawLabel = id.replace(/^(?:wb-|ai-|oz-|ozon-|ym-)/, "");
-    let cleanLabel = rawLabel;
-    if (/^[0-9a-f]{10,}$/i.test(rawLabel)) {
-      try {
-        const decoded = Buffer.from(rawLabel, "hex").toString("utf-8");
-        if (decoded && /[а-яa-z]/i.test(decoded)) cleanLabel = decoded;
-      } catch {}
-    }
-    cleanLabel = cleanLabel.replace(/[-_]+/g, " ").trim();
-    const productTitle = cleanLabel && cleanLabel.length > 2 && !/^\d+$/.test(cleanLabel)
-      ? `Товар «${cleanLabel}»`
-      : fromQuery?.trim()
-        ? `Товар «${fromQuery.trim()}»`
-        : "Товар из каталога wobuy.";
-
-    const fallbackProd: SearchProduct = {
-      id,
-      title: productTitle,
-      brand: "wobuy. Verified",
-      category: "Каталог",
-      description: `Проверенный ИИ-агентами товар с подтвержденными характеристиками и контролем накруток.`,
-      imageUrl: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&auto=format&fit=crop&q=80",
-      images: ["https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&auto=format&fit=crop&q=80"],
-      aiScore: 9.4,
-      antiFakePercent: 96,
-      aiTags: ["Анти-Фейк: 96%", "Выбор wobuy.", "Оригинал", "Честная цена"],
-      priceSparkline: [3400, 3200, 3100, 2990, 2890],
-      discountPercent: 15,
-      offers: [
-        {
-          id: isOzon ? id : `wb-${id}`,
-          marketplace: isOzon ? "ozon" : "wildberries",
-          title: productTitle,
-          url: isOzon ? buildOzonProductUrl(productTitle, id) : buildWildberriesProductUrl(id, productTitle),
-          price: 2890,
-          currency: "RUB",
-          rating: 4.8,
-          reviewCount: 940,
-          deliveryText: isOzon ? "2-3 дня (со склада Ozon)" : "Завтра (со склада WB)",
-          availability: "in_stock",
-          sellerName: isOzon ? "Ozon Retail" : "Продавец Wildberries",
-          sellerRating: 4.8,
-        },
-        {
-          id: isOzon ? `wb-${id}` : `ozon-${id}`,
-          marketplace: isOzon ? "wildberries" : "ozon",
-          title: productTitle,
-          url: isOzon ? buildWildberriesProductUrl(id, productTitle) : buildOzonProductUrl(productTitle, id),
-          price: 2950,
-          currency: "RUB",
-          rating: 4.7,
-          reviewCount: 780,
-          deliveryText: isOzon ? "Завтра (склад WB)" : "2-3 дня (со склада Ozon)",
-          availability: "in_stock",
-          sellerName: isOzon ? "Продавец Wildberries" : "Ozon Retail",
-          sellerRating: 4.7,
-        },
-      ],
-    };
-    LIVE_PRODUCTS_STORE.set(id, fallbackProd);
-    return fallbackProd;
-  } catch {
-    return null;
-  }
+  // 5. Если товар так и не найден, честно возвращаем null
+  // Никаких выдуманных товаров с картинками фотоаппарата и фиктивными ценами
+  return null;
 }
 
 /**
