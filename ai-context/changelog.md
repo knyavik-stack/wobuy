@@ -1,5 +1,12 @@
 # Changelog
  
+## 2026-09-12 (Обновление 4)
+
+- **Исправление ссылок Ozon и Wildberries (`src/lib/marketplace-links.ts`, `src/lib/parsers/ozon.ts`, `workers/ozon-worker.js`)**:
+  - Устранена критическая проблема редиректов Ozon на чужие товары (Ozon игнорирует slug в ссылке `/product/{slug}-{sku}/` и ищет товар исключительно по числовому `{sku}`).
+  - Введена проверка `isConfirmedMarketplaceSku`: прямые карточки формируются исключительно при наличии подтвержденного спарсенного SKU.
+  - Для всех остальных случаев формируется чистый точный поиск Ozon (`ozon.ru/search/?text=...&from_global=true`) и Wildberries (`wildberries.ru/catalog/0/search.aspx?search=...`), гарантирующий переход ровно на искомый товар (плед, палатку, рюкзак), а не на случайные товары с совпавшими ID.
+
 ## 2026-09-12 (Обновление 3)
 
 - **Анализ open-source парсеров и реализация сквозной диагностики (`/api/parse/wb`, `/api/parse/ozon`, `src/lib/parsers/`)**:

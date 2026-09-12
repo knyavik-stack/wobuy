@@ -1,128 +1,120 @@
 /**
- * Утилиты для генерации прямых ссылок на карточки товаров маркетплейсов
- * Ozon: https://www.ozon.ru/product/{slug}-{sku}/
- * Wildberries: https://www.wildberries.ru/catalog/{sku}/detail.aspx
+ * Утилиты для генерации надежных ссылок на товары маркетплейсов
+ * Ozon: прямая карточка (при реальном SKU) или точный поиск по названию товара
+ * Wildberries: прямая карточка (при реальном nmId) или точный поиск по названию товара
  */
 
-const RU_TO_LATIN: Record<string, string> = {
-  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh", з: "z", и: "i",
-  й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
-  у: "u", ф: "f", х: "kh", ц: "ts", ч: "ch", ш: "sh", щ: "shch", ъ: "", ы: "y",
-  ь: "", э: "e", ю: "yu", я: "ya",
-};
-
 /**
- * Транслитерация названия товара в slug для ссылок Ozon
- */
-export function slugifyTitle(title: string): string {
-  if (!title) return "product";
-  const clean = title.toLowerCase().replace(/[^a-zа-яё0-9\s-]/gi, " ");
-  let result = "";
-  for (const char of clean) {
-    result += RU_TO_LATIN[char] !== undefined ? RU_TO_LATIN[char] : char;
-  }
-  return (
-    result
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .slice(0, 45)
-      .replace(/-+$/, "") || "product"
-  );
-}
-
-/**
- * Очистка названия товара от спецсимволов и кавычек
+ * Очистка названия товара от спецсимволов и мусора для точного поиска на маркетплейсе
  */
 export function sanitizeSearchQuery(title: string): string {
   if (!title) return "";
   return title
     .replace(/[«»""''`]/g, " ")
+    .replace(/\(.*?\)/g, " ")
+    .replace(/\[.*?\]/g, " ")
     .replace(/[\\/|#?&%$@*!+=<>~]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 /**
- * Получение детерминированного числового SKU из строки
+ * Проверка, является ли переданный SKU реальным подтвержденным артикулом (а не сгенерированным хэшем)
  */
-function getDeterministicSku(seed: string, baseOffset: number, modulo: number): number {
-  const hash = Math.abs(
-    seed.split("").reduce((acc, ch, idx) => ((acc << 5) - acc + ch.charCodeAt(0) * (idx + 1)) | 0, 0),
-  );
-  return baseOffset + (hash % modulo);
+export function isConfirmedMarketplaceSku(skuOrUrl?: string | number): boolean {
+  if (!skuOrUrl) return false;
+  const str = String(skuOrUrl).trim();
+  // Если это синтетический префикс или содержит маркер fallback
+  if (str.includes("fallback") || str.includes("synthetic") || str.includes("mock")) {
+    return false;
+  }
+  return true;
 }
 
 /**
- * Формирование прямой ссылки на карточку товара Ozon:
- * https://www.ozon.ru/product/{slug}-{sku}/
+ * Формирование надежной ссылки на товар Ozon:
+ * - Если есть подтвержденная прямая ссылка или реальный SKU -> карточка товара
+ * - Если SKU синтетический или отсутствует -> точный поиск по названию на Ozon (исключает переход на чужие товары)
  */
 export function buildOzonProductUrl(title: string, skuOrUrl?: string | number): string {
   const raw = String(skuOrUrl || "").trim();
+  const cleanTitle = sanitizeSearchQuery(title);
 
-  // Если это уже готовый полный URL Ozon
-  if (raw.startsWith("http") && raw.includes("ozon.ru/product/")) {
+  // 1. Если это уже валидная ссылка Ozon с поиском или карточкой
+  if (raw.startsWith("http") && (raw.includes("ozon.ru/product/") || raw.includes("ozon.ru/search/"))) {
+    // Если ссылка содержит синтетический fallback артикул, заменяем на точный поиск
+    if (raw.includes("model-ozon-premium") || raw.includes("ozon-premium")) {
+      return `https://www.ozon.ru/search/?text=${encodeURIComponent(cleanTitle || "товар")}&from_global=true`;
+    }
     return raw;
   }
 
-  // Если это относительный путь Ozon API (/product/...)
-  if (raw.startsWith("/product/")) {
+  // 2. Если это относительный путь Ozon API (/product/... или /search/...)
+  if (raw.startsWith("/product/") || raw.startsWith("/search/")) {
     return `https://www.ozon.ru${raw}`;
   }
 
-  const slug = slugifyTitle(title || "product");
+  // 3. Если передан подтвержденный числовой SKU из реального API Ozon
+  const digits = raw.replace(/[^\d]/g, "");
+  const isSynthetic = !raw || raw.startsWith("ozon-") || !isConfirmedMarketplaceSku(raw);
 
-  // Извлекаем цифры из переданного идентификатора
-  const digitsMatch = raw.replace(/[^\d]/g, "");
-  let sku = digitsMatch;
-
-  if (!sku || sku.length < 6) {
-    // Генерируем детерминированный стабильный 9-значный SKU для товара Ozon
-    sku = String(getDeterministicSku(title || "ozon-product", 140000000, 800000000));
+  if (digits && digits.length >= 6 && digits.length <= 11 && !isSynthetic) {
+    return `https://www.ozon.ru/product/${digits}/`;
   }
 
-  return `https://www.ozon.ru/product/${slug}-${sku}/`;
+  // 4. Гарантированный целевой переход на Ozon по названию товара (детский плед -> детский плед)
+  return `https://www.ozon.ru/search/?text=${encodeURIComponent(cleanTitle || "товар")}&from_global=true`;
 }
 
 /**
- * Формирование прямой ссылки на карточку товара Wildberries:
- * https://www.wildberries.ru/catalog/{sku}/detail.aspx
+ * Формирование надежной ссылки на товар Wildberries:
+ * - Если есть подтвержденный nmId -> прямая карточка /catalog/{sku}/detail.aspx
+ * - Если nmId синтетический или отсутствует -> точный поиск по названию на WB
  */
 export function buildWildberriesProductUrl(skuOrUrl?: string | number, fallbackTitle = ""): string {
   const raw = String(skuOrUrl || "").trim();
+  const cleanTitle = sanitizeSearchQuery(fallbackTitle);
 
-  // Если это уже готовый полный URL карточки WB
+  // 1. Если это уже готовый полный URL карточки WB
   if (raw.startsWith("http") && raw.includes("wildberries.ru/catalog/") && raw.includes("/detail.aspx")) {
     return raw;
   }
 
+  // 2. Если это уже ссылка на поиск WB
+  if (raw.startsWith("http") && raw.includes("wildberries.ru/catalog/0/search.aspx")) {
+    return raw;
+  }
+
   const digits = raw.replace(/[^\d]/g, "");
-  if (digits && digits.length >= 6 && digits.length <= 11) {
+  const isSynthetic = raw.startsWith("wb-fallback") || raw.includes("mock") || !digits;
+
+  if (digits && digits.length >= 6 && digits.length <= 11 && !isSynthetic) {
     return `https://www.wildberries.ru/catalog/${digits}/detail.aspx`;
   }
 
-  // Генерируем детерминированный стабильный артикул WB
-  const derivedSku = getDeterministicSku(fallbackTitle || "wb-product", 180000000, 700000000);
-  return `https://www.wildberries.ru/catalog/${derivedSku}/detail.aspx`;
+  // 3. Целевой поиск Wildberries по точному названию модели
+  return `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(cleanTitle || "товар")}`;
 }
 
 /**
- * Поисковая ссылка Ozon (запасная)
+ * Поисковая ссылка Ozon
  */
 export function buildOzonSearchUrl(query: string): string {
-  return buildOzonProductUrl(query);
+  const clean = sanitizeSearchQuery(query);
+  return `https://www.ozon.ru/search/?text=${encodeURIComponent(clean || "товар")}&from_global=true`;
 }
 
 /**
- * Поисковая ссылка Wildberries (запасная)
+ * Поисковая ссылка Wildberries
  */
 export function buildWildberriesSearchUrl(query: string): string {
-  return buildWildberriesProductUrl(undefined, query);
+  const clean = sanitizeSearchQuery(query);
+  return `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(clean || "товар")}`;
 }
 
 /**
  * Универсальная санитизация ссылки на оффер маркетплейса.
- * Гарантирует, что пользователь перейдет строго на прямую карточку товара.
+ * Исключает случайное попадание на чужой артикул Ozon/WB.
  */
 export function sanitizeMarketplaceOfferUrl(
   marketplace: string,

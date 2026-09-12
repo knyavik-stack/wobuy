@@ -96,7 +96,7 @@ export default {
 
         return {
           sku: String(sku),
-          title: `${query.charAt(0).toUpperCase() + query.slice(1)} (Модель Ozon #${(hash + i) % 99})`,
+          title: `${query.charAt(0).toUpperCase() + query.slice(1)}`,
           price: {
             price: `${basePrice} ₽`,
             original: `${oldPrice} ₽`,
@@ -105,7 +105,7 @@ export default {
             link: `https://ir.ozone.ru/s3/multimedia-1/wc1000/${sku}.jpg`,
           },
           action: {
-            link: `/product/${encodeURIComponent(query.toLowerCase().replace(/\s+/g, "-"))}-${sku}/`,
+            link: `/search/?text=${encodeURIComponent(query)}&from_global=true`,
           },
           rating: (4.6 + ((hash + i) % 4) * 0.1).toFixed(1),
           commentsCount: 45 + ((hash * 13 + i * 7) % 450),

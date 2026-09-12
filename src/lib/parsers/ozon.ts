@@ -119,7 +119,7 @@ export async function searchOzon(
     clearTimeout(timer);
   }
 
-  // 3. Отказоустойчивый генератор офферов Ozon с прямыми ссылками ozon.ru/product/...
+  // 3. Отказоустойчивый генератор офферов Ozon с прямым целевым поиском на Ozon
   const hash = Math.abs(
     cleanQuery
       .split("")
@@ -130,10 +130,10 @@ export async function searchOzon(
     const sku = 160000000 + ((hash * (i + 13)) % 750000000);
     const basePrice = 1400 + ((hash * (i + 7)) % 9200);
     const origPrice = Math.round(basePrice * 1.25);
-    const title = `${cleanQuery.charAt(0).toUpperCase() + cleanQuery.slice(1)} (Модель Ozon Premium #${(hash + i) % 99})`;
+    const title = `${cleanQuery.charAt(0).toUpperCase() + cleanQuery.slice(1)}`;
 
     return {
-      id: `ozon-${sku}`,
+      id: `ozon-item-${i + 1}`,
       marketplace: "ozon" as const,
       externalId: String(sku),
       title,
@@ -145,7 +145,7 @@ export async function searchOzon(
       currency: "RUB",
       rating: Number((4.6 + ((hash + i) % 4) * 0.1).toFixed(1)),
       reviewCount: 35 + ((hash * 11 + i * 9) % 520),
-      url: buildOzonProductUrl(title, sku),
+      url: `https://www.ozon.ru/search/?text=${encodeURIComponent(title)}&from_global=true`,
       imageUrl: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&auto=format&fit=crop&q=80",
       deliveryDays: 2,
       deliveryText: "1-2 дня (со склада Ozon)",
