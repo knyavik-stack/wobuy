@@ -344,6 +344,15 @@ export function buildHybridMatrix2x2(
   const wbDays = parseDeliveryDays(wbOffer.deliveryText);
   const ozonDays = parseDeliveryDays(ozonOffer.deliveryText);
 
+  // Клонируем товары слотов дуэли, чтобы предотвратить перекрестную мутацию триумфатора и офферов
+  wbProduct = {
+    ...wbProduct,
+  };
+
+  ozonProduct = {
+    ...ozonProduct,
+  };
+
   // Формируем СЛОТ 1: WB-Чемпион
   wbProduct.triumph = {
     slotType: "wb",
@@ -599,22 +608,26 @@ export function buildHybridMatrix2x2(
     return minA - minB;
   });
 
-  const economistProduct = remainingForEconomist[0] || screenedPool[0];
-  const economistOffer = [...economistProduct.offers].sort((a, b) => (a.price ?? 999999) - (b.price ?? 999999))[0];
+  const baseEconomistProduct = remainingForEconomist[0] || screenedPool[0];
+  const economistOffer = [...baseEconomistProduct.offers].sort((a, b) => (a.price ?? 999999) - (b.price ?? 999999))[0];
   const economistTco = calculateTco(economistOffer.price || 1200, 2.5, 7);
   const savingsPercent = Math.max(15, Math.round(((medianPrice - economistTco.tcoPrice) / medianPrice) * 100));
 
   const economistMp = economistOffer.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon";
   const economistMpLabel = economistMp === "wildberries" ? "Wildberries" : "Ozon";
 
-  economistProduct.triumph = {
-    slotType: "economist",
-    badgeTitle: "Триумф Экономного",
-    badgeSubtitle: "Минимальная цена на рынке",
-    marketplace: economistMp,
-    verdict: `wobuy. выбрал этот товар на ${economistMpLabel}: подтвержденная минимальная цена ${economistOffer.price} ₽ в категории (экономия ${savingsPercent}% от средней цены рынка).`,
-    price: economistOffer.price,
-    deliveryText: economistOffer.deliveryText,
+  // Клонируем объект товара, чтобы избежать мутации других слотов, если выбран тот же товар
+  const economistProduct: SearchProduct = {
+    ...baseEconomistProduct,
+    triumph: {
+      slotType: "economist",
+      badgeTitle: "Триумф Экономного",
+      badgeSubtitle: "Минимальная цена на рынке",
+      marketplace: economistMp,
+      verdict: `wobuy. выбрал этот товар на ${economistMpLabel}: подтвержденная минимальная цена ${economistOffer.price} ₽ в категории (экономия ${savingsPercent}% от средней цены рынка).`,
+      price: economistOffer.price,
+      deliveryText: economistOffer.deliveryText,
+    },
   };
 
   const economistSlot: MatrixSlot = {
@@ -629,7 +642,7 @@ export function buildHybridMatrix2x2(
     matchedOffer: economistOffer,
     tcoPrice: economistTco.tcoPrice,
     deliverySpeedLabel: economistOffer.deliveryText || "2-3 дня",
-    aiVerdict: economistProduct.triumph.verdict,
+    aiVerdict: economistProduct.triumph!.verdict,
     savingsVsMarketText: `Дешевле средней цены на ${savingsPercent}%`,
     pros: [
       `Абсолютно лучшая цена: ${economistTco.tcoPrice.toLocaleString("ru-RU")} ₽ на ${economistMpLabel}`,
@@ -650,21 +663,25 @@ export function buildHybridMatrix2x2(
     return b.aiScore - a.aiScore;
   });
 
-  const expressProduct = remainingForExpress[0] || screenedPool[0];
-  const expressOffer = [...expressProduct.offers].sort((a, b) => parseDeliveryDays(a.deliveryText) - parseDeliveryDays(b.deliveryText))[0];
+  const baseExpressProduct = remainingForExpress[0] || screenedPool[0];
+  const expressOffer = [...baseExpressProduct.offers].sort((a, b) => parseDeliveryDays(a.deliveryText) - parseDeliveryDays(b.deliveryText))[0];
   const expressTco = calculateTco(expressOffer.price || 2100, 1.5, 4);
 
   const expressMp = expressOffer.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon";
   const expressMpLabel = expressMp === "wildberries" ? "Wildberries" : "Ozon";
 
-  expressProduct.triumph = {
-    slotType: "express",
-    badgeTitle: "Триумф Срочного",
-    badgeSubtitle: "Экспресс-доставка FBO",
-    marketplace: expressMp,
-    verdict: `wobuy. выбрал этот товар на ${expressMpLabel}: моментальная экспресс-доставка со склада FBO (${expressOffer.deliveryText || "1-2 дня"}), готов к выдаче быстрее всех предложений.`,
-    price: expressOffer.price,
-    deliveryText: expressOffer.deliveryText,
+  // Клонируем объект товара для изоляции статуса триумфатора
+  const expressProduct: SearchProduct = {
+    ...baseExpressProduct,
+    triumph: {
+      slotType: "express",
+      badgeTitle: "Триумф Срочного",
+      badgeSubtitle: "Экспресс-доставка FBO",
+      marketplace: expressMp,
+      verdict: `wobuy. выбрал этот товар на ${expressMpLabel}: моментальная экспресс-доставка со склада FBO (${expressOffer.deliveryText || "1-2 дня"}), готов к выдаче быстрее всех предложений.`,
+      price: expressOffer.price,
+      deliveryText: expressOffer.deliveryText,
+    },
   };
 
   const expressSlot: MatrixSlot = {
@@ -679,7 +696,7 @@ export function buildHybridMatrix2x2(
     matchedOffer: expressOffer,
     tcoPrice: expressTco.tcoPrice,
     deliverySpeedLabel: expressOffer.deliveryText || "1-2 дня (со склада)",
-    aiVerdict: expressProduct.triumph.verdict,
+    aiVerdict: expressProduct.triumph!.verdict,
     pros: [
       `Экспресс-срок: ${expressOffer.deliveryText || "1-2 дня"} со склада FBO на ${expressMpLabel}`,
       "Товар уже упакован и находится в региональном распределительном центре",
@@ -705,7 +722,10 @@ export function buildHybridMatrix2x2(
   economistProduct.funnelStats = funnelStats;
   expressProduct.funnelStats = funnelStats;
 
-  // Резервируем товары слотов в хранилище реальных карточек, чтобы при открытии карточки сохранялся статус триумфатора
+  // Резервируем все найденные товары и товары слотов в хранилище реальных карточек, чтобы при открытии карточки сохранялись точные данные и статус триумфатора
+  for (const prod of screenedPool) {
+    saveProductToLiveStore(prod);
+  }
   saveProductToLiveStore(wbProduct);
   saveProductToLiveStore(ozonProduct);
   saveProductToLiveStore(economistProduct);
