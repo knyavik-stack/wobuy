@@ -199,21 +199,40 @@ export async function upsertProductWithEmbedding(product: {
       productId = created?.id;
     }
 
-    // 2. Сохраняем предложения
+    // 2. Сохраняем предложения в Supabase
     if (productId && product.offers.length > 0) {
       for (const off of product.offers) {
-        await supabase.from("product_offers").upsert(
-          {
+        try {
+          const { data: existingOffers } = await supabase
+            .from("product_offers")
+            .select("id")
+            .eq("product_id", productId)
+            .eq("marketplace", off.marketplace);
+
+          const offerPayload = {
             product_id: productId,
             marketplace: off.marketplace,
+            external_id: (off as { id?: string }).id || `${off.marketplace}-${productId}`,
             title: off.title,
             url: off.url,
             price: off.price,
             rating: off.rating,
             review_count: off.reviewCount,
-          },
-          { onConflict: "product_id,marketplace" },
-        );
+          };
+
+          if (existingOffers && existingOffers.length > 0) {
+            await supabase
+              .from("product_offers")
+              .update(offerPayload)
+              .eq("id", existingOffers[0].id);
+          } else {
+            await supabase
+              .from("product_offers")
+              .insert(offerPayload);
+          }
+        } catch (offerErr) {
+          console.warn("[Upsert Product] Offer save warning:", offerErr);
+        }
       }
     }
 

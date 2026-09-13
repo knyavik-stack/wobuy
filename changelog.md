@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-13 (Дополнение 2)
+
+- **Надежная синхронизация каталога и предложений в Supabase (`src/lib/catalog/semantic-search.ts`)**:
+  - Устранена ошибка Postgres `42P10` при вызове `upsert` на таблицу `product_offers`.
+  - Внедрена двухфазная логика синхронизации (поиск существующего оффера по `product_id` + `marketplace` -> целевое обновление цен/рейтинга либо добавление нового оффера).
+  - Скорректирована типизация TypeScript для `external_id`, обеспечена 100% чистая компиляция.
+
+- **Калибровка корзин CDN Wildberries для современных партий товаров (`src/lib/parsers/wb-utils.ts`)**:
+  - Расширены диапазоны корзин `WB_BASKET_TABLE` для высоких `vol` (vol 7000–16499+, корзины до basket-50+).
+  - Обеспечено отображение оригинальных карточек и галерей фотографий товаров с CDN `wbbasket.ru` без битых ссылок.
+
 ## 2026-09-13 (Дополнение)
 
 - **Полная синхронизация цен между выдачей поиска и разбором wobuy. (`src/app/search/page.tsx`, `src/app/product/[id]/page.tsx`, `src/lib/ai/analyzer.ts`, `src/lib/catalog/search.ts`, `src/components/search/MatrixSlotCard.tsx`, `src/components/search/DuelArbitrationCard.tsx`, `maket/SearchResults-v2.tsx`)**:
