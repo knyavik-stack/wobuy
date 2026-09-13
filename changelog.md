@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-13 (Дополнение 10)
+
+- **Глубокий парсинг Ozon через Playwright API Response Interceptor (`services/ozon-scraper/server.js`)**:
+  - Внедрен перехват `composer-api.bx` и `entrypoint-api.bx` для прямого извлечения `widgetStates` без зависимости от смены DOM-классов Ozon.
+  - Устранен баг кэширования пустых результатов (теперь кэшируются только успешно полученные товары).
+  - Таймаут на фронтенд-агрегаторе увеличен с 4000мс до 15000мс для стабильного ожидания ответа Playwright.
+
 ## 2026-09-13 (Дополнение 9)
 
 - **Интеграция Playwright-скрапера Ozon на Render.com (`https://wobuy-ozon-scraper.onrender.com`)**:

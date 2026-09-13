@@ -49,7 +49,7 @@ export async function searchOzon(
   query: string,
   options: { page?: number; limit?: number; timeoutMs?: number } = {},
 ): Promise<RawMarketplaceOffer[]> {
-  const { page = 1, limit = 15, timeoutMs = 4000 } = options;
+  const { page = 1, limit = 15, timeoutMs = 15000 } = options;
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
 

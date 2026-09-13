@@ -64,7 +64,7 @@ export async function aggregateMarketplaceSearch(
       }),
       searchOzon(cleanQuery, {
         limit: options.limit || 10,
-        timeoutMs: options.timeoutMs || 4000,
+        timeoutMs: options.timeoutMs || 15000,
       }).catch((err) => {
         secureLogger.debug("[Aggregator] Парсер Ozon вернул ошибку, переход на зеркальный дуэльный пул:", (err as Error)?.message || err);
         return [] as RawMarketplaceOffer[];

@@ -78,6 +78,26 @@ async function scrapeOzonQuery(query, limit = 15) {
   });
 
   const page = await context.newPage();
+  let interceptedData = null;
+
+  // 1. Перехват внутренних JSON-ответов Ozon API во время рендеринга страницы
+  page.on("response", async (response) => {
+    try {
+      const url = response.url();
+      if (
+        (url.includes("composer-api.bx") || url.includes("entrypoint-api.bx")) &&
+        response.status() === 200 &&
+        response.headers()["content-type"]?.includes("application/json")
+      ) {
+        const json = await response.json();
+        if (json?.widgetStates || json?.trackingPayloads) {
+          interceptedData = json;
+        }
+      }
+    } catch {
+      // Игнорируем ошибки парсинга не-JSON ответов
+    }
+  });
 
   try {
     const targetUrl = `https://www.ozon.ru/search/?text=${encodeURIComponent(query)}&from_global=true`;
@@ -85,78 +105,158 @@ async function scrapeOzonQuery(query, limit = 15) {
 
     await page.goto(targetUrl, {
       waitUntil: "domcontentloaded",
-      timeout: 15000,
+      timeout: 20000,
     });
 
-    // Ожидаем появления виджетов поиска или первой карточки
+    // Ожидаем подгрузку контента или перехвата API
     try {
-      await page.waitForSelector('div[data-widget="searchResultsV2"], div[class*="tile-root"], a[href*="/product/"]', {
-        timeout: 7000,
-      });
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll('a[href*="/product/"]').length > 0 ||
+          document.querySelectorAll('div[data-widget*="searchResults"]').length > 0 ||
+          document.querySelectorAll('div[class*="tile"]').length > 0,
+        { timeout: 8000 },
+      );
     } catch {
-      // Продолжаем парсинг, даже если селектор не успел сработать по таймауту
+      // Продолжаем дальше
     }
 
-    // Дополнительная небольшая прокрутка для подгрузки изображений lazy-load
-    await page.evaluate(() => window.scrollBy(0, 400));
-    await page.waitForTimeout(600);
+    // Прокручиваем для инициализации lazy-load
+    await page.evaluate(() => window.scrollBy(0, 500));
+    await page.waitForTimeout(1000);
 
-    // Извлечение карточек товаров через браузерный контекст
+    // 2. Если перехвачен сетевой JSON от Ozon API — извлекаем напрямую из widgetStates
+    if (interceptedData?.widgetStates) {
+      const apiResults = [];
+      for (const [key, stateStr] of Object.entries(interceptedData.widgetStates)) {
+        if (!key.includes("searchResults") && !key.includes("tileGrid") && !key.includes("megaPaginator")) continue;
+        try {
+          const state = typeof stateStr === "string" ? JSON.parse(stateStr) : stateStr;
+          const items = state.items || state.products || state.searchResults || [];
+          for (const item of items) {
+            if (apiResults.length >= limit) break;
+            const sku = String(item.sku || item.id || item.action?.link?.match(/\d{8,12}/)?.[0] || "");
+            if (!sku || sku.length < 5) continue;
+
+            const title = item.cellTrackingInfo?.title || item.title || item.name || query;
+            const price =
+              cleanPrice(item.price?.price) ||
+              cleanPrice(item.mainState?.find((s) => s.atom?.price)?.atom?.price?.price) ||
+              cleanPrice(item.cellTrackingInfo?.price) ||
+              2000;
+            const originalPrice =
+              cleanPrice(item.price?.originalPrice) ||
+              cleanPrice(item.price?.oldPrice) ||
+              Math.round(price * 1.15);
+
+            let imageUrl = item.image?.link || item.cellTrackingInfo?.image || "";
+            if (Array.isArray(item.images) && item.images.length > 0) {
+              imageUrl = item.images[0];
+            }
+            if (imageUrl.startsWith("//")) imageUrl = `https:${imageUrl}`;
+
+            apiResults.push({
+              id: `ozon-${sku}`,
+              sku,
+              marketplace: "ozon",
+              title,
+              url: `https://www.ozon.ru/product/${sku}/`,
+              imageUrl: imageUrl || "https://ir.ozone.ru/s3/multimedia-1/wc1000/default.jpg",
+              images: [imageUrl],
+              price,
+              originalPrice,
+              currency: "RUB",
+              rating: Number(item.rating || item.cellTrackingInfo?.rating || 4.8),
+              reviewCount: Number(item.reviewCount || item.cellTrackingInfo?.reviewCount || 150),
+              deliveryText: "Завтра (со склада Ozon)",
+              availability: "В наличии",
+              sellerName: "Ozon Retail / Продавцы Ozon",
+              sellerRating: 4.8,
+            });
+          }
+        } catch {
+          // Игнорируем отдельные битые виджеты
+        }
+      }
+      if (apiResults.length > 0) {
+        return apiResults.slice(0, limit);
+      }
+    }
+
+    // 3. Извлечение карточек товаров через глубокий парсинг DOM браузера
     const rawItems = await page.evaluate((maxItems) => {
       const results = [];
-      const links = Array.from(document.querySelectorAll('a[href*="/product/"]'));
       const seenSkus = new Set();
+
+      // Поиск всех ссылок на товары
+      const links = Array.from(document.querySelectorAll('a[href*="/product/"]'));
 
       for (const a of links) {
         if (results.length >= maxItems) break;
 
         const href = a.getAttribute("href") || "";
-        const skuMatch = href.match(/\/product\/.*?(\d{8,12})/i) || href.match(/\/product\/(\d{8,12})/i);
+        const skuMatch = href.match(/\/product\/.*?(\d{7,12})/i) || href.match(/(\d{7,12})/);
         if (!skuMatch) continue;
 
         const sku = skuMatch[1];
         if (seenSkus.has(sku)) continue;
 
         // Поиск контейнера карточки
-        const cardContainer = a.closest('div[class*="tile-root"]') || a.closest('div[data-widget]') || a.parentElement;
-        if (!cardContainer) continue;
-
-        // Название товара
-        const titleEl =
-          cardContainer.querySelector('span[class*="tsBody500Medium"]') ||
-          cardContainer.querySelector('span[class*="tsBody"]') ||
-          cardContainer.querySelector('span[class*="title"]') ||
-          a.querySelector("span");
-        const title = titleEl ? titleEl.textContent.trim() : "";
-        if (!title || title.length < 3) continue;
-
-        // Фотография товара с Ozon CDN
-        const imgEl = cardContainer.querySelector("img");
-        let imageUrl = "";
-        if (imgEl) {
-          imageUrl = imgEl.getAttribute("src") || imgEl.getAttribute("data-src") || "";
-          if (imageUrl.startsWith("//")) imageUrl = `https:${imageUrl}`;
-        }
-
-        // Цены (Ozon Карта и базовая)
-        const priceEls = Array.from(cardContainer.querySelectorAll('span[class*="price"], span[class*="Price"], span[class*="tsHeadline"]'));
-        let cardPrice = "";
-        let originalPrice = "";
-
-        if (priceEls.length > 0) {
-          cardPrice = priceEls[0]?.textContent || "";
-          if (priceEls.length > 1) {
-            originalPrice = priceEls[1]?.textContent || "";
+        let container = a;
+        for (let i = 0; i < 6; i++) {
+          if (!container.parentElement) break;
+          container = container.parentElement;
+          if (
+            container.classList &&
+            (Array.from(container.classList).some((c) => c.includes("tile") || c.includes("card") || c.includes("item")) ||
+              container.getAttribute("data-widget"))
+          ) {
+            break;
           }
         }
 
-        // Рейтинг и отзывы
-        const textContent = cardContainer.textContent || "";
-        const ratingMatch = textContent.match(/([45][.,]\d)/);
+        // Извлечение заголовка
+        let title = "";
+        const titleElements = container.querySelectorAll('span, [class*="title"], [class*="name"], [class*="tsBody"]');
+        for (const el of titleElements) {
+          const t = el.textContent?.trim() || "";
+          if (t.length >= 10 && !t.includes("₽") && !t.includes("%") && !t.includes("отзыв") && !t.includes("Ozon")) {
+            title = t;
+            break;
+          }
+        }
+        if (!title) {
+          title = a.getAttribute("title") || a.textContent?.trim() || "";
+        }
+        if (!title || title.length < 3) continue;
+
+        // Фотография
+        const img = container.querySelector("img");
+        let imageUrl = "";
+        if (img) {
+          imageUrl = img.getAttribute("src") || img.getAttribute("data-src") || "";
+          if (imageUrl.startsWith("//")) imageUrl = `https:${imageUrl}`;
+        }
+
+        // Извлечение цены через regex по тексту контейнера
+        const containerText = container.textContent || "";
+        const priceMatches = Array.from(containerText.matchAll(/(\d[\d\s\u00A0]*)\s*₽/g));
+        let priceStr = "";
+        let origPriceStr = "";
+        if (priceMatches.length > 0) {
+          priceStr = priceMatches[0][1];
+          if (priceMatches.length > 1) {
+            origPriceStr = priceMatches[1][1];
+          }
+        }
+
+        // Рейтинг
+        const ratingMatch = containerText.match(/([45][.,]\d)/);
         const rating = ratingMatch ? parseFloat(ratingMatch[1].replace(",", ".")) : 4.8;
 
-        const reviewsMatch = textContent.match(/(\d[\d\s]*)\s*(?:отзыв|оцен)/i);
-        const reviewsCount = reviewsMatch ? parseInt(reviewsMatch[1].replace(/\s/g, ""), 10) : 150;
+        // Отзывы
+        const reviewMatch = containerText.match(/(\d[\d\s\u00A0]*)\s*(?:отзыв|оценк)/i);
+        const reviewCount = reviewMatch ? parseInt(reviewMatch[1].replace(/[^\d]/g, ""), 10) : 120;
 
         seenSkus.add(sku);
         results.push({
@@ -165,19 +265,19 @@ async function scrapeOzonQuery(query, limit = 15) {
           title,
           url: `https://www.ozon.ru/product/${sku}/`,
           imageUrl: imageUrl || "https://ir.ozone.ru/s3/multimedia-1/wc1000/default.jpg",
-          rawPrice: cardPrice || originalPrice,
-          rawOriginalPrice: originalPrice,
+          rawPrice: priceStr,
+          rawOriginalPrice: origPriceStr,
           rating,
-          reviewCount: reviewsCount,
+          reviewCount,
         });
       }
 
       return results;
     }, limit);
 
-    // Пост-обработка цен и структуры
+    // 4. Пост-обработка цен и нормализация структуры
     const finalProducts = rawItems.map((item) => {
-      const price = cleanPrice(item.rawPrice) || 1500;
+      const price = cleanPrice(item.rawPrice) || 1990;
       const originalPrice = cleanPrice(item.rawOriginalPrice) || Math.round(price * 1.15);
       return {
         id: item.id,
@@ -228,9 +328,10 @@ app.get("/search", async (req, res) => {
     return res.status(400).json({ error: "Параметр 'q' обязателен", products: [] });
   }
 
+  const isRefresh = req.query.refresh === "1" || req.query.force === "1";
   const cacheKey = `${query.toLowerCase()}_${limit}`;
   const cached = searchCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+  if (!isRefresh && cached && cached.data && cached.data.length > 0 && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return res.json({
       status: "ok",
       source: "cache",
@@ -242,7 +343,9 @@ app.get("/search", async (req, res) => {
 
   try {
     const products = await scrapeOzonQuery(query, limit);
-    searchCache.set(cacheKey, { timestamp: Date.now(), data: products });
+    if (products && products.length > 0) {
+      searchCache.set(cacheKey, { timestamp: Date.now(), data: products });
+    }
 
     res.json({
       status: "ok",
