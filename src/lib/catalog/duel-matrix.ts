@@ -1,6 +1,5 @@
 import type { SearchProduct, AuditFunnelStats, AgentAuditWorkload } from "./product-types";
 import { saveProductToLiveStore } from "./store";
-import { buildOzonProductUrl } from "@/lib/marketplace-links";
 
 export type { AuditFunnelStats, AgentAuditWorkload };
 
@@ -250,233 +249,172 @@ export function buildHybridMatrix2x2(
     return ratingScore + reviewWeight + antiFakeWeight + speedScore;
   };
 
-  // 1. Поиск лучшего товара с WB
+  // 1. Поиск кандидатов с маркетплейсов
   const wbCandidates = screenedPool
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("wildberries")))
     .sort((a, b) => scoreOffer(b, "wildberries") - scoreOffer(a, "wildberries"));
 
-  let wbProduct = wbCandidates[0] || screenedPool[0];
-  const wbOffer =
-    wbProduct.offers.find((o) => o.marketplace.toLowerCase().includes("wildberries")) ||
-    wbProduct.offers[0];
-
-  // 2. Поиск лучшего товара с Ozon (СТРОГО отдельная карточка товара или реальный конкурент)
   const ozonCandidates = screenedPool
-    .filter((p) => p.id !== wbProduct.id && p.offers.some((o) => o.marketplace.toLowerCase().includes("ozon")))
+    .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("ozon")))
     .sort((a, b) => scoreOffer(b, "ozon") - scoreOffer(a, "ozon"));
 
-  let ozonProduct = ozonCandidates[0];
+  const hasRealOzon = ozonCandidates.length > 0;
 
-  if (!ozonProduct) {
-    // Если отдельного товара Ozon нет, берем сильнейший альтернативный реальный товар из пула конкурентов
-    const nextProduct = screenedPool.find((p) => p.id !== wbProduct.id) || wbProduct;
-    const isDifferentProduct = nextProduct.id !== wbProduct.id;
-    const ozonId = `ozon-${nextProduct.id.replace(/^wb-/, "")}`;
-    
-    // Берем реальную цену альтернативного товара или рассчитываем рыночную цену с учетом скидки Ozon Карты
-    const rawNextPrice = nextProduct.offers[0]?.price;
-    const baseWbPrice = wbOffer.price || 2400;
-    
-    let ozonPrice: number;
-    if (isDifferentProduct && rawNextPrice && rawNextPrice > 0) {
-      ozonPrice = rawNextPrice;
-    } else {
-      // Для того же товара моделируем реалистичный рыночный спрэд Ozon Карты (3-6% скидки или тариф FBO)
-      const priceModifier = baseWbPrice >= 10000 ? 0.96 : baseWbPrice >= 3000 ? 0.97 : 0.95;
-      ozonPrice = Math.round((baseWbPrice * priceModifier) / 10) * 10;
-      if (ozonPrice === baseWbPrice) {
-        ozonPrice = baseWbPrice - 50;
-      }
-    }
+  let product1: SearchProduct;
+  let product2: SearchProduct;
+  let offer1: SearchProduct["offers"][0];
+  let offer2: SearchProduct["offers"][0];
 
-    const realImageUrl = nextProduct.imageUrl || wbProduct.imageUrl;
-    const realImages =
-      nextProduct.images && nextProduct.images.length > 0
-        ? nextProduct.images
-        : [realImageUrl];
+  if (hasRealOzon) {
+    product1 = wbCandidates[0] || screenedPool[0];
+    offer1 = product1.offers.find((o) => o.marketplace.toLowerCase().includes("wildberries")) || product1.offers[0];
 
-    ozonProduct = {
-      ...nextProduct,
-      id: ozonId,
-      title: nextProduct.title,
-      imageUrl: realImageUrl,
-      images: realImages,
-      offers: [
-        {
-          id: ozonId,
-          marketplace: "ozon",
-          title: nextProduct.title,
-          url: buildOzonProductUrl(nextProduct.title),
-          price: ozonPrice,
-          currency: "RUB",
-          rating: Math.max(4.6, Number(((wbOffer.rating || 4.9) - 0.1).toFixed(1))),
-          reviewCount: Math.round((wbOffer.reviewCount || 420) * 0.85),
-          deliveryText: "2-3 дня (со склада Ozon)",
-          availability: "В наличии",
-          sellerName: "Ozon Retail / Продавцы Ozon",
-          sellerRating: 4.8,
-        },
-        ...nextProduct.offers.filter((o) => o.marketplace.toLowerCase().includes("ozon")),
-      ],
-    };
+    product2 = ozonCandidates[0];
+    offer2 = product2.offers.find((o) => o.marketplace.toLowerCase().includes("ozon")) || product2.offers[0];
   } else {
-    // Убеждаемся, что у найденного товара Ozon есть валидный оффер Ozon
-    const hasOzonOffer = ozonProduct.offers.some((o) => o.marketplace.toLowerCase().includes("ozon"));
-    if (!hasOzonOffer) {
-      const basePrice = ozonProduct.offers[0]?.price || Math.round((wbOffer.price || 2400) * 0.96);
-      const ozonOfferItem = {
-        id: `ozon-${ozonProduct.id.replace(/^wb-/, "")}`,
-        marketplace: "ozon" as const,
-        title: ozonProduct.title,
-        url: buildOzonProductUrl(ozonProduct.title),
-        price: basePrice,
-        currency: "RUB",
-        rating: 4.8,
-        reviewCount: 350,
-        deliveryText: "2-3 дня (со склада Ozon)",
-        availability: "В наличии",
-      };
-      ozonProduct = {
-        ...ozonProduct,
-        offers: [ozonOfferItem, ...ozonProduct.offers],
-      };
-    }
+    // Если в выдаче только один маркетплейс (WB), честно выбираем Топ-1 и Топ-2 реальных товара
+    product1 = screenedPool[0];
+    offer1 = product1.offers[0];
+
+    product2 = screenedPool[1] || screenedPool[0];
+    offer2 = product2.offers[0];
   }
 
-  const ozonOffer =
-    ozonProduct.offers.find((o) => o.marketplace.toLowerCase().includes("ozon")) ||
-    ozonProduct.offers[0];
+  // Расчет TCO для слотов
+  const price1 = offer1.price || 2400;
+  const price2 = offer2.price || 2400;
 
-  // Флаг совпадения SKU
-  const isSameSku =
-    wbProduct.id === ozonProduct.id ||
-    wbProduct.brand.toLowerCase() === ozonProduct.brand.toLowerCase();
+  const tco1 = calculateTco(price1, 1.8, 5);
+  const tco2 = calculateTco(price2, 2.0, 6);
 
-  // 3. Расчет TCO для WB и Ozon
-  const wbPrice = wbOffer.price || 2400;
-  let ozonPrice = ozonOffer.price || Math.round(wbPrice * 0.96);
-  if (isSameSku && ozonPrice === wbPrice) {
-    ozonPrice = Math.round((wbPrice * 0.96) / 10) * 10;
-  }
+  const days1 = parseDeliveryDays(offer1.deliveryText);
+  const days2 = parseDeliveryDays(offer2.deliveryText);
 
-  const wbTco = calculateTco(wbPrice, 1.8, 5);
-  const ozonTco = calculateTco(ozonPrice, 2.0, 6);
+  const mp1Name = offer1.marketplace.toLowerCase().includes("wildberries") ? "Wildberries" : "Ozon";
+  const mp2Name = offer2.marketplace.toLowerCase().includes("wildberries") ? "Wildberries" : "Ozon";
 
-  const wbDays = parseDeliveryDays(wbOffer.deliveryText);
-  const ozonDays = parseDeliveryDays(ozonOffer.deliveryText);
+  // Клонируем объекты для защиты от мутаций
+  product1 = { ...product1 };
+  product2 = { ...product2 };
 
-  // Клонируем товары слотов дуэли, чтобы предотвратить перекрестную мутацию триумфатора и офферов
-  wbProduct = {
-    ...wbProduct,
-  };
+  // Формируем СЛОТ 1
+  const slot1Title = hasRealOzon ? "WB-Чемпион" : "Выбор wobuy. (Топ-1)";
+  const slot1Subtitle = hasRealOzon ? "Лидер маркетплейса Wildberries" : "Лидер качества по оценке ИИ";
+  const slot1Tag = hasRealOzon ? "№1 на WB" : "№1 Выбор";
 
-  ozonProduct = {
-    ...ozonProduct,
-  };
-
-  // Формируем СЛОТ 1: WB-Чемпион
-  wbProduct.triumph = {
+  product1.triumph = {
     slotType: "wb",
-    badgeTitle: "WB-Чемпион",
-    badgeSubtitle: "Лидер маркетплейса Wildberries",
-    marketplace: "wildberries",
-    verdict: `Лучший товар на Wildberries (${wbOffer.rating || 4.9}★) с проверенной логистикой FBO и контролем накруток.`,
-    price: wbOffer.price,
-    deliveryText: wbOffer.deliveryText,
+    badgeTitle: slot1Title,
+    badgeSubtitle: slot1Subtitle,
+    marketplace: offer1.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon",
+    verdict: `Лучший товар (${offer1.rating || 4.9}★) на ${mp1Name} с подтвержденной логистикой и контролем накруток.`,
+    price: offer1.price,
+    deliveryText: offer1.deliveryText,
   };
 
-  const wbSlot: MatrixSlot = {
+  const slot1: MatrixSlot = {
     slotType: "wb_champion",
-    badgeTitle: "WB-Чемпион",
-    badgeSubtitle: "Лучший баланс на Wildberries",
-    badgeTag: "№1 на WB",
-    badgeColor: "text-purple-400",
-    badgeBg: "bg-purple-950/70",
-    badgeBorder: "border-purple-500/50",
-    product: wbProduct,
-    matchedOffer: wbOffer,
-    tcoPrice: wbTco.tcoPrice,
-    deliverySpeedLabel: wbOffer.deliveryText || "1-2 дня (склад WB)",
-    aiVerdict: `Высший рейтинг на WB (${wbOffer.rating || 4.9}★) с проверенной доставкой FBO.`,
+    badgeTitle: slot1Title,
+    badgeSubtitle: slot1Subtitle,
+    badgeTag: slot1Tag,
+    badgeColor: hasRealOzon ? "text-purple-400" : "text-emerald-400",
+    badgeBg: hasRealOzon ? "bg-purple-950/70" : "bg-emerald-950/70",
+    badgeBorder: hasRealOzon ? "border-purple-500/50" : "border-emerald-500/50",
+    product: product1,
+    matchedOffer: offer1,
+    tcoPrice: tco1.tcoPrice,
+    deliverySpeedLabel: offer1.deliveryText || "1-2 дня",
+    aiVerdict: `Высший рейтинг (${offer1.rating || 4.9}★) на ${mp1Name}.`,
     pros: [
-      `Рейтинг ${wbOffer.rating || 4.9} на основе ${wbOffer.reviewCount || 420}+ отзывов`,
-      "Быстрая отгрузка с центрального склада Wildberries",
+      `Рейтинг ${offer1.rating || 4.9} на основе ${offer1.reviewCount || 420}+ отзывов`,
+      `Доставка: ${offer1.deliveryText || "1-2 дня"} со склада ${mp1Name}`,
       "Оригинальный товар с гарантией возврата",
     ],
     cons: ["Высокий спрос, остатки на складе ограничены"],
-    antiFakePercent: wbProduct.antiFakePercent || 97,
-    fakeReviewsDetected: Math.round((100 - (wbProduct.antiFakePercent || 97)) * 1.5),
-    tcoBreakdown: wbTco,
+    antiFakePercent: product1.antiFakePercent || 97,
+    fakeReviewsDetected: Math.round((100 - (product1.antiFakePercent || 97)) * 1.5),
+    tcoBreakdown: tco1,
   };
 
-  // Формируем СЛОТ 2: Ozon-Чемпион
-  ozonProduct.triumph = {
+  // Формируем СЛОТ 2
+  const slot2Title = hasRealOzon ? "Ozon-Чемпион" : "Главная Альтернатива";
+  const slot2Subtitle = hasRealOzon ? "Лидер маркетплейса Ozon" : "Сильнейший конкурент лидера";
+  const slot2Tag = hasRealOzon ? "№1 на Ozon" : "Топ-2 Выбор";
+
+  product2.triumph = {
     slotType: "ozon",
-    badgeTitle: "Ozon-Чемпион",
-    badgeSubtitle: "Лидер маркетплейса Ozon",
-    marketplace: "ozon",
-    verdict: `Лидер по выгоде на Ozon: честная цена с Ozon Картой и подтвержденный аудит отзывов без ботов.`,
-    price: ozonOffer.price,
-    deliveryText: ozonOffer.deliveryText,
+    badgeTitle: slot2Title,
+    badgeSubtitle: slot2Subtitle,
+    marketplace: offer2.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon",
+    verdict: `Сильный конкурент на ${mp2Name} (${offer2.rating || 4.8}★) с проверенными отзывами и надежной ценой.`,
+    price: offer2.price,
+    deliveryText: offer2.deliveryText,
   };
 
-  const ozonSlot: MatrixSlot = {
+  const slot2: MatrixSlot = {
     slotType: "ozon_champion",
-    badgeTitle: "Ozon-Чемпион",
-    badgeSubtitle: "Лучший баланс на Ozon",
-    badgeTag: "№1 на Ozon",
-    badgeColor: "text-blue-400",
-    badgeBg: "bg-blue-950/70",
-    badgeBorder: "border-blue-500/50",
-    product: ozonProduct,
-    matchedOffer: ozonOffer,
-    tcoPrice: ozonTco.tcoPrice,
-    deliverySpeedLabel: ozonOffer.deliveryText || "2-3 дня (Ozon Express)",
-    aiVerdict: `Лидер по выгоде на Ozon: TCO ${ozonTco.tcoPrice.toLocaleString("ru-RU")} ₽ с Ozon Картой.`,
+    badgeTitle: slot2Title,
+    badgeSubtitle: slot2Subtitle,
+    badgeTag: slot2Tag,
+    badgeColor: hasRealOzon ? "text-blue-400" : "text-sky-400",
+    badgeBg: hasRealOzon ? "bg-blue-950/70" : "bg-sky-950/70",
+    badgeBorder: hasRealOzon ? "border-blue-500/50" : "border-sky-500/50",
+    product: product2,
+    matchedOffer: offer2,
+    tcoPrice: tco2.tcoPrice,
+    deliverySpeedLabel: offer2.deliveryText || "2-3 дня",
+    aiVerdict: `Конкурентный выбор: TCO ${tco2.tcoPrice.toLocaleString("ru-RU")} ₽ на ${mp2Name}.`,
     pros: [
-      `Честная цена с учетом скидки Ozon Карты`,
-      `Надежный продавец Ozon Retail с рейтингом 4.8★`,
-      "Анти-Фейк аудит подтверждает 0% ботов в отзывах",
+      `Честная цена ${offer2.price?.toLocaleString("ru-RU")} ₽ на ${mp2Name}`,
+      `Рейтинг ${offer2.rating || 4.8} (${offer2.reviewCount || 300}+ отзывов)`,
+      "Анти-Фейк аудит подтверждает подлинность отзывов",
     ],
-    cons: [ozonDays > wbDays ? `Доставка на ${ozonDays - wbDays} дн. позже, чем на WB` : "Необходима Ozon Карта для макс. скидки"],
-    antiFakePercent: ozonProduct.antiFakePercent || 96,
-    fakeReviewsDetected: Math.round((100 - (ozonProduct.antiFakePercent || 96)) * 1.4),
-    tcoBreakdown: ozonTco,
+    cons: [days2 > days1 ? `Доставка на ${days2 - days1} дн. дольше лидера` : "Меньше суммарных отзывов, чем у топ-1"],
+    antiFakePercent: product2.antiFakePercent || 96,
+    fakeReviewsDetected: Math.round((100 - (product2.antiFakePercent || 96)) * 1.4),
+    tcoBreakdown: tco2,
   };
+
+  // Алиасы для обратной совместимости полей
+  const wbProduct = product1;
+  const ozonProduct = product2;
+  const wbOffer = offer1;
+  const ozonOffer = offer2;
+  const wbSlot = slot1;
+  const ozonSlot = slot2;
+  const wbTco = tco1;
+  const ozonTco = tco2;
+  const wbDays = days1;
+  const ozonDays = days2;
 
   // --- СВЯЗКА-ДУЭЛЬ (Арбитраж Скептика) ---
-  const priceDiff = Math.abs(wbTco.tcoPrice - ozonTco.tcoPrice);
-  const cheaperMarketplace =
-    wbTco.tcoPrice < ozonTco.tcoPrice
-      ? "wildberries"
-      : ozonTco.tcoPrice < wbTco.tcoPrice
-        ? "ozon"
-        : "equal";
+  const priceDiff = Math.abs(tco1.tcoPrice - tco2.tcoPrice);
+  const cheaperWinner = tco1.tcoPrice < tco2.tcoPrice ? "wb" : tco2.tcoPrice < tco1.tcoPrice ? "ozon" : "equal";
+  const cheaperMarketplace = cheaperWinner === "wb" ? "wildberries" : cheaperWinner === "ozon" ? "ozon" : "equal";
+
+  const p1ShortTitle = product1.title.length > 25 ? `${product1.title.slice(0, 25)}...` : product1.title;
+  const p2ShortTitle = product2.title.length > 25 ? `${product2.title.slice(0, 25)}...` : product2.title;
 
   const cheaperSummary =
-    cheaperMarketplace === "ozon"
-      ? `На Ozon цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
-      : cheaperMarketplace === "wildberries"
-        ? `На Wildberries цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
-        : "Цены на обеих площадках равны";
+    cheaperWinner === "ozon"
+      ? (hasRealOzon ? `На Ozon цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽` : `У «${p2ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`)
+      : cheaperWinner === "wb"
+        ? (hasRealOzon ? `На Wildberries цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽` : `У «${p1ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`)
+        : "Цены на сравниваемые товары равны";
 
-  const deliveryDiffDays = Math.abs(wbDays - ozonDays);
-  const fasterMarketplace =
-    wbDays < ozonDays
-      ? "wildberries"
-      : ozonDays < wbDays
-        ? "ozon"
-        : "equal";
+  const deliveryDiffDays = Math.abs(days1 - days2);
+  const fasterWinner = days1 < days2 ? "wb" : days2 < days1 ? "ozon" : "equal";
+  const fasterMarketplace = fasterWinner === "wb" ? "wildberries" : fasterWinner === "ozon" ? "ozon" : "equal";
 
   const fasterSummary =
-    fasterMarketplace === "wildberries"
-      ? deliveryDiffDays === 1
-        ? "На WB доставка быстрее на 1 день"
-        : `На WB доставка быстрее на ${deliveryDiffDays} дн.`
-      : fasterMarketplace === "ozon"
-        ? deliveryDiffDays === 1
-          ? "На Ozon доставка быстрее на 1 день"
-          : `На Ozon доставка быстрее на ${deliveryDiffDays} дн.`
+    fasterWinner === "wb"
+      ? (hasRealOzon
+          ? `На WB доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
+          : `У «${p1ShortTitle}» доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`)
+      : fasterWinner === "ozon"
+        ? (hasRealOzon
+            ? `На Ozon доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
+            : `У «${p2ShortTitle}» доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`)
         : "Одинаковые сроки доставки";
 
   let skepticVerdict = "";
@@ -595,6 +533,11 @@ export function buildHybridMatrix2x2(
   const wbWins = comparisonPoints.filter((p) => p.winner === "wb").length;
   const ozonWins = comparisonPoints.filter((p) => p.winner === "ozon").length;
   const ties = comparisonPoints.filter((p) => p.winner === "tie").length;
+
+  const isSameSku =
+    product1.id === product2.id ||
+    (product1.brand.toLowerCase() === product2.brand.toLowerCase() &&
+      product1.title.toLowerCase() === product2.title.toLowerCase());
 
   const duel: DuelArbitration = {
     isLinked: true,
@@ -765,36 +708,7 @@ export function buildHybridMatrix2x2(
     .slice(0, 8);
 
   const ozonAlternatives = screenedPool
-    .map((p) => {
-      const existingOzon = p.offers.find((o) => o.marketplace.toLowerCase().includes("ozon"));
-      if (existingOzon) {
-        return {
-          ...p,
-          offers: [existingOzon, ...p.offers.filter((o) => o.id !== existingOzon.id)],
-        };
-      }
-      const primaryOffer = p.offers[0];
-      const basePrice = primaryOffer?.price || 1990;
-      const ozonOffer = {
-        id: `ozon-${p.id.replace(/^wb-/, "")}`,
-        marketplace: "ozon" as const,
-        title: p.title,
-        brand: p.brand,
-        category: p.category,
-        price: basePrice,
-        currency: "RUB",
-        rating: primaryOffer?.rating || 4.8,
-        reviewCount: primaryOffer?.reviewCount || 200,
-        url: buildOzonProductUrl(p.title),
-        deliveryDays: 2,
-        deliveryText: "2-3 дня (со склада Ozon)",
-        availability: "В наличии",
-      };
-      return {
-        ...p,
-        offers: [ozonOffer, ...p.offers],
-      };
-    })
+    .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("ozon")))
     .slice(0, 8);
 
   return {
@@ -808,7 +722,7 @@ export function buildHybridMatrix2x2(
     economistChampion: economistSlot,
     expressChampion: expressSlot,
     wbAlternatives: wbAlternatives.length > 0 ? wbAlternatives : screenedPool.slice(0, 4),
-    ozonAlternatives: ozonAlternatives.length > 0 ? ozonAlternatives : screenedPool.slice(0, 4),
+    ozonAlternatives: ozonAlternatives.length > 0 ? ozonAlternatives : [],
     allProducts: screenedPool,
   };
 }

@@ -261,145 +261,72 @@ function buildMarketplaceComparison(
   offers: Array<{ marketplace: string; price: number | null; rating: number | null; reviewCount?: number | null; deliveryText?: string; url?: string }>,
   triumphContext?: TriumphContext,
 ): MarketplaceComparisonItem[] {
-  let wbOffer = offers.find((o) => o.marketplace === "wildberries" || o.marketplace.includes("wb"));
-  let ozonOffer = offers.find((o) => o.marketplace === "ozon");
+  const wbOffer = offers.find((o) => o.marketplace === "wildberries" || o.marketplace.includes("wb"));
+  const ozonOffer = offers.find((o) => o.marketplace === "ozon" && o.price && o.price > 0);
 
-  // Извлекаем валидную базовую цену из предложений
-  const validPrices = [
-    price,
-    wbOffer?.price,
-    ozonOffer?.price,
-  ].filter((p): p is number => typeof p === "number" && p > 0);
-  const basePrice = validPrices.length > 0 ? validPrices[0] : 2400;
+  const baseWbPrice = wbOffer?.price || price || 2400;
+  const wbDelivery = wbOffer?.deliveryText || "1-2 дня (со склада WB)";
 
-  // Если нет прямого WB оффера, создаем сопоставленный оффер с честной ценой
-  if (!wbOffer || !wbOffer.price || wbOffer.price <= 0) {
-    const refRating = ozonOffer?.rating || 4.8;
-    const refReviews = ozonOffer?.reviewCount || 420;
-    // На WB цена с учетом скидки СПП Wildberries (3-5% разницы от базовой)
-    const wbPrice = Math.round((basePrice * 0.97) / 10) * 10;
-    wbOffer = {
-      marketplace: "wildberries",
-      price: wbPrice,
-      rating: Math.min(5.0, Number((refRating + 0.1).toFixed(1))),
-      reviewCount: Math.round(refReviews * 1.25),
-      deliveryText: "1-2 дня (со склада WB)",
-      url: buildMarketplaceDeepLink("wildberries", productTitle),
-    };
-  }
+  const wbItem: MarketplaceComparisonItem = {
+    marketplace: "wildberries",
+    name: "Wildberries",
+    price: baseWbPrice,
+    rating: wbOffer?.rating && wbOffer.rating > 0 ? Number(wbOffer.rating.toFixed(1)) : 4.8,
+    reviewsCount: wbOffer?.reviewCount && wbOffer.reviewCount > 0 ? wbOffer.reviewCount : 540,
+    delivery: wbDelivery,
+    returnPolicy: "Бесплатный возврат в любом ПВЗ за 14 дней",
+    advantage: ozonOffer
+      ? (baseWbPrice <= ozonOffer.price! ? "★ Лучшая цена на маркетплейсах" : `Дороже на ${ozonOffer.price! - baseWbPrice} ₽`)
+      : "★ Прямое проверенное предложение",
+    statusBadge: ozonOffer && baseWbPrice <= ozonOffer.price! ? "★ Выбор wobuy." : "В наличии",
+    statusType: "success",
+    verdictDetail: triumphContext?.verdict || `Проверенный товар на Wildberries (${baseWbPrice} ₽) с доставкой ${wbDelivery}.`,
+    isRecommended: !ozonOffer || (ozonOffer.price !== null && baseWbPrice <= ozonOffer.price),
+    url: wbOffer?.url || buildMarketplaceDeepLink("wildberries", productTitle),
+  };
 
-  // Если нет прямого Ozon оффера, создаем сопоставленный оффер с честной ценой
-  if (!ozonOffer || !ozonOffer.price || ozonOffer.price <= 0) {
-    const refRating = wbOffer.rating || 4.8;
-    const refReviews = wbOffer.reviewCount || 520;
-    // На Ozon цена моделируется с учетом скидки по Ozon Карте (3-6% скидки от базовой WB цены)
-    const priceModifier = basePrice >= 10000 ? 0.96 : basePrice >= 3000 ? 0.97 : 0.95;
-    let ozonPrice = Math.round((basePrice * priceModifier) / 10) * 10;
-    if (ozonPrice === wbOffer.price) {
-      ozonPrice = Math.round(basePrice * 0.96);
-    }
-    ozonOffer = {
-      marketplace: "ozon",
-      price: ozonPrice,
-      rating: Math.max(4.5, Number((refRating - 0.1).toFixed(1))),
-      reviewCount: Math.round(refReviews * 0.85),
-      deliveryText: "2-3 дня (со склада Ozon)",
-      url: buildMarketplaceDeepLink("ozon", productTitle),
-    };
-  }
+  if (ozonOffer && ozonOffer.price) {
+    const ozonPrice = ozonOffer.price;
+    const ozonDelivery = ozonOffer.deliveryText || "2-3 дня (со склада Ozon)";
+    const isOzonBest = ozonPrice < baseWbPrice;
 
-  const wbPrice = wbOffer.price as number;
-  let ozonPrice = ozonOffer.price as number;
-
-  // Если цены случайно совпали рубль в рубль, устраняем зеркальное дублирование
-  if (wbPrice === ozonPrice && wbPrice > 0) {
-    ozonPrice = Math.round((wbPrice * 0.96) / 10) * 10;
-  }
-
-  const explicitMp = triumphContext?.marketplace?.toLowerCase().trim();
-  const isExplicitWb =
-    explicitMp?.includes("wildberries") ||
-    explicitMp === "wb" ||
-    triumphContext?.slotType === "wb" ||
-    triumphContext?.slotType === "wb_champion";
-  const isExplicitOzon =
-    explicitMp?.includes("ozon") ||
-    explicitMp === "oz" ||
-    triumphContext?.slotType === "ozon" ||
-    triumphContext?.slotType === "ozon_champion";
-
-  let isWbBest: boolean;
-  if (isExplicitWb) {
-    isWbBest = true;
-  } else if (isExplicitOzon) {
-    isWbBest = false;
-  } else {
-    isWbBest = wbPrice <= ozonPrice;
-  }
-
-  const wbDelivery = wbOffer.deliveryText || "1-2 дня (со склада WB)";
-  const ozonDelivery = ozonOffer.deliveryText || "2-3 дня (со склада Ozon)";
-
-  return [
-    {
-      marketplace: "wildberries",
-      name: "Wildberries",
-      price: wbPrice,
-      rating: wbOffer.rating && wbOffer.rating > 0 ? Number(wbOffer.rating.toFixed(1)) : 4.8,
-      reviewsCount: wbOffer.reviewCount && wbOffer.reviewCount > 0 ? wbOffer.reviewCount : 540,
-      delivery: wbDelivery,
-      returnPolicy: "Бесплатный возврат в любом ПВЗ за 14 дней",
-      advantage: isWbBest
-        ? triumphContext?.slotType === "express"
-          ? "⚡ Победитель: доставка со склада FBO быстрее всех"
-          : triumphContext?.slotType === "economist"
-            ? "🔥 Победитель: минимальная подтвержденная цена"
-            : "★ Победитель дуэли маркетплейсов"
-        : `Дороже на ${Math.max(1, wbPrice - ozonPrice)} ₽`,
-      statusBadge: isWbBest
-        ? triumphContext?.slotType === "express"
-          ? "★ Экспресс FBO"
-          : triumphContext?.slotType === "economist"
-            ? "★ Лучшая цена"
-            : "★ Победитель дуэли"
-        : "В наличии",
-      statusType: isWbBest ? "success" : "neutral",
-      verdictDetail: isWbBest
-        ? triumphContext?.verdict || `Выбор wobuy. на Wildberries (${wbPrice} ₽) с быстрой логистикой ${wbDelivery}.`
-        : `Товар в наличии на Wildberries по цене ${wbPrice} ₽.`,
-      isRecommended: isWbBest,
-      url: wbOffer.url || buildMarketplaceDeepLink("wildberries", productTitle),
-    },
-    {
+    const ozonItem: MarketplaceComparisonItem = {
       marketplace: "ozon",
       name: "Ozon",
       price: ozonPrice,
-      rating: ozonOffer.rating && ozonOffer.rating > 0 ? Number(ozonOffer.rating.toFixed(1)) : 4.7,
-      reviewsCount: ozonOffer.reviewCount && ozonOffer.reviewCount > 0 ? ozonOffer.reviewCount : 410,
+      rating: ozonOffer.rating && ozonOffer.rating > 0 ? Number(ozonOffer.rating.toFixed(1)) : 4.8,
+      reviewsCount: ozonOffer.reviewCount && ozonOffer.reviewCount > 0 ? ozonOffer.reviewCount : 350,
       delivery: ozonDelivery,
       returnPolicy: "Возврат в ПВЗ Ozon за 30 дней",
-      advantage: !isWbBest
-        ? triumphContext?.slotType === "express"
-          ? "⚡ Победитель: доставка Ozon со склада быстрее всех"
-          : triumphContext?.slotType === "economist"
-            ? "🔥 Победитель: минимальная подтвержденная цена"
-            : "★ Победитель дуэли маркетплейсов"
-        : `Дороже на ${Math.max(1, ozonPrice - wbPrice)} ₽`,
-      statusBadge: !isWbBest
-        ? triumphContext?.slotType === "express"
-          ? "★ Экспресс Ozon"
-          : triumphContext?.slotType === "economist"
-            ? "★ Лучшая цена"
-            : "★ Победитель дуэли"
-        : "В наличии",
-      statusType: !isWbBest ? "success" : "neutral",
-      verdictDetail: !isWbBest
-        ? triumphContext?.verdict || `Выбор wobuy. на Ozon (${ozonPrice} ₽) со стабильной логистикой ${ozonDelivery}.`
-        : `Товар в наличии на Ozon по цене ${ozonPrice} ₽.`,
-      isRecommended: !isWbBest,
+      advantage: isOzonBest ? "★ Лучшая цена на маркетплейсах" : `Дороже на ${ozonPrice - baseWbPrice} ₽`,
+      statusBadge: isOzonBest ? "★ Выбор wobuy." : "В наличии",
+      statusType: isOzonBest ? "success" : "neutral",
+      verdictDetail: `Прямое предложение на Ozon (${ozonPrice} ₽) с доставкой ${ozonDelivery}.`,
+      isRecommended: isOzonBest,
       url: ozonOffer.url || buildMarketplaceDeepLink("ozon", productTitle),
-    },
-  ];
+    };
+
+    return [wbItem, ozonItem];
+  }
+
+  // Если на Ozon отдельный прямой оффер не найден в выдаче, честно формируем поиск
+  const ozonSearchItem: MarketplaceComparisonItem = {
+    marketplace: "ozon",
+    name: "Ozon",
+    price: baseWbPrice,
+    rating: 4.8,
+    reviewsCount: 0,
+    delivery: "Проверить на Ozon",
+    returnPolicy: "Возврат в ПВЗ Ozon за 30 дней",
+    advantage: "Поиск аналогов на Ozon",
+    statusBadge: "Найти на Ozon",
+    statusType: "neutral",
+    verdictDetail: `Товар найден на Wildberries (${baseWbPrice} ₽). Нажмите ссылку для проверки аналогичных предложений в каталоге Ozon.`,
+    isRecommended: false,
+    url: buildMarketplaceDeepLink("ozon", productTitle),
+  };
+
+  return [wbItem, ozonSearchItem];
 }
 
 function generateDeterministicAnalysis(
