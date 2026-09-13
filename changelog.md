@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-13 (Дополнение 8)
+
+- **Фикс Dockerfile микросервиса Ozon (`services/ozon-scraper/Dockerfile`)**:
+  - `npm ci` заменен на `npm install --omit=dev --no-audit` и создан `package-lock.json` для устранения ошибки отсутствия lockfile при сборке контейнера на Render.com.
+
 ## 2026-09-13 (Дополнение 7)
 
 - **Полное искоренение поддельных офферов Ozon и внедрение 100% честной матрицы 2х2 (`src/lib/catalog/duel-matrix.ts`, `src/lib/ai/analyzer.ts`)**:
