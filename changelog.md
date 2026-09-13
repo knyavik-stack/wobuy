@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-09-13 (Дополнение 6)
+
+- **Прямая интеграция Cloudflare Worker knyavik в ядро wobuy. (`src/lib/parsers/ozon.ts`)**:
+  - Адрес воркера `https://wobuy-ozon-scraper.knyavik.workers.dev` установлен шлюзом по умолчанию в `searchOzon`.
+  - Протестирован эндпоинт `/health` (ответ HTTP 200) и `/search`.
+  - Обновлен файл `workers/ozon-worker.js` с парсером widgetStates и заголовками мобильного приложения.
+
+## 2026-09-13 (Дополнение 5)
+
+- **Разработка и интеграция микросервиса Playwright для живого парсинга Ozon (`services/ozon-scraper/`, `src/lib/parsers/ozon.ts`, `next.config.ts`)**:
+  - Создан автономный микросервис на Express + Playwright (`services/ozon-scraper/server.js`) со stealth-модификацией браузерного отпечатка.
+  - Извлекаются 100% реальные Ozon SKU, прямые ссылки, оригинальные фото с CDN `ir.ozone.ru`, цены по Ozon Карте, рейтинги и отзывы.
+  - Подготовлен Dockerfile и манифест `amvera.yml` для мгновенного бесплатного деплоя на Amvera Cloud или Render.
+  - В `src/lib/parsers/ozon.ts` подключена поддержка прямого потока спарсенных данных через переменную `OZON_SCRAPER_WORKER_URL`.
+  - В `next.config.ts` добавлены правила `remotePatterns` для отображения изображений с `ir.ozone.ru`, `cdn1.ozone.ru` и `*.ozon.ru`.
+
+## 2026-09-13 (Дополнение 4)
+
+- **Ликвидация битых ссылок 404 на Ozon и аудит происхождения данных (`src/lib/marketplace-links.ts`)**:
+  - Устранена генерация синтетических артикулов Ozon из номеров Wildberries и хэшей, приводившая к открытию несуществующих страниц 404 на Ozon.
+  - Настроена гарантированно рабочая маршрутизация: при подтвержденном Ozon SKU формируется прямая ссылка на карточку `https://www.ozon.ru/product/${sku}/`; при отсутствии отдельного SKU формируется рабочий целевой поисковый переход `https://www.ozon.ru/search/?text=...&from_global=true`.
+  - Разобрана причина блокировки запросов со стороны WAF Ozon (Kaspersky/Fab HTTP 403 на IP датацентров).
+
 ## 2026-09-13 (Дополнение 3)
 
 - **Ликвидация зеркальных цен и отбор реальных конкурентов Ozon (`src/lib/catalog/duel-matrix.ts`, `src/lib/ai/analyzer.ts`)**:

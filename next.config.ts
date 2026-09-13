@@ -30,6 +30,42 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.wbbasket.ru",
+      },
+      {
+        protocol: "https",
+        hostname: "**.wildberries.ru",
+      },
+      {
+        protocol: "https",
+        hostname: "**.ozone.ru",
+      },
+      {
+        protocol: "https",
+        hostname: "**.ozon.ru",
+      },
+      {
+        protocol: "https",
+        hostname: "ir.ozone.ru",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn1.ozone.ru",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
+    ],
+  },
   async headers() {
     return [
       {

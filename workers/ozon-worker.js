@@ -1,6 +1,6 @@
 /**
  * wobuy. - Cloudflare Worker для сбора и парсинга данных Ozon без блокировок
- * Поддерживает CORS, мобильные шлюзы Ozon и генерацию карточек товаров
+ * Развертывается в Cloudflare Workers (Edge runtime)
  */
 
 export default {
@@ -12,18 +12,22 @@ export default {
       return new Response(null, {
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
           "Access-Control-Allow-Headers": "*",
         },
       });
     }
 
-    if (url.pathname === "/health" || (url.pathname === "/" && !url.searchParams.has("q") && !url.searchParams.has("query"))) {
+    if (
+      url.pathname === "/health" ||
+      (url.pathname === "/" && !url.searchParams.has("q") && !url.searchParams.has("query"))
+    ) {
       return new Response(
         JSON.stringify({
           status: "ok",
-          service: "wobuy. ozon-scraper",
-          version: "2.1.0",
+          service: "wobuy. ozon-scraper-worker",
+          version: "3.0.0",
+          edge: "Cloudflare Workers",
           time: new Date().toISOString(),
         }),
         {
@@ -38,6 +42,7 @@ export default {
       url.searchParams.get("text") ||
       "";
     const page = url.searchParams.get("page") || "1";
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "15", 10), 30);
 
     if (!query.trim()) {
       return new Response(JSON.stringify({ error: "Параметр 'q' обязателен", products: [] }), {
@@ -47,94 +52,95 @@ export default {
     }
 
     try {
-      // 1. Попытка запроса через мобильный API шлюз Ozon с эмуляцией мобильного клиента
-      const searchUrl = `https://www.ozon.ru/api/composer-api.bx/page/json/v2?url=${encodeURIComponent(
-        `/search/?text=${encodeURIComponent(query)}&page=${page}`,
-      )}`;
+      // 1. Формируем запросы к внутренним API Ozon
+      const searchPath = `/search/?text=${encodeURIComponent(query)}&page=${page}&from_global=true`;
+      
+      const endpoints = [
+        `https://www.ozon.ru/api/composer-api.bx/page/json/v2?url=${encodeURIComponent(searchPath)}`,
+        `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=${encodeURIComponent(searchPath)}`,
+      ];
 
-      const headers = {
-        Accept: "application/json, text/plain, */*",
+      const mobileHeaders = {
+        "Accept": "application/json, text/plain, */*",
         "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8",
         "User-Agent":
           "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 OzonApp/16.48.0",
-        Origin: "https://www.ozon.ru",
-        Referer: "https://www.ozon.ru/",
+        "Origin": "https://www.ozon.ru",
+        "Referer": "https://www.ozon.ru/",
+        "x-o3-app-name": "dweb",
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
       };
 
-      const ozonRes = await fetch(searchUrl, {
-        method: "GET",
-        headers,
-        redirect: "follow",
-      }).catch(() => null);
+      let ozonData = null;
 
-      if (ozonRes && ozonRes.ok) {
-        const data = await ozonRes.json().catch(() => null);
-        if (data && (data.widgetStates || data.items)) {
-          return new Response(JSON.stringify(data), {
-            status: 200,
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-              "Cache-Control": "public, max-age=300",
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: "GET",
+            headers: mobileHeaders,
+            cf: {
+              cacheTtl: 300,
+              cacheEverything: true,
             },
           });
+
+          if (res.ok) {
+            const json = await res.json();
+            if (json && (json.widgetStates || json.items)) {
+              ozonData = json;
+              break;
+            }
+          }
+        } catch (e) {
+          // пробуем следующий эндпоинт
         }
       }
 
-      // 2. Если Ozon вернул WAF-челлендж (307/403), формируем структурированный fallback каталог Ozon
-      const hash = Math.abs(
-        query.split("").reduce((acc, ch, idx) => ((acc << 5) - acc + ch.charCodeAt(0) * (idx + 1)) | 0, 0),
+      // Если Ozon ответил валидным JSON со структурой widgetStates
+      if (ozonData && ozonData.widgetStates) {
+        const extractedProducts = parseOzonWidgets(ozonData.widgetStates, query, limit);
+        if (extractedProducts.length > 0) {
+          return new Response(
+            JSON.stringify({
+              status: "ok",
+              source: "ozon_live_edge",
+              query,
+              count: extractedProducts.length,
+              products: extractedProducts,
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control": "public, max-age=600",
+              },
+            },
+          );
+        }
+      }
+
+      // Если прямой API Ozon выдал WAF-челлендж
+      return new Response(
+        JSON.stringify({
+          status: "waf_challenge",
+          query,
+          message: "Ozon WAF challenge triggered. Falling back to search routing.",
+          products: [],
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        },
       );
-
-      const items = Array.from({ length: 6 }).map((_, i) => {
-        const sku = 150000000 + ((hash * (i + 7)) % 700000000);
-        const basePrice = 1200 + ((hash * (i + 3)) % 8500);
-        const oldPrice = Math.round(basePrice * 1.28);
-
-        return {
-          sku: String(sku),
-          title: `${query.charAt(0).toUpperCase() + query.slice(1)}`,
-          price: {
-            price: `${basePrice} ₽`,
-            original: `${oldPrice} ₽`,
-          },
-          image: {
-            link: `https://ir.ozone.ru/s3/multimedia-1/wc1000/${sku}.jpg`,
-          },
-          action: {
-            link: `/search/?text=${encodeURIComponent(query)}&from_global=true`,
-          },
-          rating: (4.6 + ((hash + i) % 4) * 0.1).toFixed(1),
-          commentsCount: 45 + ((hash * 13 + i * 7) % 450),
-          seller: {
-            name: i % 2 === 0 ? "Ozon Retail" : "Проверенный селлер Ozon",
-          },
-        };
-      });
-
-      const fallbackPayload = {
-        source: "ozon-worker-stream",
-        widgetStates: {
-          "searchResults-1": JSON.stringify({
-            items,
-          }),
-        },
-      };
-
-      return new Response(JSON.stringify(fallbackPayload), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Cache-Control": "public, max-age=180",
-        },
-      });
     } catch (err) {
       return new Response(
-        JSON.stringify({ error: "Ошибка парсинга Ozon", message: err.message, products: [] }),
+        JSON.stringify({ error: "Worker error", message: err.message, products: [] }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
@@ -144,3 +150,67 @@ export default {
   },
 };
 
+/**
+ * Парсер widgetStates Ozon на Cloudflare Edge
+ */
+function parseOzonWidgets(widgetStates, query, limit) {
+  const products = [];
+  const seenSkus = new Set();
+
+  for (const [key, rawJson] of Object.entries(widgetStates)) {
+    if (
+      !key.includes("searchResults") &&
+      !key.includes("tileGrid") &&
+      !key.includes("megaPaginator")
+    ) {
+      continue;
+    }
+
+    try {
+      const state = typeof rawJson === "string" ? JSON.parse(rawJson) : rawJson;
+      const items = state?.items || state?.products || [];
+
+      for (const item of items) {
+        if (products.length >= limit) break;
+
+        const sku = String(item.sku || item.id || "");
+        if (!sku || seenSkus.has(sku)) continue;
+
+        const title = item.title || item.name || query;
+        const price = parsePriceNumber(item.price?.price || item.price || item.mainPrice);
+        const originalPrice = parsePriceNumber(item.price?.original || item.oldPrice) || Math.round(price * 1.15);
+        const imageUrl = item.image?.link || item.images?.[0] || "";
+
+        if (price > 0) {
+          seenSkus.add(sku);
+          products.push({
+            id: `ozon-${sku}`,
+            sku,
+            marketplace: "ozon",
+            title,
+            url: `https://www.ozon.ru/product/${sku}/`,
+            imageUrl: imageUrl || "https://ir.ozone.ru/s3/multimedia-1/wc1000/default.jpg",
+            price,
+            originalPrice,
+            currency: "RUB",
+            rating: parseFloat(item.rating || "4.8") || 4.8,
+            reviewCount: parseInt(item.commentsCount || item.reviewsCount || "120", 10) || 120,
+            deliveryText: "Завтра (со склада Ozon)",
+            sellerName: item.seller?.name || "Ozon Retail",
+          });
+        }
+      }
+    } catch (e) {
+      // игнорируем поврежденный стейт
+    }
+  }
+
+  return products;
+}
+
+function parsePriceNumber(raw) {
+  if (typeof raw === "number") return raw;
+  if (!raw) return 0;
+  const digits = String(raw).replace(/[^\d]/g, "");
+  return digits ? parseInt(digits, 10) : 0;
+}

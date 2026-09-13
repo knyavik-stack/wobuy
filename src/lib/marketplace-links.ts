@@ -51,7 +51,7 @@ export function isConfirmedMarketplaceSku(skuOrUrl?: string | number): boolean {
 export function buildOzonProductUrl(title: string, skuOrUrl?: string | number): string {
   const raw = String(skuOrUrl || "").trim();
 
-  // 1. Если это уже готовая прямая ссылка на карточку товара Ozon
+  // 1. Если это уже готовая прямая ссылка на карточку товара Ozon (и это не ссылка на поиск)
   if (raw.startsWith("http") && raw.includes("ozon.ru/product/")) {
     return raw;
   }
@@ -61,15 +61,21 @@ export function buildOzonProductUrl(title: string, skuOrUrl?: string | number): 
     return `https://www.ozon.ru${raw}`;
   }
 
-  // 3. Извлекаем числовой артикул из переданного идентификатора/SKU/URL
-  const digits = raw.replace(/[^\d]/g, "");
-  if (digits && digits.length >= 6 && digits.length <= 12) {
-    return `https://www.ozon.ru/product/${digits}/`;
+  // 3. Если передан подтвержденный артикул Ozon (не WB-артикул!)
+  // Артикулы WB часто имеют префикс wb- или передаются из WB-парсера
+  if (raw.startsWith("ozon-") || raw.startsWith("oz-")) {
+    const cleanOzonSku = raw.replace(/^(ozon|oz)-/, "");
+    // Если после префикса идет реальный Ozon SKU (не унаследованный артикул WB)
+    if (/^\d{8,12}$/.test(cleanOzonSku) && !cleanOzonSku.startsWith("wb")) {
+      return `https://www.ozon.ru/product/${cleanOzonSku}/`;
+    }
   }
 
-  // 4. Если прямой артикул не был передан, генерируем стабильный детерминированный SKU для карточки товара Ozon
-  const fallbackSku = hashTitleToSku(title, 1420000000, 500000000);
-  return `https://www.ozon.ru/product/${fallbackSku}/`;
+  // 4. Если нет подтвержденного артикула конкретного товара на Ozon,
+  // формируем ГАРАНТИРОВАННО РАБОЧУЮ прямую ссылку на поиск этого товара на Ozon.
+  // Это исключает ошибку 404 «Страница не найдена» и сразу открывает все предложения селлеров на Ozon!
+  const cleanTitle = sanitizeSearchQuery(title);
+  return `https://www.ozon.ru/search/?text=${encodeURIComponent(cleanTitle || "товар")}&from_global=true`;
 }
 
 /**
