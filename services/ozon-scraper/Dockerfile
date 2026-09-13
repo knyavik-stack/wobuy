@@ -8,6 +8,7 @@ COPY package*.json ./
 
 # Установка зависимостей
 RUN npm install --omit=dev --no-audit
+RUN npx playwright install chromium
 
 # Копируем исходный код
 COPY . .

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-13 (Дополнение 9)
+
+- **Интеграция Playwright-скрапера Ozon на Render.com (`https://wobuy-ozon-scraper.onrender.com`)**:
+  - URL сервиса на Render.com подключен в ядро `searchOzon` по умолчанию.
+  - В `services/ozon-scraper/Dockerfile` добавлена автоустановка Chromium (`RUN npx playwright install chromium`) и зафиксирована версия `playwright: 1.50.1`.
+
 ## 2026-09-13 (Дополнение 8)
 
 - **Фикс Dockerfile микросервиса Ozon (`services/ozon-scraper/Dockerfile`)**:

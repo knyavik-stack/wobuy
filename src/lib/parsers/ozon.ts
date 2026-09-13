@@ -57,7 +57,7 @@ export async function searchOzon(
     process.env.OZON_SCRAPER_WORKER_URL ||
     process.env.CLOUDFLARE_WORKER_URL ||
     process.env.SCRAPER_PROXY_URL ||
-    "https://wobuy-ozon-scraper.knyavik.workers.dev";
+    "https://wobuy-ozon-scraper.onrender.com";
 
   // 1. Попытка запроса через Playwright / Cloudflare микросервис (100% гарантированный обход WAF)
   if (workerUrl) {
