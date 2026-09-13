@@ -255,7 +255,7 @@ export function buildHybridMatrix2x2(
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("wildberries")))
     .sort((a, b) => scoreOffer(b, "wildberries") - scoreOffer(a, "wildberries"));
 
-  const wbProduct = wbCandidates[0] || screenedPool[0];
+  let wbProduct = wbCandidates[0] || screenedPool[0];
   const wbOffer =
     wbProduct.offers.find((o) => o.marketplace.toLowerCase().includes("wildberries")) ||
     wbProduct.offers[0];

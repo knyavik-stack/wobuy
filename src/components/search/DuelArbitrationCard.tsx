@@ -66,8 +66,19 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
     ozonSlot.product.title,
   );
 
-  const wbLink = `/product/${wbSlot.product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
-  const ozonLink = `/product/${ozonSlot.product.id}${query ? `?fromQuery=${encodeURIComponent(query)}` : ""}`;
+  const wbLinkParams = new URLSearchParams();
+  if (query) wbLinkParams.set("fromQuery", query);
+  wbLinkParams.set("fromSlot", "wb_champion");
+  wbLinkParams.set("slotTitle", wbSlot.badgeTitle || "WB-Чемпион");
+  wbLinkParams.set("slotMarketplace", "Wildberries");
+  const wbLink = `/product/${wbSlot.product.id}?${wbLinkParams.toString()}`;
+
+  const ozonLinkParams = new URLSearchParams();
+  if (query) ozonLinkParams.set("fromQuery", query);
+  ozonLinkParams.set("fromSlot", "ozon_champion");
+  ozonLinkParams.set("slotTitle", ozonSlot.badgeTitle || "Ozon-Чемпион");
+  ozonLinkParams.set("slotMarketplace", "Ozon");
+  const ozonLink = `/product/${ozonSlot.product.id}?${ozonLinkParams.toString()}`;
 
   return (
     <section
@@ -120,9 +131,9 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
               >
                 WB
               </div>
-              <div>
+              <Link href={wbLink} className="group/wb block hover:opacity-90 transition">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-extrabold text-white">Wildberries</span>
+                  <span className="text-xs font-extrabold text-white group-hover/wb:text-purple-300 transition">Wildberries</span>
                   {isWbWinner && (
                     <span className="rounded-md bg-purple-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-purple-300">
                       Лидер
@@ -132,7 +143,7 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
                 <div className="text-[11px] font-medium text-slate-400">
                   {wbSlot.tcoPrice.toLocaleString("ru-RU")} ₽ • {wbSlot.deliverySpeedLabel}
                 </div>
-              </div>
+              </Link>
             </div>
 
             <div className="text-right md:text-left">
@@ -192,19 +203,19 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
             </div>
 
             <div className="flex items-center gap-2.5">
-              <div className="text-right">
+              <Link href={ozonLink} className="group/oz block text-right hover:opacity-90 transition">
                 <div className="flex items-center justify-end gap-1.5">
                   {isOzonWinner && (
                     <span className="rounded-md bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-blue-300">
                       Лидер
                     </span>
                   )}
-                  <span className="text-xs font-extrabold text-white">Ozon</span>
+                  <span className="text-xs font-extrabold text-white group-hover/oz:text-blue-300 transition">Ozon</span>
                 </div>
                 <div className="text-[11px] font-medium text-slate-400">
                   {ozonSlot.tcoPrice.toLocaleString("ru-RU")} ₽ • {ozonSlot.deliverySpeedLabel}
                 </div>
-              </div>
+              </Link>
               <div
                 className={`flex h-9 w-9 items-center justify-center rounded-xl font-black text-xs ${
                   isOzonWinner

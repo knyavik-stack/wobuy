@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-09-13
+
+- **Устранение блокирующей ошибки типов и успешный билд (`src/lib/catalog/duel-matrix.ts`)**:
+  - Исправлена ошибка `Cannot assign to 'wbProduct' because it is a constant` в матрице дуэли при изолированном клонировании объекта товара.
+  - Обеспечена 100% изоляция слотов триумфаторов (`wbProduct`, `ozonProduct`, `economistProduct`, `expressProduct`), предотвращающая взаимную мутацию параметров `.triumph`.
+  - Проект компилируется начисто (`next build` пройден со статусом `Compiled successfully`).
+
+- **Интерактивность и параметризация бинарных весов дуэли (`src/components/search/DuelArbitrationCard.tsx`)**:
+  - Плашки Wildberries и Ozon на весах баланса стали интерактивными кликабельными ссылками с плавными hover-состояниями.
+  - Ссылки на карточки товаров обогащены контекстными параметрами `fromSlot=wb_champion` и `fromSlot=ozon_champion`, передавая точное название слота и маркетплейса на страницу товара `[id]`.
+  - Кнопка «Разбор лидера в wobuy.» теперь гарантированно открывает глубокий разбор с предзаполненным триумфальным вердиктом ИИ.
+
 ## 2026-09-12
 
 - **Ликвидация синтетических данных, поддельных артикулов и муляжей (`src/lib/catalog/search.ts`, `src/lib/catalog/duel-matrix.ts`, `src/lib/parsers/aggregator.ts`, `src/lib/parsers/ozon.ts`, `src/lib/ai/ai-search-engine.ts`)**:
