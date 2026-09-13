@@ -1,5 +1,19 @@
 # Changelog
  
+## 2026-09-13 (Обновление 7)
+
+- **Полная синхронизация цен между выдачей поиска и разбором wobuy. (`src/app/search/page.tsx`, `src/app/product/[id]/page.tsx`, `src/lib/ai/analyzer.ts`, `src/lib/catalog/search.ts`, `src/components/search/MatrixSlotCard.tsx`, `src/components/search/DuelArbitrationCard.tsx`, `maket/SearchResults-v2.tsx`)**:
+  - Построение матрицы 2+2 перенесено на серверную сторону (`SearchPage`), благодаря чему все 4 слота с точными ценами сразу сохраняются в `LIVE_PRODUCTS_STORE`.
+  - Компонент `SearchResults` теперь приоритетно использует серверный `initialMatrix`, исключая повторные клиенские перерасчеты с расходящимися ценами.
+  - В карточках матрицы и дуэли ссылки на разбор передают параметры `price`, `tcoPrice`, `slotMarketplace` и `offerUrl`.
+  - На странице `src/app/product/[id]/page.tsx` офферы и `bestPrice` жестко синхронизированы со значением цены из поиска.
+  - В `src/lib/ai/analyzer.ts` удалены искусственные наценки в сравнении маркетплейсов.
+  - В `MatrixSlotCard` крупной ценой теперь выводится реальная цена покупки на маркетплейсе, а рядом аккуратно отображается TCO.
+
+- **Гарантия прямой ссылки на конкретный товар Ozon (`src/lib/marketplace-links.ts`, `src/components/search/MatrixSlotCard.tsx`, `src/app/product/[id]/page.tsx`)**:
+  - `buildOzonProductUrl` теперь всегда формирует прямую ссылку на конкретную карточку товара (`https://www.ozon.ru/product/${sku}/`).
+  - Полностью исключена выдача ссылок на общий поиск маркетплейса (`https://www.ozon.ru/search/?text=...`) на кнопках покупки.
+
 ## 2026-09-13 (Обновление 6)
 
 - **Устранение блокирующей ошибки типов и успешный билд (`src/lib/catalog/duel-matrix.ts`)**:

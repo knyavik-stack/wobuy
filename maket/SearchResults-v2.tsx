@@ -23,10 +23,12 @@ import { MobileBottomNav } from "@/components/ui/MobileBottomNav";
 export default function SearchResults({
   query,
   products,
+  initialMatrix,
   view = "grid",
 }: {
   query: string;
   products: SearchProduct[];
+  initialMatrix?: HybridMatrix2x2 | null;
   categories?: string[];
   category?: string;
   sort?: string;
@@ -54,8 +56,9 @@ export default function SearchResults({
     }
   };
 
-  // Построение Гибридной Матрицы 2+2
+  // Построение Гибридной Матрицы 2+2 (используем серверную готовую матрицу при наличии)
   const matrix: HybridMatrix2x2 | null = useMemo(() => {
+    if (initialMatrix) return initialMatrix;
     if (!products || products.length === 0) return null;
     try {
       return buildHybridMatrix2x2(products, query);
@@ -63,7 +66,7 @@ export default function SearchResults({
       console.error("[SearchResults] Ошибка формирования матрицы 2+2:", err);
       return null;
     }
-  }, [products, query]);
+  }, [initialMatrix, products, query]);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#0D0F14] pb-24 font-sans text-slate-100 sm:pb-16">

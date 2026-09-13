@@ -181,6 +181,17 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
   const stored = LIVE_PRODUCTS_STORE.get(id);
   if (stored) return stored;
 
+  // Проверяем вариации префиксов и суффиксов матричных слотов (ozon-, -eco, -express)
+  const cleanId = id.replace(/^ozon-/, "").replace(/-(eco|express)$/, "");
+  const companion =
+    LIVE_PRODUCTS_STORE.get(`wb-${cleanId}`) ||
+    LIVE_PRODUCTS_STORE.get(cleanId) ||
+    LIVE_PRODUCTS_STORE.get(`ozon-${cleanId}`);
+  if (companion) {
+    LIVE_PRODUCTS_STORE.set(id, companion);
+    return companion;
+  }
+
   // 2. Если передан контекст поискового запроса, ищем в выдаче этого запроса с таймаутом
   if (fromQuery && fromQuery.trim()) {
     try {
@@ -188,12 +199,45 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
       const timeoutPromise = new Promise<SearchProduct[]>((resolve) => setTimeout(() => resolve([]), 2500));
       const searchResults = await Promise.race([searchPromise, timeoutPromise]);
 
+      // Точное совпадение по ID
       const matched = searchResults.find((p) => p.id === id || p.offers.some((o) => o.id === id));
       if (matched) {
         LIVE_PRODUCTS_STORE.set(id, matched);
         return matched;
       }
-      // Если по точному ID не найден, но выдача есть, берем 1-й релевантный
+
+      // Совпадение по числовому артикулу
+      const digitsMatch = id.match(/\d{6,11}/);
+      if (digitsMatch) {
+        const matchedByDigits = searchResults.find(
+          (p) => p.id.includes(digitsMatch[0]) || p.offers.some((o) => o.id.includes(digitsMatch[0])),
+        );
+        if (matchedByDigits) {
+          LIVE_PRODUCTS_STORE.set(id, matchedByDigits);
+          return matchedByDigits;
+        }
+      }
+
+      // Попытка разрешить через матрицу дуэли
+      if (searchResults.length > 0) {
+        try {
+          const { buildHybridMatrix2x2 } = await import("./duel-matrix");
+          const matrix = buildHybridMatrix2x2(searchResults, fromQuery.trim());
+          if (matrix) {
+            const slotProduct =
+              (matrix.wbChampion?.product?.id === id && matrix.wbChampion.product) ||
+              (matrix.ozonChampion?.product?.id === id && matrix.ozonChampion.product) ||
+              (matrix.economistChampion?.product?.id === id && matrix.economistChampion.product) ||
+              (matrix.expressChampion?.product?.id === id && matrix.expressChampion.product);
+            if (slotProduct) {
+              LIVE_PRODUCTS_STORE.set(id, slotProduct);
+              return slotProduct;
+            }
+          }
+        } catch {}
+      }
+
+      // Если по точному ID не найден, берем 1-й релевантный
       if (searchResults.length > 0) {
         const first = searchResults[0];
         LIVE_PRODUCTS_STORE.set(id, first);

@@ -60,6 +60,9 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
   productLinkParams.set("fromSlot", slotType);
   productLinkParams.set("slotTitle", badgeTitle);
   productLinkParams.set("slotMarketplace", marketplaceName);
+  if (matchedOffer.price) productLinkParams.set("price", String(matchedOffer.price));
+  if (tcoPrice) productLinkParams.set("tcoPrice", String(tcoPrice));
+  if (safeOfferUrl) productLinkParams.set("offerUrl", safeOfferUrl);
   const productLink = `/product/${product.id}?${productLinkParams.toString()}`;
 
   const aiScore = product.aiScore || 9.4;
@@ -150,26 +153,29 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
               </span>
             </div>
 
-            <Link href={`/product/${product.id}`} className="block mt-1">
+            <Link href={productLink} className="block mt-1">
               <h3 className="line-clamp-2 text-sm font-black text-white transition group-hover:text-[#00FF87] sm:text-base">
                 {product.title}
               </h3>
             </Link>
 
-            {/* Блок цены TCO */}
+            {/* Блок цены */}
             <div className="mt-3 rounded-2xl border border-white/5 bg-[#0D0F14] p-3">
               <div className="flex items-baseline justify-between">
                 <div>
                   <div className="text-[10px] font-extrabold uppercase text-slate-400">
-                    Честная цена (TCO):
+                    Цена на {marketplaceName}:
                   </div>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="text-xl font-black text-[#00FF87] sm:text-2xl">
-                      {tcoPrice.toLocaleString("ru-RU")} ₽
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-xl font-black text-white sm:text-2xl">
+                      {matchedOffer.price
+                        ? matchedOffer.price.toLocaleString("ru-RU")
+                        : tcoPrice.toLocaleString("ru-RU")}{" "}
+                      ₽
                     </span>
-                    {matchedOffer.price && matchedOffer.price !== tcoPrice && (
-                      <span className="text-xs line-through text-slate-500">
-                        {matchedOffer.price.toLocaleString("ru-RU")} ₽
+                    {tcoPrice && tcoPrice !== matchedOffer.price && (
+                      <span className="rounded-md border border-[#00FF87]/30 bg-[#00FF87]/10 px-1.5 py-0.5 text-[10px] font-black text-[#00FF87]">
+                        TCO {tcoPrice.toLocaleString("ru-RU")} ₽
                       </span>
                     )}
                   </div>

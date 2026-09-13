@@ -49,12 +49,17 @@ export default async function ProductPage({
     fromSlot?: string;
     slotTitle?: string;
     slotMarketplace?: string;
+    price?: string;
+    tcoPrice?: string;
+    offerUrl?: string;
   }>;
 }) {
   const { id } = await params;
   const sParams = await searchParams;
   const fromQuery = sParams.fromQuery || sParams.q || "";
   const backHref = fromQuery ? `/search?q=${encodeURIComponent(fromQuery)}` : "/search";
+  const urlPrice = sParams.price ? parseInt(sParams.price, 10) : null;
+  const urlOfferUrl = sParams.offerUrl ? decodeURIComponent(sParams.offerUrl) : null;
   let user = null;
   let favorite = null;
 
@@ -62,6 +67,23 @@ export default async function ProductPage({
   const resolved = await resolveProductById(id, fromQuery);
   if (!resolved) {
     notFound();
+  }
+
+  // Синхронизируем цены офферов с ценой из поиска, чтобы исключить любое расхождение
+  if (urlPrice && urlPrice > 0 && resolved.offers && resolved.offers.length > 0) {
+    const slotMp = (sParams.slotMarketplace || "").toLowerCase();
+    const matchedOffer = resolved.offers.find((o) =>
+      slotMp.includes("ozon")
+        ? o.marketplace.toLowerCase().includes("ozon")
+        : o.marketplace.toLowerCase().includes("wildberries")
+    );
+    if (matchedOffer) {
+      matchedOffer.price = urlPrice;
+      if (urlOfferUrl) matchedOffer.url = urlOfferUrl;
+    } else {
+      resolved.offers[0].price = urlPrice;
+      if (urlOfferUrl) resolved.offers[0].url = urlOfferUrl;
+    }
   }
 
   try {
@@ -95,7 +117,7 @@ export default async function ProductPage({
     (a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
   );
   const bestOffer = sortedOffers[0];
-  const bestPrice = bestOffer?.price ?? null;
+  const bestPrice = (urlPrice || bestOffer?.price) ?? null;
   const currency = bestOffer?.currency || "RUB";
 
   // Считываем контекст триумфатора из модели товара или параметров URL

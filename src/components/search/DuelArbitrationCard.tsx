@@ -71,6 +71,9 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
   wbLinkParams.set("fromSlot", "wb_champion");
   wbLinkParams.set("slotTitle", wbSlot.badgeTitle || "WB-Чемпион");
   wbLinkParams.set("slotMarketplace", "Wildberries");
+  if (wbSlot.matchedOffer.price) wbLinkParams.set("price", String(wbSlot.matchedOffer.price));
+  if (wbSlot.tcoPrice) wbLinkParams.set("tcoPrice", String(wbSlot.tcoPrice));
+  if (safeWbUrl) wbLinkParams.set("offerUrl", safeWbUrl);
   const wbLink = `/product/${wbSlot.product.id}?${wbLinkParams.toString()}`;
 
   const ozonLinkParams = new URLSearchParams();
@@ -78,6 +81,9 @@ export function DuelArbitrationCard({ duel, query }: DuelArbitrationCardProps) {
   ozonLinkParams.set("fromSlot", "ozon_champion");
   ozonLinkParams.set("slotTitle", ozonSlot.badgeTitle || "Ozon-Чемпион");
   ozonLinkParams.set("slotMarketplace", "Ozon");
+  if (ozonSlot.matchedOffer.price) ozonLinkParams.set("price", String(ozonSlot.matchedOffer.price));
+  if (ozonSlot.tcoPrice) ozonLinkParams.set("tcoPrice", String(ozonSlot.tcoPrice));
+  if (safeOzonUrl) ozonLinkParams.set("offerUrl", safeOzonUrl);
   const ozonLink = `/product/${ozonSlot.product.id}?${ozonLinkParams.toString()}`;
 
   return (

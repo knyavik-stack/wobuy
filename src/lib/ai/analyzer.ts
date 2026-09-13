@@ -266,17 +266,17 @@ function buildMarketplaceComparison(
 
   // Извлекаем валидную базовую цену из предложений
   const validPrices = [
+    price,
     wbOffer?.price,
     ozonOffer?.price,
-    price,
   ].filter((p): p is number => typeof p === "number" && p > 0);
-  const basePrice = validPrices.length > 0 ? Math.min(...validPrices) : 2400;
+  const basePrice = validPrices.length > 0 ? validPrices[0] : 2400;
 
-  // Если нет прямого WB оффера, создаем сопоставленный оффер
+  // Если нет прямого WB оффера, создаем сопоставленный оффер с честной ценой
   if (!wbOffer || !wbOffer.price || wbOffer.price <= 0) {
     const refRating = ozonOffer?.rating || 4.8;
     const refReviews = ozonOffer?.reviewCount || 420;
-    const wbPrice = Math.round(basePrice * 1.03);
+    const wbPrice = basePrice;
     wbOffer = {
       marketplace: "wildberries",
       price: wbPrice,
@@ -287,11 +287,11 @@ function buildMarketplaceComparison(
     };
   }
 
-  // Если нет прямого Ozon оффера, создаем сопоставленный оффер
+  // Если нет прямого Ozon оффера, создаем сопоставленный оффер с честной ценой
   if (!ozonOffer || !ozonOffer.price || ozonOffer.price <= 0) {
     const refRating = wbOffer.rating || 4.8;
     const refReviews = wbOffer.reviewCount || 520;
-    const ozonPrice = Math.round(basePrice * 1.05);
+    const ozonPrice = basePrice;
     ozonOffer = {
       marketplace: "ozon",
       price: ozonPrice,
@@ -302,8 +302,8 @@ function buildMarketplaceComparison(
     };
   }
 
-  let wbPrice = wbOffer.price as number;
-  let ozonPrice = ozonOffer.price as number;
+  const wbPrice = wbOffer.price as number;
+  const ozonPrice = ozonOffer.price as number;
 
   const explicitMp = triumphContext?.marketplace?.toLowerCase().trim();
   const isExplicitWb =
@@ -320,14 +320,8 @@ function buildMarketplaceComparison(
   let isWbBest: boolean;
   if (isExplicitWb) {
     isWbBest = true;
-    if (triumphContext?.slotType === "economist" && ozonPrice <= wbPrice) {
-      ozonPrice = Math.round(wbPrice * 1.06);
-    }
   } else if (isExplicitOzon) {
     isWbBest = false;
-    if (triumphContext?.slotType === "economist" && wbPrice <= ozonPrice) {
-      wbPrice = Math.round(ozonPrice * 1.06);
-    }
   } else {
     isWbBest = wbPrice <= ozonPrice;
   }
