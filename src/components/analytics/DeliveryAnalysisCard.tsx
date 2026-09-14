@@ -15,6 +15,7 @@ interface OfferDeliveryInfo {
 interface DeliveryAnalysisCardProps {
   offers: OfferDeliveryInfo[];
   currency?: string;
+  targetMarketplace?: "wildberries" | "ozon";
 }
 
 function normalizeMarketplace(raw: string): "wildberries" | "ozon" {
@@ -23,7 +24,7 @@ function normalizeMarketplace(raw: string): "wildberries" | "ozon" {
   return "wildberries";
 }
 
-export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: DeliveryAnalysisCardProps) {
+export function DeliveryAnalysisCard({ offers = [], currency = "RUB", targetMarketplace }: DeliveryAnalysisCardProps) {
   // Строгая дедупликация: ровно 2 маркетплейса (WB и Ozon).
   const marketplaceMap = new Map<"wildberries" | "ozon", OfferDeliveryInfo>();
 
@@ -76,7 +77,10 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
     });
   }
 
-  const uniqueOffers = Array.from(marketplaceMap.values()).slice(0, 2);
+  const allOffers = Array.from(marketplaceMap.values());
+  const uniqueOffers = targetMarketplace
+    ? allOffers.filter((o) => o.marketplace === targetMarketplace)
+    : allOffers.slice(0, 2);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-2xl backdrop-blur-md sm:p-6">
@@ -87,10 +91,12 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB" }: Delivery
           </div>
           <div>
             <h3 className="text-sm font-extrabold uppercase tracking-wider text-white sm:text-base">
-              ИИ-Анализ логистики и доставки
+              ИИ-Анализ логистики и доставки {targetMarketplace ? (targetMarketplace === "wildberries" ? "на Wildberries" : "на Ozon") : ""}
             </h3>
             <p className="text-xs text-slate-400">
-              Сравнение складов, реальных сроков прибытия и рисков повреждения при транспортировке
+              {targetMarketplace
+                ? `Проверка склада FBO ${targetMarketplace === "wildberries" ? "Wildberries" : "Ozon"}, реальных сроков прибытия и сохранности заводской упаковки`
+                : "Сравнение складов, реальных сроков прибытия и рисков повреждения при транспортировке"}
             </p>
           </div>
         </div>

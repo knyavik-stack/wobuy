@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot, CheckCircle2, AlertTriangle, ShieldCheck, Flame, Filter } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ShieldCheck, Flame, Filter } from "lucide-react";
 import type { AgentPerspective, AgentDialogueEntry, AuditFunnelStats } from "@/lib/ai/analyzer";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
 import { NeonDot } from "@/components/brand/WobuyDot";
@@ -67,19 +67,20 @@ export function UnifiedAgentsAudit({
       <div className="flex flex-col gap-4 border-b border-white/5 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#00FF87]/30 bg-[#00FF87]/15 text-[#00FF87] shadow-[0_0_15px_rgba(0,255,135,0.2)]">
-            <Bot className="h-6 w-6" />
+            <Flame className="h-6 w-6 text-[#00FF87]" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
-                Мультиагентный аудит 4 ИИ-экспертов wobuy<NeonDot size="sm" />
+                Баттл всех агентов: {recommendedMarketplace}
+                <NeonDot size="sm" />
               </h2>
-              <span className="rounded-full border border-purple-500/30 bg-purple-950/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-purple-300">
-                Конфликт интересов
+              <span className="rounded-full border border-[#00FF87]/30 bg-emerald-950/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#00FF87]">
+                Только {recommendedMarketplace}
               </span>
             </div>
             <p className="mt-0.5 text-xs text-slate-400">
-              Каждый агент отвечает за свою грань сделки: качество сборки, скрытые расходы, логистику и накрутки
+              Живой аргументированный диалог 4 независимых ИИ-экспертов wobuy. исключительно для площадки {recommendedMarketplace}
             </p>
           </div>
         </div>
@@ -94,15 +95,6 @@ export function UnifiedAgentsAudit({
           <div className="flex rounded-xl border border-white/10 bg-[#0D0F14] p-0.5">
             <button
               type="button"
-              onClick={() => setActiveTab("cards")}
-              className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
-                activeTab === "cards" ? "bg-[#00FF87] text-black shadow-sm" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Карточки агентов
-            </button>
-            <button
-              type="button"
               onClick={() => setActiveTab("battle")}
               className={`flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-bold transition ${
                 activeTab === "battle" ? "bg-[#00FF87] text-black shadow-sm" : "text-slate-400 hover:text-white"
@@ -110,6 +102,15 @@ export function UnifiedAgentsAudit({
             >
               <Flame className="h-3.5 w-3.5" />
               <span>Баттл мнений</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("cards")}
+              className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
+                activeTab === "cards" ? "bg-[#00FF87] text-black shadow-sm" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Карточки агентов
             </button>
             <button
               type="button"
@@ -271,7 +272,7 @@ export function UnifiedAgentsAudit({
                       Позиция в баттле:
                     </span>
                     <p className="mt-1.5 text-xs leading-relaxed text-slate-200 font-medium italic border-l-2 border-white/20 pl-2.5">
-                      «{entry.argument}»
+                      «{entry.argument.replace(/^[«"]+|[»"]+$/g, "").trim()}»
                     </p>
                   </div>
                 </div>
