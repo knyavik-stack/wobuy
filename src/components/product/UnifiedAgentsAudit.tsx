@@ -26,7 +26,7 @@ export function UnifiedAgentsAudit({
   funnelStats,
   productTitle = "",
 }: UnifiedAgentsAuditProps) {
-  const [activeTab, setActiveTab] = useState<"cards" | "battle" | "funnel">("cards");
+  const [activeTab, setActiveTab] = useState<"cards" | "battle" | "funnel">("battle");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   // Карта цветов неона для каждого типа агента
@@ -214,9 +214,27 @@ export function UnifiedAgentsAudit({
         </div>
       )}
 
-      {/* РЕЖИМ 2: БАТТЛ МНЕНИЙ (ВЕРТИКАЛЬНЫЕ КАРТОЧКИ АНАЛОГИЧНО КАРТОЧКАМ АГЕНТОВ) */}
+      {/* РЕЖИМ 2: БАТТЛ МНЕНИЙ (СТРОГО ДЛЯ КОНКРЕТНОГО МАРКЕТПЛЕЙСА) */}
       {activeTab === "battle" && (
-        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-[#00FF87]/30 bg-gradient-to-r from-[#00FF87]/10 via-transparent to-purple-500/10 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Flame className="h-5 w-5 text-[#00FF87]" />
+                <span className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
+                  Баттл агентов: условия покупки на {recommendedMarketplace}
+                </span>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
+                Живой диалог мнений вместо сухих цифр
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-slate-300">
+              Перфекционист оценивает материалы и сборку, Экономный лоббирует реальную выгоду без накруток, а Скептик подтверждает отсутствие бот-отзывов и защиту от брака.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {dialogue.map((entry, dIdx) => {
             const glow = getGlowColor(dIdx);
             return (
@@ -266,6 +284,7 @@ export function UnifiedAgentsAudit({
               </div>
             );
           })}
+          </div>
         </div>
       )}
 

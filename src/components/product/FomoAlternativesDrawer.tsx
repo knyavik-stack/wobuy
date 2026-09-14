@@ -56,38 +56,48 @@ export function FomoAlternativesDrawer({ alternatives }: FomoAlternativesDrawerP
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {alternatives.map((alt, idx) => (
-              <div
-                key={idx}
-                className="flex flex-col justify-between rounded-2xl border border-red-500/20 bg-[#0D0F14] p-4.5 transition hover:border-red-500/40"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <h4 className="text-xs font-bold text-slate-200 sm:text-sm">
-                      {alt.title}
-                    </h4>
-                    <span className="rounded-md border border-red-500/30 bg-red-950/50 px-2 py-0.5 text-[11px] font-black text-red-400 shrink-0">
-                      ~{alt.price.toLocaleString("ru-RU")} ₽
-                    </span>
+            {alternatives.map((alt, idx) => {
+              const rejectingAgent = alt.reasonRejected.includes("Перфекционист")
+                ? "Перфекционистом (материалы и сборка)"
+                : alt.reasonRejected.includes("Экономный")
+                ? "Экономным (скрытый TCO и наценки)"
+                : alt.reasonRejected.includes("Срочный")
+                ? "Срочным (риск срыва доставки FBS)"
+                : "Скептиком (накрутка бот-отзывов)";
+
+              return (
+                <div
+                  key={idx}
+                  className="flex flex-col justify-between rounded-2xl border border-red-500/20 bg-[#0D0F14] p-4.5 transition hover:border-red-500/40"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="text-xs font-bold text-slate-200 sm:text-sm">
+                        {alt.title}
+                      </h4>
+                      <span className="rounded-md border border-red-500/30 bg-red-950/50 px-2 py-0.5 text-[11px] font-black text-red-400 shrink-0">
+                        ~{alt.price.toLocaleString("ru-RU")} ₽
+                      </span>
+                    </div>
+
+                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-red-400">
+                      <XCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>Дисквалифицировано {rejectingAgent}</span>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-white/5 bg-[#12151B] p-3 text-xs leading-relaxed text-slate-300">
+                      <strong className="text-red-300">Причина отбраковки:</strong>{" "}
+                      {alt.reasonRejected}
+                    </div>
                   </div>
 
-                  <div className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-red-400">
-                    <XCircle className="h-3.5 w-3.5" />
-                    <span>Дисквалифицировано Агентом Скептиком</span>
-                  </div>
-
-                  <div className="mt-3 rounded-xl border border-white/5 bg-[#12151B] p-3 text-xs leading-relaxed text-slate-300">
-                    <strong className="text-red-300">Причина отбраковки:</strong>{" "}
-                    {alt.reasonRejected}
+                  <div className="mt-3 flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-slate-500">
+                    <span>Маркетплейс: {alt.marketplace || "Рынок"}</span>
+                    <span className="text-white font-bold">✓ wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> защитил</span>
                   </div>
                 </div>
-
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-slate-500">
-                  <span>Статус: Отклонено алгоритмом</span>
-                  <span className="text-white font-bold">✓ wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span> защитил от покупки</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

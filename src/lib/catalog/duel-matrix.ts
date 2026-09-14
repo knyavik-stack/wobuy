@@ -69,6 +69,7 @@ export interface HybridMatrix2x2 {
   totalFound: number;
   filteredOutCount: number;
   funnelStats: AuditFunnelStats;
+  absoluteChampion: MatrixSlot;
   wbChampion: MatrixSlot;
   ozonChampion: MatrixSlot;
   duel: DuelArbitration;
@@ -420,20 +421,34 @@ export function buildHybridMatrix2x2(
   let skepticVerdict = "";
   let bestOverallPick: "wildberries" | "ozon" = "wildberries";
 
+  const wbDeliveryStr = wbDays <= 1 ? "завтра" : wbOffer.deliveryText || "быстрее";
+  const ozonDeliveryStr = ozonDays <= 1 ? "завтра" : ozonOffer.deliveryText || "быстрее";
+
   if (cheaperMarketplace === "ozon" && fasterMarketplace === "wildberries") {
-    if (priceDiff > 300) {
-      skepticVerdict = `Скептик рекомендует Ozon: экономия ${priceDiff} ₽ перевешивает разницу в ${deliveryDiffDays} день доставки.`;
+    if (priceDiff > 350) {
+      skepticVerdict = `На Ozon дешевле на ${priceDiff.toLocaleString("ru-RU")} ₽, но WB привезет ${wbDeliveryStr}.`;
       bestOverallPick = "ozon";
     } else {
-      skepticVerdict = `Скептик рекомендует Wildberries: разница в цене всего ${priceDiff} ₽, но товар приедет значительно быстрее.`;
+      skepticVerdict = `На WB доставка ${wbDeliveryStr}, а переплата всего ${priceDiff.toLocaleString("ru-RU")} ₽ — выбор Wildberries.`;
       bestOverallPick = "wildberries";
     }
+  } else if (cheaperMarketplace === "wildberries" && fasterMarketplace === "ozon") {
+    if (priceDiff > 350) {
+      skepticVerdict = `На Wildberries дешевле на ${priceDiff.toLocaleString("ru-RU")} ₽, но Ozon привезет ${ozonDeliveryStr}.`;
+      bestOverallPick = "wildberries";
+    } else {
+      skepticVerdict = `На Ozon доставка ${ozonDeliveryStr}, а переплата всего ${priceDiff.toLocaleString("ru-RU")} ₽ — выбор Ozon.`;
+      bestOverallPick = "ozon";
+    }
   } else if (cheaperMarketplace === "ozon") {
-    skepticVerdict = `Скептик рекомендует Ozon: максимальная экономия (${priceDiff} ₽) при сопоставимых сроках.`;
+    skepticVerdict = `На Ozon дешевле на ${priceDiff.toLocaleString("ru-RU")} ₽ при равных сроках доставки (${ozonOffer.deliveryText || "2-3 дня"}).`;
     bestOverallPick = "ozon";
-  } else {
-    skepticVerdict = `Скептик рекомендует Wildberries: лучшая цена (${priceDiff} ₽ выгоды) и надежная логистика со склада.`;
+  } else if (cheaperMarketplace === "wildberries") {
+    skepticVerdict = `На Wildberries дешевле на ${priceDiff.toLocaleString("ru-RU")} ₽ и надежная отгрузка со склада FBO (${wbOffer.deliveryText || "1-2 дня"}).`;
     bestOverallPick = "wildberries";
+  } else {
+    skepticVerdict = `Цены равны (${wbTco.tcoPrice.toLocaleString("ru-RU")} ₽): ${fasterMarketplace === "wildberries" ? "WB привезет быстрее" : "Ozon дает 30 дней на возврат"}.`;
+    bestOverallPick = fasterMarketplace === "wildberries" ? "wildberries" : "ozon";
   }
 
   const comparisonPoints = [
@@ -711,11 +726,14 @@ export function buildHybridMatrix2x2(
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("ozon")))
     .slice(0, 8);
 
+  const absoluteChampion = bestOverallPick === "wildberries" ? wbSlot : ozonSlot;
+
   return {
     query,
     totalFound: rawProducts.length,
     filteredOutCount,
     funnelStats,
+    absoluteChampion,
     wbChampion: wbSlot,
     ozonChampion: ozonSlot,
     duel,

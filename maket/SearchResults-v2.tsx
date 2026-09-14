@@ -14,6 +14,7 @@ import type { SearchProduct } from "@/lib/catalog/product-types";
 import { buildHybridMatrix2x2, type HybridMatrix2x2, type MatrixSlot } from "@/lib/catalog/duel-matrix";
 import { DuelArbitrationCard } from "@/components/search/DuelArbitrationCard";
 import { MatrixSlotCard } from "@/components/search/MatrixSlotCard";
+import { AbsoluteChampionBlock } from "@/components/search/AbsoluteChampionBlock";
 import { saveSearch } from "@/app/actions";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { NeonDot } from "@/components/brand/WobuyDot";
@@ -328,12 +329,24 @@ export default function SearchResults({
             {/* РЕЖИМ 1: ГИБРИДНАЯ МАТРИЦА 2+2 (ДУЭЛЬНЫЙ АГРЕГАТОР) */}
             {activeMode === "matrix" && (
               <div className="space-y-6">
-                {/* 1. ВЕРХНИЙ ЯРУС: СЛОТ 1 (WB) + СЛОТ 2 (OZON) */}
+                {/* 1. ВЕРШИНА ЭКРАНА — ВЕРХНИЙ ЯРУС: «АБСОЛЮТНЫЙ ЧЕМПИОН» (ВЫБОР WOBUY.) */}
+                <AbsoluteChampionBlock
+                  champion={
+                    matrix.absoluteChampion ||
+                    (matrix.duel.bestOverallPick === "wildberries"
+                      ? matrix.wbChampion
+                      : matrix.ozonChampion)
+                  }
+                  duel={matrix.duel}
+                  query={query}
+                />
+
+                {/* ЛИДЕРЫ ДВУХ ГЛАВНЫХ МАРКЕТПЛЕЙСОВ (WILDBERRIES VS OZON) */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-                        Верхний ярус: Лидеры двух главных маркетплейсов
+                        Лидеры двух главных маркетплейсов: Wildberries и Ozon
                       </span>
                     </div>
                   </div>
@@ -350,15 +363,18 @@ export default function SearchResults({
                   </div>
                 </div>
 
-                {/* 2. СВЯЗКА-ДУЭЛЬ: АРБИТРАЖ СКЕПТИКА (ДУЭЛЬНЫЕ ВЕСЫ) */}
+                {/* 2. ЦЕНТР ЭКРАНА — «ИИ-ДУЭЛЬ ВЕСОВ» (WB VS OZON) */}
                 <DuelArbitrationCard duel={matrix.duel} query={query} />
 
-                {/* 3. НИЖНИЙ ЯРУС: СЛОТ 3 (ЭКОНОМНЫЙ) + СЛОТ 4 (СРОЧНЫЙ) */}
+                {/* 3. НИЖНИЙ ЯРУС — «ТРИУМФ ЭКОНОМНОГО» И «ТРИУМФ СРОЧНОГО» (КРАЙНОСТИ РЫНКА ДЛЯ СНЯТИЯ FOMO) */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-                        Нижний ярус: Специализированные триумфаторы рынка
+                        Нижний ярус: Крайности рынка (Триумф Экономного и Триумф Срочного)
+                      </span>
+                      <span className="hidden sm:inline text-[10px] text-slate-500 font-semibold">
+                        • Снятие страха упущенной выгоды (FOMO)
                       </span>
                     </div>
                   </div>
