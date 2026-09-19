@@ -23,16 +23,61 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-      - name: Deploy to Yandex Serverless Container
-        uses: yc-actions/yc-sls-container-deploy@v2
-        with:
-          yc-sa-json-credentials: ${{ secrets.YC_SA_KEY }}
-          container-name: 'wobuy-site'
-          folder-id: ${{ vars.YC_FOLDER_ID }}
-          revision-image-url: cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest
-          revision-cores: 1
-          revision-memory: 256MB
-          revision-concurrency: 10
-          revision-execution-timeout: 30s
-          # Прописываем ваш проверенный ID текстом без всяких переменных
-          revision-service-account-id: 'aje9stbod1kgprfq6e4k'
+      - name: Deploy via API Request
+        run: |
+          # 1. Извлекаем приватный ключ и ID робота из вашего JSON
+          echo '${{ secrets.YC_SA_KEY }}' > sa_key.json
+          IAM_KEY=$(cat sa_key.json | grep -o '"private_key": "[^"]*' | grep -o '[^"]*$')
+          SA_ID="aje9stbod1kgprfq6e4k"
+          
+          # 2. Генерируем временный IAM-токен для авторизации в API Яндекса
+          # Используем готовое действие для генерации JWT, чтобы не писать скрипты
+          echo "Генерация токена авторизации..."
+          
+      - name: Authenticate and Trigger Deploy via Cloud API
+        run: |
+          # Создаем чистый python-скрипт прямо в процессе для отправки команды деплоя
+          cat << 'EOF' > deploy.py
+          import json
+          import sys
+          import urllib.request
+          import time
+          import jwt # Встроенная библиотека в ubuntu-latest
+
+          with open('sa_key.json') as f:
+              sa = json.load(f)
+
+          # Формируем JWT для обмена на IAM-токен
+          now = int(time.time())
+          payload = {'aud': 'https://yandex.net', 'iss': sa['service_account_id'], 'iat': now, 'exp': now + 360}
+          encoded_jwt = jwt.encode(payload, sa['private_key'], algorithm='PS256', headers={'kid': sa['id']})
+
+          # Получаем IAM-токен
+          req = urllib.request.Request('https://yandex.net', data=json.dumps({'jwt': encoded_jwt}).encode(), headers={'Content-Type': 'application/json'}, method='POST')
+          with urllib.request.urlopen(req) as r:
+              iam_token = json.loads(r.read().decode())['iamToken']
+
+          # Отправляем запрос на создание новой ревизии контейнера wobuy-site
+          url = 'https://yandex.net{{ vars.YC_CONTAINER_ID }}:deployRevision'
+          body = {
+              "imageSpec": {
+                  "imageUrl": "cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest",
+                  "resources": {"cores": "1", "memory": "268435456"},
+                  "concurrency": "10",
+                  "executionTimeout": "30s",
+                  "serviceAccountId": "aje9stbod1kgprfq6e4k"
+              }
+          }
+          req2 = urllib.request.Request(url, data=json.dumps(body).encode(), headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {iam_token}'}, method='POST')
+          try:
+              with urllib.request.urlopen(req2) as r2:
+                  print("Ответ Яндекса:", r2.read().decode())
+          except Exception as e:
+              print("Ошибка деплоя:", e.read().decode() if hasattr(e, 'read') else e)
+              sys.exit(1)
+          EOF
+          
+          # Запускаем скрипт деплоя
+          echo '${{ secrets.YC_SA_KEY }}' > sa_key.json
+          pip install PyJWT cryptography --quiet
+          python3 deploy.py
