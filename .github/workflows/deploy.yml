@@ -27,9 +27,10 @@ jobs:
         uses: yc-actions/yc-sls-container-deploy@v2
         with:
           yc-sa-json-credentials: ${{ secrets.YC_SA_KEY }}
-          container-id: ${{ vars.YC_CONTAINER_ID }}
-          image: cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest
-          cores: 1
-          memory: 256MB
-          concurrency: 10
-          execution-timeout: 30s
+          container-name: 'wobuy-site'
+          folder-id: ${{ vars.YC_FOLDER_ID }}
+          revision-image-url: cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest
+          revision-cores: 1
+          revision-memory: 256MB
+          revision-concurrency: 10
+          revision-execution-timeout: 30s
