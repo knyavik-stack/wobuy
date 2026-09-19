@@ -23,21 +23,16 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-      # ЭТОТ ШАГ СТАВИТ УТИЛИТУ БЕЗ ИНТЕРНЕТА ЯНДЕКСА
-      - name: Install Yandex Cloud CLI
-        uses: yc-actions/yc-setup-cli@v2
+      - name: Deploy to Yandex Serverless Container
+        uses: yc-actions/yc-sls-container-deploy@v2
         with:
           yc-sa-json-credentials: ${{ secrets.YC_SA_KEY }}
-
-      # ТЕПЕРЬ ЗАПУСКАЕМ НАПРЯМУЮ И ВСЁ БУДЕТ РАБОТАТЬ
-      - name: Deploy Container
-        run: |
-          yc serverless container revisions deploy \
-            --container-name 'wobuy-site' \
-            --folder-id ${{ vars.YC_FOLDER_ID }} \
-            --image cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest \
-            --cores 1 \
-            --memory 256MB \
-            --concurrency 10 \
-            --execution-timeout 30s \
-            --service-account-id ${{ vars.YC_SA_ID }}
+          container-name: 'wobuy-site'
+          folder-id: ${{ vars.YC_FOLDER_ID }}
+          revision-image-url: cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest
+          revision-cores: 1
+          revision-memory: 256MB
+          revision-concurrency: 10
+          revision-execution-timeout: 30s
+          # Прописываем ваш проверенный ID текстом без всяких переменных
+          revision-service-account-id: 'aje9stbod1kgprfq6e4k'
