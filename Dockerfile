@@ -23,6 +23,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
 USER nextjs
+
 EXPOSE 8080
-CMD ["PORT=8080", "node", "server.js"]
+
+# Финальное исправление запуска для принудительного порта 8080
+CMD ["node", "-e", "process.env.PORT='8080'; require('./server.js')"]
