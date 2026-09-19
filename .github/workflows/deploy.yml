@@ -23,13 +23,6 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-      - name: Extract Service Account ID
-        id: sa_id
-        run: |
-          echo '${{ secrets.YC_SA_KEY }}' > key.json
-          ID=$(grep -o '"service_account_id": "[^"]*' key.json | grep -o '[^"]*$')
-          echo "id=$ID" >> $GITHUB_OUTPUT
-
       - name: Deploy to Yandex Serverless Container
         uses: yc-actions/yc-sls-container-deploy@v2
         with:
@@ -41,4 +34,4 @@ jobs:
           revision-memory: 256MB
           revision-concurrency: 10
           revision-execution-timeout: 30s
-          revision-service-account-id: ${{ steps.sa_id.outputs.id }}
+          revision-service-account-id: ${{ vars.YC_SA_ID }}
