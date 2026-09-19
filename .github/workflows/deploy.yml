@@ -1,4 +1,4 @@
-name: Deploy Next.js to Yandex Cloud
+name: Build Next.js Image
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main  # Если ветка master, замените main на master
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,25 +22,3 @@ jobs:
           IMAGE_NAME="cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest"
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
-
-      - name: Deploy Revision via CLI
-        run: |
-          # 1. Скачиваем бинарник YC напрямую с зеркала хранилища (оно доступно из Гитхаба)
-          curl -sSL https://yandexcloud.net | bash -s -- -i ./yandex-cloud -n
-          
-          # 2. Записываем ключ авторизации
-          echo '${{ secrets.YC_SA_KEY }}' > key.json
-          
-          # 3. Настраиваем и деплоим
-          ./yandex-cloud/bin/yc config profile create sa-profile
-          ./yandex-cloud/bin/yc config set service-account-key key.json
-          ./yandex-cloud/bin/yc config set folder-id ${{ vars.YC_FOLDER_ID }}
-          
-          ./yandex-cloud/bin/yc serverless container revisions deploy \
-            --container-name 'wobuy-site' \
-            --image cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest \
-            --cores 1 \
-            --memory 256MB \
-            --concurrency 10 \
-            --execution-timeout 30s \
-            --service-account-id 'aje9stbod1kgprfq6e4k'
