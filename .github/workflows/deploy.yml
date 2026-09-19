@@ -3,7 +3,7 @@ name: Deploy Next.js to Yandex Cloud
 on:
   push:
     branches:
-      - main  # Если ветка в гитхабе называется master, замените main на master
+      - main  # Если ветка master, замените main на master
 
 jobs:
   deploy:
@@ -34,3 +34,5 @@ jobs:
           revision-memory: 256MB
           revision-concurrency: 10
           revision-execution-timeout: 30s
+          # ЭТА СТРОКА РЕШАЕТ ПРОБЛЕМУ: Гитхаб сам вытащит ID робота из вашего ключа
+          revision-service-account-id: $(cat key.json | grep -o '"service_account_id": "[^"]*' | grep -o '[^"]*$')
