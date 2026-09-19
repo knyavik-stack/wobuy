@@ -16,17 +16,16 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 8080
-
-# Финальное исправление запуска для принудительного порта 8080
-CMD ["node", "-e", "process.env.PORT='8080'; require('./server.js')"]
+# Запуск через шелл-команду, которая подставит PORT, выданный Яндексом
+CMD ["sh", "-c", "node server.js -p $PORT"]
