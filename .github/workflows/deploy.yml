@@ -1,0 +1,47 @@
+name: Deploy Next.js to Yandex Cloud
+
+on:
+  push:
+    branches:
+      - main  # Если ваша главная ветка называется master, замените main на master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Yandex Container Registry
+        uses: yc-actions/yc-cr-login@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_KEY }}
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_NAME="cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest"
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+      - name: Deploy to Yandex Serverless Container
+        run: |
+          # Записываем ключ авторизации в файл для работы утилиты yc
+          echo '${{ secrets.YC_SA_KEY }}' > key.json
+          
+          # Скачиваем официальный инструмент управления Yandex Cloud
+          curl -sSL https://yandexcloud.net | bash
+          export PATH=$PATH:$HOME/yandex-cloud/bin
+          
+          # Авторизуемся в облаке под нашим роботом
+          yc config profile create sa-profile
+          yc config set service-account-key key.json
+          
+          # Даем команду контейнеру обновиться на новый Docker-образ
+          yc serverless container revisions deploy \
+            --container-id ${{ vars.YC_CONTAINER_ID }} \
+            --image cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest \
+            --cores 1 \
+            --memory 256MB \
+            --concurrency 10 \
+            --execution-timeout 30s \
+            --service-account-id $(cat key.json | grep -o '"service_account_id": "[^"]*' | grep -o '[^"]*$')
