@@ -23,22 +23,18 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-      - name: Deploy via YC CLI
+      # ЭТОТ ШАГ СТАВИТ УТИЛИТУ БЕЗ ИНТЕРНЕТА ЯНДЕКСА
+      - name: Install Yandex Cloud CLI
+        uses: yc-actions/yc-setup-cli@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_KEY }}
+
+      # ТЕПЕРЬ ЗАПУСКАЕМ НАПРЯМУЮ И ВСЁ БУДЕТ РАБОТАТЬ
+      - name: Deploy Container
         run: |
-          echo '${{ secrets.YC_SA_KEY }}' > key.json
-          
-          # Устанавливаем консоль Яндекса напрямую, минуя кривые плагины
-          curl -sSL https://yandexcloud.net | bash -s -- -i $HOME/yandex-cloud -n
-          export PATH=$PATH:$HOME/yandex-cloud/bin
-          
-          # Авторизуемся под роботом
-          yc config profile create sa-profile
-          yc config set service-account-key key.json
-          yc config set folder-id ${{ vars.YC_FOLDER_ID }}
-          
-          # Обновляем контейнер прямой командой
           yc serverless container revisions deploy \
             --container-name 'wobuy-site' \
+            --folder-id ${{ vars.YC_FOLDER_ID }} \
             --image cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest \
             --cores 1 \
             --memory 256MB \
