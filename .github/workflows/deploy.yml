@@ -23,15 +23,25 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-      - name: Deploy to Yandex Serverless Container
-        uses: yc-actions/yc-sls-container-deploy@v2
-        with:
-          yc-sa-json-credentials: ${{ secrets.YC_SA_KEY }}
-          container-name: 'wobuy-site'
-          folder-id: ${{ vars.YC_FOLDER_ID }}
-          revision-image-url: cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest
-          revision-cores: 1
-          revision-memory: 256MB
-          revision-concurrency: 10
-          revision-execution-timeout: 30s
-          revision-service-account-id: ${{ vars.YC_SA_ID }}
+      - name: Deploy via YC CLI
+        run: |
+          echo '${{ secrets.YC_SA_KEY }}' > key.json
+          
+          # Устанавливаем консоль Яндекса напрямую, минуя кривые плагины
+          curl -sSL https://yandexcloud.net | bash -s -- -i $HOME/yandex-cloud -n
+          export PATH=$PATH:$HOME/yandex-cloud/bin
+          
+          # Авторизуемся под роботом
+          yc config profile create sa-profile
+          yc config set service-account-key key.json
+          yc config set folder-id ${{ vars.YC_FOLDER_ID }}
+          
+          # Обновляем контейнер прямой командой
+          yc serverless container revisions deploy \
+            --container-name 'wobuy-site' \
+            --image cr.yandex/${{ vars.YC_REGISTRY_ID }}/nextjs-app:latest \
+            --cores 1 \
+            --memory 256MB \
+            --concurrency 10 \
+            --execution-timeout 30s \
+            --service-account-id ${{ vars.YC_SA_ID }}
