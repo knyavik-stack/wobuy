@@ -18,9 +18,7 @@ export async function middleware(request: NextRequest) {
   const getLoginRedirect = () => {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    const fullTarget = request.nextUrl.search
-      ? `${pathname}${request.nextUrl.search}`
-      : pathname;
+    const fullTarget = request.nextUrl.search ? `${pathname}${request.nextUrl.search}` : pathname;
     loginUrl.searchParams.set("next", fullTarget);
     return NextResponse.redirect(loginUrl);
   };
@@ -35,30 +33,26 @@ export async function middleware(request: NextRequest) {
   const url = rawUrl.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 
   try {
-    const supabase = createServerClient(
-      url,
-      anonKey,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) => {
-              request.cookies.set(name, value);
-            });
-            response = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options);
-            });
-            // Сохраняем заголовки безопасности
-            response.headers.set("X-Content-Type-Options", "nosniff");
-            response.headers.set("X-XSS-Protection", "1; mode=block");
-            response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-          },
+    const supabase = createServerClient(url, anonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+          // Сохраняем заголовки безопасности
+          response.headers.set("X-Content-Type-Options", "nosniff");
+          response.headers.set("X-XSS-Protection", "1; mode=block");
+          response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
         },
       },
-    );
+    });
 
     // getUser() обновляет просроченные токены и валидирует сессию
     const {
@@ -81,5 +75,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
-
-

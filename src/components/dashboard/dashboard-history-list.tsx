@@ -16,11 +16,7 @@ type HistoryItem = {
   imageUrl: string | null;
 };
 
-export function DashboardHistoryList({
-  initialHistory,
-}: {
-  initialHistory: HistoryItem[];
-}) {
+export function DashboardHistoryList({ initialHistory }: { initialHistory: HistoryItem[] }) {
   const [items, setItems] = useState<HistoryItem[]>(initialHistory);
 
   const handleRemove = async (historyId: string) => {

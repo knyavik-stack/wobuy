@@ -9,8 +9,7 @@ import { getStoredLiveProduct } from "@/lib/catalog/search";
 export async function toggleFavorite(
   rawProductId: string,
   metadataOrFormData?:
-    | { title?: string; brand?: string; category?: string; imageUrl?: string }
-    | FormData,
+    { title?: string; brand?: string; category?: string; imageUrl?: string } | FormData,
 ) {
   try {
     const supabase = await createClient();
@@ -87,11 +86,7 @@ export async function removeFavorite(productId: string) {
 
     const validId = isValidUuid(productId) ? productId : deterministicUuid(productId);
 
-    await supabase
-      .from("user_favorites")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("product_id", validId);
+    await supabase.from("user_favorites").delete().eq("user_id", user.id).eq("product_id", validId);
 
     revalidatePath("/dashboard");
     return { success: true };

@@ -3,7 +3,16 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Lock, ArrowRight, ArrowLeft, Sparkles, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
@@ -86,9 +95,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-        <div className="relative z-10 text-xs text-slate-500">
-          © 2026 wobuy. Все права защищены
-        </div>
+        <div className="relative z-10 text-xs text-slate-500">© 2026 wobuy. Все права защищены</div>
       </div>
 
       <div className="relative flex w-full flex-col items-center justify-center p-6 md:p-16 lg:w-1/2">

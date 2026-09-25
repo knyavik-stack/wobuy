@@ -2,16 +2,13 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import {
-  Search,
-  Grid3X3,
-  List,
-  Sparkles,
-  Bookmark,
-  Scale,
-} from "lucide-react";
+import { Search, Grid3X3, List, Sparkles, Bookmark, Scale } from "lucide-react";
 import type { SearchProduct } from "@/lib/catalog/product-types";
-import { buildHybridMatrix2x2, type HybridMatrix2x2, type MatrixSlot } from "@/lib/catalog/duel-matrix";
+import {
+  buildHybridMatrix2x2,
+  type HybridMatrix2x2,
+  type MatrixSlot,
+} from "@/lib/catalog/duel-matrix";
 import { DuelArbitrationCard } from "@/components/search/DuelArbitrationCard";
 import { MatrixSlotCard } from "@/components/search/MatrixSlotCard";
 import { AbsoluteChampionBlock } from "@/components/search/AbsoluteChampionBlock";
@@ -85,8 +82,14 @@ export default function SearchResults({
               <span className="text-xs font-black text-[#00FF87]">AI</span>
             </div>
           </div>
-          <p className="mt-6 text-sm font-bold text-white">Селекция товаров в Матрицу 2+2 wobuy<NeonDot size="xs" />...</p>
-          <p className="mt-1 text-xs text-slate-400">Сравниваем TCO, склады FBO и проводим дуэльный арбитраж WB vs Ozon</p>
+          <p className="mt-6 text-sm font-bold text-white">
+            Селекция товаров в Матрицу 2+2 wobuy
+            <NeonDot size="xs" />
+            ...
+          </p>
+          <p className="mt-1 text-xs text-slate-400">
+            Сравниваем TCO, склады FBO и проводим дуэльный арбитраж WB vs Ozon
+          </p>
         </div>
       )}
 
@@ -246,33 +249,52 @@ export default function SearchResults({
               </div>
 
               <h1 className="mt-5 text-2xl font-black tracking-tight text-white sm:text-3xl">
-                Гибридная Матрица 2+2 в wobuy<NeonDot size="md" />
+                Гибридная Матрица 2+2 в wobuy
+                <NeonDot size="md" />
               </h1>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
-                Введите название товара или ссылку на Wildberries или Ozon. Умный конвейер отсеет мусор и представит 4 ключевых финалиста: дуэль WB vs Ozon, лучший по минимальной цене и экспресс-доставку FBO.
+                Введите название товара или ссылку на Wildberries или Ozon. Умный конвейер отсеет
+                мусор и представит 4 ключевых финалиста: дуэль WB vs Ozon, лучший по минимальной
+                цене и экспресс-доставку FBO.
               </p>
 
               {/* 4 Слота Матрицы */}
               <div className="mt-8 grid grid-cols-1 gap-4 text-left sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-2xl border border-purple-500/30 bg-[#0D0F14] p-4">
                   <div className="text-xl">🟣</div>
-                  <div className="mt-2 text-xs font-black uppercase text-purple-300">Слот 1: WB-Чемпион</div>
-                  <div className="text-[11px] text-slate-400 mt-1">Лучший товар на Wildberries по средневзвешенному TCO и FBO.</div>
+                  <div className="mt-2 text-xs font-black uppercase text-purple-300">
+                    Слот 1: WB-Чемпион
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Лучший товар на Wildberries по средневзвешенному TCO и FBO.
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-blue-500/30 bg-[#0D0F14] p-4">
                   <div className="text-xl">🔵</div>
-                  <div className="mt-2 text-xs font-black uppercase text-blue-300">Слот 2: Ozon-Чемпион</div>
-                  <div className="text-[11px] text-slate-400 mt-1">Лучший товар на Ozon по цене с Ozon Картой и надежности.</div>
+                  <div className="mt-2 text-xs font-black uppercase text-blue-300">
+                    Слот 2: Ozon-Чемпион
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Лучший товар на Ozon по цене с Ozon Картой и надежности.
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-emerald-500/30 bg-[#0D0F14] p-4">
                   <div className="text-xl">🏷️</div>
-                  <div className="mt-2 text-xs font-black uppercase text-emerald-400">Слот 3: Триумф Экономного</div>
-                  <div className="text-[11px] text-slate-400 mt-1">Абсолютный победитель по минимальной конечной стоимости.</div>
+                  <div className="mt-2 text-xs font-black uppercase text-emerald-400">
+                    Слот 3: Триумф Экономного
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Абсолютный победитель по минимальной конечной стоимости.
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-amber-500/30 bg-[#0D0F14] p-4">
                   <div className="text-xl">⚡</div>
-                  <div className="mt-2 text-xs font-black uppercase text-amber-400">Слот 4: Триумф Срочного</div>
-                  <div className="text-[11px] text-slate-400 mt-1">Абсолютный победитель по экспресс-доставке со склада.</div>
+                  <div className="mt-2 text-xs font-black uppercase text-amber-400">
+                    Слот 4: Триумф Срочного
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Абсолютный победитель по экспресс-доставке со склада.
+                  </div>
                 </div>
               </div>
 
@@ -303,9 +325,12 @@ export default function SearchResults({
           ) : (
             <section className="my-12 rounded-3xl border border-white/10 bg-[#13161C] p-12 text-center">
               <Sparkles className="mx-auto mb-4 h-9 w-9 text-[#00FF87]" />
-              <h1 className="text-xl font-black text-white">Ничего не найдено по запросу «{query}»</h1>
+              <h1 className="text-xl font-black text-white">
+                Ничего не найдено по запросу «{query}»
+              </h1>
               <p className="mt-2 text-sm text-slate-400">
-                Попробуйте изменить запрос (например, «коврик для ванной», «наушники bluetooth» или вставить ссылку на товар).
+                Попробуйте изменить запрос (например, «коврик для ванной», «наушники bluetooth» или
+                вставить ссылку на товар).
               </p>
               <div className="mt-6 flex justify-center gap-3">
                 <Link
@@ -353,9 +378,7 @@ export default function SearchResults({
 
                   <div
                     className={
-                      view === "grid"
-                        ? "grid grid-cols-1 gap-5 md:grid-cols-2"
-                        : "space-y-4"
+                      view === "grid" ? "grid grid-cols-1 gap-5 md:grid-cols-2" : "space-y-4"
                     }
                   >
                     <MatrixSlotCard slot={matrix.wbChampion} view={view} query={query} />
@@ -381,9 +404,7 @@ export default function SearchResults({
 
                   <div
                     className={
-                      view === "grid"
-                        ? "grid grid-cols-1 gap-5 md:grid-cols-2"
-                        : "space-y-4"
+                      view === "grid" ? "grid grid-cols-1 gap-5 md:grid-cols-2" : "space-y-4"
                     }
                   >
                     <MatrixSlotCard slot={matrix.economistChampion} view={view} query={query} />
@@ -421,9 +442,7 @@ export default function SearchResults({
 
                 <div
                   className={
-                    view === "grid"
-                      ? "grid grid-cols-1 gap-5 md:grid-cols-2"
-                      : "space-y-4"
+                    view === "grid" ? "grid grid-cols-1 gap-5 md:grid-cols-2" : "space-y-4"
                   }
                 >
                   {matrix.wbAlternatives.map((p, idx) => {
@@ -433,7 +452,14 @@ export default function SearchResults({
 
                     const mockSlot: MatrixSlot = {
                       slotType: "wb_champion",
-                      badgeTitle: idx === 0 ? "№1 Выбор WB" : idx === 1 ? "Экономный WB" : idx === 2 ? "Срочный WB" : "Премиум WB",
+                      badgeTitle:
+                        idx === 0
+                          ? "№1 Выбор WB"
+                          : idx === 1
+                            ? "Экономный WB"
+                            : idx === 2
+                              ? "Срочный WB"
+                              : "Премиум WB",
                       badgeSubtitle: "Проверено на Wildberries",
                       badgeTag: "Wildberries",
                       badgeColor: "text-purple-300",
@@ -474,9 +500,7 @@ export default function SearchResults({
                     <div className="flex items-center gap-2">
                       <span className="text-xl">🔵</span>
                       <div>
-                        <h3 className="text-sm font-black text-blue-200">
-                          Режим: Только Ozon
-                        </h3>
+                        <h3 className="text-sm font-black text-blue-200">Режим: Только Ozon</h3>
                         <p className="text-xs text-slate-400">
                           Топ-4 проверенных предложения с Ozon, отобранных ИИ wobuy.
                         </p>
@@ -494,9 +518,7 @@ export default function SearchResults({
 
                 <div
                   className={
-                    view === "grid"
-                      ? "grid grid-cols-1 gap-5 md:grid-cols-2"
-                      : "space-y-4"
+                    view === "grid" ? "grid grid-cols-1 gap-5 md:grid-cols-2" : "space-y-4"
                   }
                 >
                   {matrix.ozonAlternatives.map((p, idx) => {
@@ -506,7 +528,14 @@ export default function SearchResults({
 
                     const mockSlot: MatrixSlot = {
                       slotType: "ozon_champion",
-                      badgeTitle: idx === 0 ? "№1 Выбор Ozon" : idx === 1 ? "Экономный Ozon" : idx === 2 ? "Срочный Ozon" : "Премиум Ozon",
+                      badgeTitle:
+                        idx === 0
+                          ? "№1 Выбор Ozon"
+                          : idx === 1
+                            ? "Экономный Ozon"
+                            : idx === 2
+                              ? "Срочный Ozon"
+                              : "Премиум Ozon",
                       badgeSubtitle: "Проверено на Ozon",
                       badgeTag: "Ozon",
                       badgeColor: "text-blue-300",

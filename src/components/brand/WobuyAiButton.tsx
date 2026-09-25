@@ -25,8 +25,8 @@ export function WobuyAiButton({
         size === "sm"
           ? "h-9 px-3 text-xs"
           : size === "md"
-          ? "h-11 px-4 text-xs"
-          : "h-12 px-5 text-sm"
+            ? "h-11 px-4 text-xs"
+            : "h-12 px-5 text-sm"
       } ${className}`}
     >
       {/* Мягкое неоновое свечение внутри */}

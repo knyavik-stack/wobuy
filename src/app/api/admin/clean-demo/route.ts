@@ -5,7 +5,8 @@ import { secureLogger } from "@/lib/utils/secure-logger";
 export async function POST(req: NextRequest) {
   // Проверка авторизации администратора: сверка ключа или заголовка
   const adminSecret = process.env.ADMIN_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const authHeader = req.headers.get("x-admin-key") || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const authHeader =
+    req.headers.get("x-admin-key") || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
   if (adminSecret && authHeader !== adminSecret) {
     secureLogger.warn("Несанкционированная попытка доступа к /api/admin/clean-demo");
@@ -29,7 +30,9 @@ export async function POST(req: NextRequest) {
     const { data: demoProducts, error: findError } = await supabase
       .from("products")
       .select("id, canonical_name")
-      .or("id.like.prod-%,id.like.demo-%,brand.eq.Ozon Marketplace,canonical_name.ilike.%MirCamping%");
+      .or(
+        "id.like.prod-%,id.like.demo-%,brand.eq.Ozon Marketplace,canonical_name.ilike.%MirCamping%",
+      );
 
     if (findError) {
       secureLogger.warn("[Clean Demo] Error finding demo products:", findError);
@@ -71,4 +74,3 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   return POST(req);
 }
-

@@ -8,61 +8,77 @@ export function inferCategoryFromTitle(title: string): string {
   const t = title.toLowerCase();
 
   if (
-    /швейн|лапк.*машин|оверлок|пряж|нитк|игл.*швейн|вышивк|вязани|рукодели|раскрой|фурнитур.*швейн/i.test(t)
+    /швейн|лапк.*машин|оверлок|пряж|нитк|игл.*швейн|вышивк|вязани|рукодели|раскрой|фурнитур.*швейн/i.test(
+      t,
+    )
   ) {
     return "Шитье и рукоделие";
   }
 
   if (
-    /собак|кошек|лежанк|когтеточк|ошейник|поводок|корм для|животн|клетк.*попуга|аквариум|наполнитель.*туалет/i.test(t)
+    /собак|кошек|лежанк|когтеточк|ошейник|поводок|корм для|животн|клетк.*попуга|аквариум|наполнитель.*туалет/i.test(
+      t,
+    )
   ) {
     return "Зоотовары";
   }
 
   if (
-    /фен|стайлер|утюжок|плойк|эпилятор|бритв|триммер|массажер|маникюр|косметик|шампунь|крем|парфюм|духи/i.test(t)
+    /фен|стайлер|утюжок|плойк|эпилятор|бритв|триммер|массажер|маникюр|косметик|шампунь|крем|парфюм|духи/i.test(
+      t,
+    )
   ) {
     return "Красота и уход";
   }
 
   if (
-    /палатк|спальник|рюкзак|фонар|термос|кемпинг|удочк|рыбалк|лодка|котелок|мангал|сапборд|велосипед|самокат/i.test(t)
+    /палатк|спальник|рюкзак|фонар|термос|кемпинг|удочк|рыбалк|лодка|котелок|мангал|сапборд|велосипед|самокат/i.test(
+      t,
+    )
   ) {
     return "Туризм и спорт";
   }
 
   if (
-    /смартфон|телефон|наушник|планшет|ноутбук|клавиатур|мышь|монитор|телевизор|колонк|часы.*smart|гаджет|пауэрбанк|зарядк|видеокарт|процессор/i.test(t)
+    /смартфон|телефон|наушник|планшет|ноутбук|клавиатур|мышь|монитор|телевизор|колонк|часы.*smart|гаджет|пауэрбанк|зарядк|видеокарт|процессор/i.test(
+      t,
+    )
   ) {
     return "Электроника и гаджеты";
   }
 
   if (
-    /пылесос|холодильник|стиральн|микроволнов|чайник|кофемашин|утюг|блендер|мультиварк|увлажнитель|обогреватель/i.test(t)
+    /пылесос|холодильник|стиральн|микроволнов|чайник|кофемашин|утюг|блендер|мультиварк|увлажнитель|обогреватель/i.test(
+      t,
+    )
   ) {
     return "Бытовая техника";
   }
 
   if (
-    /куртк|пальто|футболк|джинс|кроссовк|ботинк|кед|платье|худи|костюм|сумк|шапк|носки|белье/i.test(t)
+    /куртк|пальто|футболк|джинс|кроссовк|ботинк|кед|платье|худи|костюм|сумк|шапк|носки|белье/i.test(
+      t,
+    )
   ) {
     return "Одежда и обувь";
   }
 
   if (
-    /посуд|сковород|кастрюл|плед|подушк|одеял|штор|постельн|интерьер|светильник|мебель|зеркало|ваза/i.test(t)
+    /посуд|сковород|кастрюл|плед|подушк|одеял|штор|постельн|интерьер|светильник|мебель|зеркало|ваза/i.test(
+      t,
+    )
   ) {
     return "Дом и уют";
   }
 
-  if (
-    /игрушк|детск|коляск|автокресл|лего|конструктор|памперс|подгузник/i.test(t)
-  ) {
+  if (/игрушк|детск|коляск|автокресл|лего|конструктор|памперс|подгузник/i.test(t)) {
     return "Детские товары";
   }
 
   if (
-    /дрель|шуруповерт|перфоратор|инструмент|набор ключей|автотовар|масло моторн|видеорегистратор|аккумулятор.*авто/i.test(t)
+    /дрель|шуруповерт|перфоратор|инструмент|набор ключей|автотовар|масло моторн|видеорегистратор|аккумулятор.*авто/i.test(
+      t,
+    )
   ) {
     return "Авто и инструменты";
   }
@@ -152,7 +168,10 @@ export function clusterAndDeduplicateOffers(
     if (matchedCluster) {
       matchedCluster.offers.push(offer);
       // Если у нового предложения лучшая картинка
-      if (offer.imageUrl && (!matchedCluster.imageUrl || matchedCluster.imageUrl.includes("picsum"))) {
+      if (
+        offer.imageUrl &&
+        (!matchedCluster.imageUrl || matchedCluster.imageUrl.includes("picsum"))
+      ) {
         matchedCluster.imageUrl = offer.imageUrl;
       }
     } else {
@@ -175,7 +194,8 @@ export function clusterAndDeduplicateOffers(
     const sortedOffers = [...cluster.offers].sort((a, b) => a.price - b.price);
     const bestPrice = sortedOffers[0]?.price || 1500;
     const maxPrice = Math.max(...sortedOffers.map((o) => o.originalPrice || o.price));
-    const discount = maxPrice > bestPrice ? Math.round(((maxPrice - bestPrice) / maxPrice) * 100) : 15;
+    const discount =
+      maxPrice > bestPrice ? Math.round(((maxPrice - bestPrice) / maxPrice) * 100) : 15;
 
     // Расчет спарклайна на основе реальной лучшей цены
     const sparkline = [
@@ -190,7 +210,9 @@ export function clusterAndDeduplicateOffers(
       cluster.offers.reduce((sum, o) => sum + (o.rating || 4.6), 0) / cluster.offers.length;
 
     const hash = cluster.canonicalName.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const aiScore = Number((Math.min(9.9, Math.max(8.4, avgRating * 1.8 + (hash % 10) * 0.05))).toFixed(1));
+    const aiScore = Number(
+      Math.min(9.9, Math.max(8.4, avgRating * 1.8 + (hash % 10) * 0.05)).toFixed(1),
+    );
     const antiFakePercent = 92 + (hash % 8);
 
     const hasMultiStore =
@@ -239,7 +261,9 @@ export function clusterAndDeduplicateOffers(
         reviewCount: o.reviewCount,
         deliveryText: o.deliveryText || "2-3 дня (со склада)",
         availability: o.availability || "В наличии",
-        sellerName: o.sellerName || (o.marketplace === "wildberries" ? "Продавец Wildberries" : "Ozon Retail"),
+        sellerName:
+          o.sellerName ||
+          (o.marketplace === "wildberries" ? "Продавец Wildberries" : "Ozon Retail"),
         sellerRating: o.sellerRating || 4.8,
       })),
     };

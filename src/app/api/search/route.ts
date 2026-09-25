@@ -27,10 +27,7 @@ export async function GET(req: NextRequest) {
 
   const startTime = Date.now();
   try {
-    const [intent, products] = await Promise.all([
-      extractSearchIntent(q),
-      searchProducts(q),
-    ]);
+    const [intent, products] = await Promise.all([extractSearchIntent(q), searchProducts(q)]);
 
     return NextResponse.json({
       query: q,
@@ -47,4 +44,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-

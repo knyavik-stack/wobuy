@@ -35,15 +35,38 @@ export async function resolveMarketplaceSearchQuery(rawQuery: string): Promise<{
   if (!trimmed) return { marketplaceQuery: "", isConverted: false };
 
   // Если это артикул WB или прямая ссылка - не модифицируем
-  if (/^\d{6,11}$/.test(trimmed) || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+  if (
+    /^\d{6,11}$/.test(trimmed) ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
     return { marketplaceQuery: trimmed, isConverted: false };
   }
 
   const words = trimmed.split(/\s+/);
   const conversationalKeywords = [
-    "посоветуй", "подскажи", "какой", "какая", "какое", "какие", "где", "купить",
-    "хочу", "нужен", "нужна", "нужно", "выбрать", "лучший", "хороший", "недорогой",
-    "чтобы", "порекомендуй", "посоветуйте", "подскажите", "пожалуйста", "ищу"
+    "посоветуй",
+    "подскажи",
+    "какой",
+    "какая",
+    "какое",
+    "какие",
+    "где",
+    "купить",
+    "хочу",
+    "нужен",
+    "нужна",
+    "нужно",
+    "выбрать",
+    "лучший",
+    "хороший",
+    "недорогой",
+    "чтобы",
+    "порекомендуй",
+    "посоветуйте",
+    "подскажите",
+    "пожалуйста",
+    "ищу",
   ];
   const hasConversational = words.some((w) => conversationalKeywords.includes(w.toLowerCase()));
 
@@ -94,12 +117,45 @@ export async function resolveMarketplaceSearchQuery(rawQuery: string): Promise<{
 
   // Эвристический fallback: удаляем стоп-слова и разговорные фразы
   const stopWords = new Set([
-    "посоветуй", "посоветуйте", "пожалуйста", "подскажи", "подскажите", "какой", "какая",
-    "какое", "какие", "где", "купить", "хочу", "нужен", "нужна", "нужно", "выбрать",
-    "лучший", "хороший", "недорогой", "чтобы", "для", "в", "на", "с", "по", "к", "от",
-    "до", "и", "или", "не", "мне", "нам", "порекомендуй", "ищу"
+    "посоветуй",
+    "посоветуйте",
+    "пожалуйста",
+    "подскажи",
+    "подскажите",
+    "какой",
+    "какая",
+    "какое",
+    "какие",
+    "где",
+    "купить",
+    "хочу",
+    "нужен",
+    "нужна",
+    "нужно",
+    "выбрать",
+    "лучший",
+    "хороший",
+    "недорогой",
+    "чтобы",
+    "для",
+    "в",
+    "на",
+    "с",
+    "по",
+    "к",
+    "от",
+    "до",
+    "и",
+    "или",
+    "не",
+    "мне",
+    "нам",
+    "порекомендуй",
+    "ищу",
   ]);
-  const filtered = words.filter((w) => !stopWords.has(w.toLowerCase().replace(/[^а-яa-z0-9]/gi, "")));
+  const filtered = words.filter(
+    (w) => !stopWords.has(w.toLowerCase().replace(/[^а-яa-z0-9]/gi, "")),
+  );
   const cleaned = filtered.slice(0, 4).join(" ").trim();
 
   return {
@@ -111,7 +167,12 @@ export async function resolveMarketplaceSearchQuery(rawQuery: string): Promise<{
 /**
  * Распознает, является ли поисковая строка прямой ссылкой на маркетплейс
  */
-export function extractUrlQueryDetails(rawQuery: string): { isUrl: boolean; cleanQuery: string; marketplace?: string; article?: string } {
+export function extractUrlQueryDetails(rawQuery: string): {
+  isUrl: boolean;
+  cleanQuery: string;
+  marketplace?: string;
+  article?: string;
+} {
   const trimmed = rawQuery.trim();
   if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
     return { isUrl: false, cleanQuery: trimmed };
@@ -135,7 +196,8 @@ export function extractUrlQueryDetails(rawQuery: string): { isUrl: boolean; clea
 
     // Ozon
     if (host.includes("ozon.ru")) {
-      const match = url.pathname.match(/\/product\/[^\/]*?(\d+)/) || url.pathname.match(/\/product\/(\d+)/);
+      const match =
+        url.pathname.match(/\/product\/[^\/]*?(\d+)/) || url.pathname.match(/\/product\/(\d+)/);
       const article = match ? match[1] : undefined;
       return {
         isUrl: true,
@@ -154,8 +216,16 @@ export function extractUrlQueryDetails(rawQuery: string): { isUrl: boolean; clea
 /**
  * Интеллектуальный ИИ-движок подбора реальных товаров с маркетплейсов Wildberries и Ozon.
  */
-export async function searchWithAiMarketEngine(query: string, limit: number = 8): Promise<CanonicalProductData[]> {
-  const { isUrl, cleanQuery, marketplace: urlMarketplace, article: urlArticle } = extractUrlQueryDetails(query);
+export async function searchWithAiMarketEngine(
+  query: string,
+  limit: number = 8,
+): Promise<CanonicalProductData[]> {
+  const {
+    isUrl,
+    cleanQuery,
+    marketplace: urlMarketplace,
+    article: urlArticle,
+  } = extractUrlQueryDetails(query);
   if (!cleanQuery) return [];
 
   const promptQuery = isUrl
@@ -286,7 +356,12 @@ function getCategoryImages(query: string): string[] {
     ];
   }
 
-  if (lower.includes("лежанк") || lower.includes("собак") || lower.includes("кошек") || lower.includes("зоо")) {
+  if (
+    lower.includes("лежанк") ||
+    lower.includes("собак") ||
+    lower.includes("кошек") ||
+    lower.includes("зоо")
+  ) {
     return [
       "https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=800&auto=format&fit=crop&q=80",
       "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&auto=format&fit=crop&q=80",
@@ -301,7 +376,12 @@ function getCategoryImages(query: string): string[] {
     ];
   }
 
-  if (lower.includes("самокат") || lower.includes("велосипед") || lower.includes("скейт") || lower.includes("ролик")) {
+  if (
+    lower.includes("самокат") ||
+    lower.includes("велосипед") ||
+    lower.includes("скейт") ||
+    lower.includes("ролик")
+  ) {
     return [
       "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=800&auto=format&fit=crop&q=80",
       "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=800&auto=format&fit=crop&q=80",
@@ -322,7 +402,10 @@ function getCategoryImages(query: string): string[] {
   ];
 }
 
-function parseAndFormatAiProducts(rawText: string | undefined, query: string): CanonicalProductData[] {
+function parseAndFormatAiProducts(
+  rawText: string | undefined,
+  query: string,
+): CanonicalProductData[] {
   if (!rawText) return [];
 
   try {
@@ -342,8 +425,12 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
       const brand = item.brand?.trim() || "wobuy.";
       const category = item.category?.trim() || "Каталог";
       const basePrice = Math.max(350, Number(item.price) || 2400);
-      const originalPrice = Math.max(basePrice, Number(item.originalPrice) || Math.round(basePrice * 1.25));
-      const discount = item.discountPercent || Math.round(((originalPrice - basePrice) / originalPrice) * 100);
+      const originalPrice = Math.max(
+        basePrice,
+        Number(item.originalPrice) || Math.round(basePrice * 1.25),
+      );
+      const discount =
+        item.discountPercent || Math.round(((originalPrice - basePrice) / originalPrice) * 100);
       const rating = Number((item.rating || 4.8).toFixed(1));
       const reviewCount = item.reviewCount || 650;
 
@@ -353,12 +440,12 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
       const wbPrice = basePrice;
       const ozonPrice = Math.round(basePrice * (1 + (i % 2 === 0 ? 0.04 : 0.07)));
 
-      const wbUrl = item.url && item.marketplace === "wildberries"
-        ? item.url
-        : buildWildberriesProductUrl(extId, title);
-      const ozonUrl = item.url && item.marketplace === "ozon"
-        ? item.url
-        : buildOzonProductUrl(title, extId);
+      const wbUrl =
+        item.url && item.marketplace === "wildberries"
+          ? item.url
+          : buildWildberriesProductUrl(extId, title);
+      const ozonUrl =
+        item.url && item.marketplace === "ozon" ? item.url : buildOzonProductUrl(title, extId);
 
       const offers = [
         {
@@ -388,9 +475,10 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
       ];
 
       // Фотографии товара
-      const productImages = Array.isArray(item.images) && item.images.length > 0
-        ? item.images
-        : [categoryImages[i % categoryImages.length], ...categoryImages];
+      const productImages =
+        Array.isArray(item.images) && item.images.length > 0
+          ? item.images
+          : [categoryImages[i % categoryImages.length], ...categoryImages];
 
       const mainImage = item.imageUrl || productImages[0];
 
@@ -404,7 +492,9 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
         canonicalName: title,
         brand,
         category,
-        description: item.description || `Качественный товар «${title}» от бренда ${brand}. Проверен ИИ-аналитиком wobuy.`,
+        description:
+          item.description ||
+          `Качественный товар «${title}» от бренда ${brand}. Проверен ИИ-аналитиком wobuy.`,
         imageUrl: mainImage,
         aiScore: metrics.aiScore,
         antiFakePercent: metrics.antiFakePercent,
@@ -427,16 +517,26 @@ function parseAndFormatAiProducts(rawText: string | undefined, query: string): C
 /**
  * Локальный детерминированный генератор каталога (гарантия выдачи для любых категорий и брендов)
  */
-export function generateDeterministicAiProducts(query: string, limit: number = 4): CanonicalProductData[] {
+export function generateDeterministicAiProducts(
+  query: string,
+  limit: number = 4,
+): CanonicalProductData[] {
   const lower = query.toLowerCase();
 
   // Специальная обработка для "кофемашина полярис" / "кофемашина"
-  if (lower.includes("полярис") || lower.includes("polaris") || lower.includes("кофемашин") || lower.includes("кофеварк")) {
+  if (
+    lower.includes("полярис") ||
+    lower.includes("polaris") ||
+    lower.includes("кофемашин") ||
+    lower.includes("кофеварк")
+  ) {
     const isPolaris = lower.includes("полярис") || lower.includes("polaris");
     const brand = isPolaris ? "Polaris" : "DeLonghi";
     const models = [
       {
-        title: isPolaris ? "Кофемашина автоматическая Polaris PACM 2040S зерновая" : "Кофемашина DeLonghi Magnifica S ECAM 22.110.B",
+        title: isPolaris
+          ? "Кофемашина автоматическая Polaris PACM 2040S зерновая"
+          : "Кофемашина DeLonghi Magnifica S ECAM 22.110.B",
         price: isPolaris ? 27990 : 34990,
         id: "214819201",
         rating: 4.8,
@@ -444,7 +544,9 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
         img: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80",
       },
       {
-        title: isPolaris ? "Кофемашина рожковая с капучинатором Polaris PCM 1535E" : "Кофеварка рожковая DeLonghi Dedica EC 685",
+        title: isPolaris
+          ? "Кофемашина рожковая с капучинатором Polaris PCM 1535E"
+          : "Кофеварка рожковая DeLonghi Dedica EC 685",
         price: isPolaris ? 14990 : 19990,
         id: "214819202",
         rating: 4.7,
@@ -452,7 +554,9 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
         img: "https://images.unsplash.com/photo-1588854337236-6889d631faa8?w=800&auto=format&fit=crop&q=80",
       },
       {
-        title: isPolaris ? "Кофемашина автоматическая Polaris PACM 2060AC сенсорная" : "Кофемашина автоматическая Philips Series 2200 EP2220",
+        title: isPolaris
+          ? "Кофемашина автоматическая Polaris PACM 2060AC сенсорная"
+          : "Кофемашина автоматическая Philips Series 2200 EP2220",
         price: isPolaris ? 36990 : 39990,
         id: "214819203",
         rating: 4.9,
@@ -460,7 +564,9 @@ export function generateDeterministicAiProducts(query: string, limit: number = 4
         img: "https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?w=800&auto=format&fit=crop&q=80",
       },
       {
-        title: isPolaris ? "Кофеварка капельная с таймером Polaris PCM 1215D" : "Кофеварка капельная Braun KF 560",
+        title: isPolaris
+          ? "Кофеварка капельная с таймером Polaris PCM 1215D"
+          : "Кофеварка капельная Braun KF 560",
         price: isPolaris ? 4290 : 5490,
         id: "214819204",
         rating: 4.6,

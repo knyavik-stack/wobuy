@@ -11,11 +11,7 @@ type SearchItem = {
   createdAt: string;
 };
 
-export function DashboardSearchesList({
-  initialSearches,
-}: {
-  initialSearches: SearchItem[];
-}) {
+export function DashboardSearchesList({ initialSearches }: { initialSearches: SearchItem[] }) {
   const [items, setItems] = useState<SearchItem[]>(initialSearches);
 
   const handleRemove = async (searchId: string) => {

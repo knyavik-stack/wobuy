@@ -56,7 +56,9 @@ export async function extractSearchIntent(rawQuery: string): Promise<ExtractedSe
   }
 
   // Быстрое извлечение числовых диапазонов цены регулярными выражениями
-  const priceMatch = rawQuery.match(/(?:до|меньше|дешевле|<)\s*(\d+[\s\d]*)\s*(?:тыс|тысяч|к|k|руб|р)?/i);
+  const priceMatch = rawQuery.match(
+    /(?:до|меньше|дешевле|<)\s*(\d+[\s\d]*)\s*(?:тыс|тысяч|к|k|руб|р)?/i,
+  );
   let parsedMaxPrice: number | undefined;
 
   if (priceMatch) {

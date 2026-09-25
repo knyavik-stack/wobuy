@@ -86,7 +86,11 @@ export function buildWildberriesProductUrl(skuOrUrl?: string | number, fallbackT
   const raw = String(skuOrUrl || "").trim();
 
   // 1. Если это уже готовый полный URL карточки WB
-  if (raw.startsWith("http") && raw.includes("wildberries.ru/catalog/") && raw.includes("/detail.aspx")) {
+  if (
+    raw.startsWith("http") &&
+    raw.includes("wildberries.ru/catalog/") &&
+    raw.includes("/detail.aspx")
+  ) {
     return raw;
   }
 
@@ -135,6 +139,3 @@ export function sanitizeMarketplaceOfferUrl(
   }
   return url || "#";
 }
-
-
-

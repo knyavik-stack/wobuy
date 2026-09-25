@@ -55,9 +55,7 @@ export function AgentsDialogueChat({ dialogue, avgScore }: AgentsDialogueChatPro
   if (!dialogue || dialogue.length === 0) return null;
 
   const filteredDialogue =
-    activeTab === "all"
-      ? dialogue
-      : dialogue.filter((entry) => entry.archetype === activeTab);
+    activeTab === "all" ? dialogue : dialogue.filter((entry) => entry.archetype === activeTab);
 
   return (
     <div

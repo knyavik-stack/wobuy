@@ -3,7 +3,7 @@ name: Build Next.js Image
 on:
   push:
     branches:
-      - main  # Если ветка master, замените main на master
+      - main # Если ветка master, замените main на master
 
 jobs:
   build-and-push:

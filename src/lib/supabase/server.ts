@@ -7,24 +7,18 @@ export async function createClient() {
   const url = getCleanSupabaseUrl();
   const anonKey = getCleanSupabaseAnonKey();
 
-  return createServerClient(
-    url,
-    anonKey,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            // Server Components не могут изменять cookies. Обновлением сессии занимается middleware.
-          }
-        },
+  return createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        } catch {
+          // Server Components не могут изменять cookies. Обновлением сессии занимается middleware.
+        }
       },
     },
-  );
+  });
 }

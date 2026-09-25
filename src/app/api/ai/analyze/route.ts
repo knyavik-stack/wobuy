@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
     const sanitizedBrand = String(brand).slice(0, 100).trim();
     const sanitizedCategory = String(category).slice(0, 100).trim();
 
-    secureLogger.info("Запуск анализа ИИ для товара", { title: sanitizedTitle, brand: sanitizedBrand, category: sanitizedCategory });
+    secureLogger.info("Запуск анализа ИИ для товара", {
+      title: sanitizedTitle,
+      brand: sanitizedBrand,
+      category: sanitizedCategory,
+    });
 
     const systemPrompt = `Ты — ядро 4 ИИ-агентов платформы wobuy. (сервис честного и осознанного выбора товаров на маркетплейсах РФ).
 Твоя задача — проанализировать товар и сгенерировать объективный честный разбор по 4 архетипам покупателей на чистом русском языке.

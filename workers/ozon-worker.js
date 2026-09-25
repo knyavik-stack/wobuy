@@ -54,19 +54,19 @@ export default {
     try {
       // 1. Формируем запросы к внутренним API Ozon
       const searchPath = `/search/?text=${encodeURIComponent(query)}&page=${page}&from_global=true`;
-      
+
       const endpoints = [
         `https://www.ozon.ru/api/composer-api.bx/page/json/v2?url=${encodeURIComponent(searchPath)}`,
         `https://www.ozon.ru/api/entrypoint-api.bx/page/json/v2?url=${encodeURIComponent(searchPath)}`,
       ];
 
       const mobileHeaders = {
-        "Accept": "application/json, text/plain, */*",
+        Accept: "application/json, text/plain, */*",
         "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8",
         "User-Agent":
           "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 OzonApp/16.48.0",
-        "Origin": "https://www.ozon.ru",
-        "Referer": "https://www.ozon.ru/",
+        Origin: "https://www.ozon.ru",
+        Referer: "https://www.ozon.ru/",
         "x-o3-app-name": "dweb",
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
@@ -178,7 +178,8 @@ function parseOzonWidgets(widgetStates, query, limit) {
 
         const title = item.title || item.name || query;
         const price = parsePriceNumber(item.price?.price || item.price || item.mainPrice);
-        const originalPrice = parsePriceNumber(item.price?.original || item.oldPrice) || Math.round(price * 1.15);
+        const originalPrice =
+          parsePriceNumber(item.price?.original || item.oldPrice) || Math.round(price * 1.15);
         const imageUrl = item.image?.link || item.images?.[0] || "";
 
         if (price > 0) {

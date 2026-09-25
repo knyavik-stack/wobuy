@@ -16,7 +16,10 @@ export function deterministicUuid(input: string): string {
     return input.toLowerCase();
   }
 
-  const hash = crypto.createHash("sha1").update("wobuy:" + input).digest("hex");
+  const hash = crypto
+    .createHash("sha1")
+    .update("wobuy:" + input)
+    .digest("hex");
   const p1 = hash.substring(0, 8);
   const p2 = hash.substring(8, 12);
   const p3 = "5" + hash.substring(13, 16);

@@ -115,11 +115,7 @@ const NM_BASKET_CACHE = new Map<number, string>();
 /**
  * Выполняет реальный поиск товаров на Wildberries через активный каталог v18/v9
  */
-export async function searchWbLive(
-  query: string,
-  page = 1,
-  limit = 20,
-): Promise<WbProductRaw[]> {
+export async function searchWbLive(query: string, page = 1, limit = 20): Promise<WbProductRaw[]> {
   const clean = query.trim();
   if (!clean) return [];
 
@@ -268,8 +264,8 @@ export function formatWbProductToOffer(
     p.time1 && p.time1 <= 24
       ? "Завтра (со склада WB)"
       : p.time1 && p.time1 <= 48
-      ? "1-2 дня (со склада WB)"
-      : "2-3 дня (со склада WB)";
+        ? "1-2 дня (со склада WB)"
+        : "2-3 дня (со склада WB)";
 
   // Если у товара более 1 фото, основным фото берем индекс 2 (индекс 1 на WB часто является видеообзором)
   const picCount = Math.min(6, Math.max(1, p.pics || 1));
@@ -296,7 +292,8 @@ export function formatWbProductToOffer(
     title: realTitle,
     brand: p.brand || seller?.trademark || "Wildberries",
     category: detail?.subj_name || "Товары каталога",
-    description: detail?.description || `Оригинальный товар «${realTitle}» с Wildberries. Проверен ИИ wobuy.`,
+    description:
+      detail?.description || `Оригинальный товар «${realTitle}» с Wildberries. Проверен ИИ wobuy.`,
     price,
     originalPrice: origPrice,
     discountPercent: discount,
@@ -309,7 +306,8 @@ export function formatWbProductToOffer(
     deliveryDays,
     deliveryText,
     availability: "В наличии",
-    sellerName: seller?.supplierFullName || seller?.supplierName || p.supplier || "Продавец Wildberries",
+    sellerName:
+      seller?.supplierFullName || seller?.supplierName || p.supplier || "Продавец Wildberries",
     sellerRating: p.supplierRating,
   };
 }

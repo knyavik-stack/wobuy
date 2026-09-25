@@ -222,7 +222,16 @@ export async function generateProductAnalysis(
         const content = json?.choices?.[0]?.message?.content;
         if (content) {
           const parsed = JSON.parse(content);
-          return formatAnalysisResult(parsed, productTitle, brand, category, price, offers, triumphContext, targetMarketplace);
+          return formatAnalysisResult(
+            parsed,
+            productTitle,
+            brand,
+            category,
+            price,
+            offers,
+            triumphContext,
+            targetMarketplace,
+          );
         }
       }
     } catch (err) {
@@ -245,7 +254,16 @@ export async function generateProductAnalysis(
 
       if (resp && resp.text) {
         const parsed = JSON.parse(resp.text);
-        return formatAnalysisResult(parsed, productTitle, brand, category, price, offers, triumphContext, targetMarketplace);
+        return formatAnalysisResult(
+          parsed,
+          productTitle,
+          brand,
+          category,
+          price,
+          offers,
+          triumphContext,
+          targetMarketplace,
+        );
       }
     } catch (err) {
       console.warn("[Analyzer] Gemini skipped:", err);
@@ -253,17 +271,34 @@ export async function generateProductAnalysis(
   }
 
   // 3. Детерминированный fallback анализ (мгновенно в < 5мс)
-  return generateDeterministicAnalysis(productTitle, brand, category, price, offers, triumphContext, targetMarketplace);
+  return generateDeterministicAnalysis(
+    productTitle,
+    brand,
+    category,
+    price,
+    offers,
+    triumphContext,
+    targetMarketplace,
+  );
 }
 
 function buildMarketplaceComparison(
   productTitle: string,
   price: number,
-  offers: Array<{ marketplace: string; price: number | null; rating: number | null; reviewCount?: number | null; deliveryText?: string; url?: string }>,
+  offers: Array<{
+    marketplace: string;
+    price: number | null;
+    rating: number | null;
+    reviewCount?: number | null;
+    deliveryText?: string;
+    url?: string;
+  }>,
   triumphContext?: TriumphContext,
   targetMarketplace?: "wildberries" | "ozon",
 ): MarketplaceComparisonItem[] {
-  const wbOffer = offers.find((o) => o.marketplace === "wildberries" || o.marketplace.includes("wb"));
+  const wbOffer = offers.find(
+    (o) => o.marketplace === "wildberries" || o.marketplace.includes("wb"),
+  );
   const ozonOffer = offers.find((o) => o.marketplace === "ozon" && o.price && o.price > 0);
 
   const baseWbPrice = wbOffer?.price || price || 2400;
@@ -280,7 +315,9 @@ function buildMarketplaceComparison(
     advantage: "★ Победитель отбора wobuy.",
     statusBadge: "★ Выбор wobuy.",
     statusType: "success",
-    verdictDetail: triumphContext?.verdict || `Проверенный товар на Wildberries (${baseWbPrice} ₽) с доставкой ${wbDelivery}.`,
+    verdictDetail:
+      triumphContext?.verdict ||
+      `Проверенный товар на Wildberries (${baseWbPrice} ₽) с доставкой ${wbDelivery}.`,
     isRecommended: true,
     url: wbOffer?.url || buildMarketplaceDeepLink("wildberries", productTitle),
   };
@@ -327,12 +364,28 @@ function generateDeterministicAnalysis(
   brand: string,
   category: string,
   price: number,
-  offers: Array<{ marketplace: string; price: number | null; rating: number | null; reviewCount?: number | null; deliveryText?: string; url?: string }>,
+  offers: Array<{
+    marketplace: string;
+    price: number | null;
+    rating: number | null;
+    reviewCount?: number | null;
+    deliveryText?: string;
+    url?: string;
+  }>,
   triumphContext?: TriumphContext,
   targetMarketplace?: "wildberries" | "ozon",
 ): AiAnalysisResult {
-  const comparison = buildMarketplaceComparison(productTitle, price, offers, triumphContext, targetMarketplace);
-  const bestMkt = comparison.find((c) => c.isRecommended && c.price !== null) || comparison.find((c) => c.price !== null) || comparison[0];
+  const comparison = buildMarketplaceComparison(
+    productTitle,
+    price,
+    offers,
+    triumphContext,
+    targetMarketplace,
+  );
+  const bestMkt =
+    comparison.find((c) => c.isRecommended && c.price !== null) ||
+    comparison.find((c) => c.price !== null) ||
+    comparison[0];
 
   const effectiveMarketplace: "wildberries" | "ozon" = targetMarketplace
     ? targetMarketplace
@@ -342,7 +395,8 @@ function generateDeterministicAnalysis(
   const effectiveMarketplaceName = effectiveMarketplace === "wildberries" ? "Wildberries" : "Ozon";
 
   const totalReviews = offers.reduce((acc, o) => acc + (o.reviewCount || 0), 0);
-  const avgRating = offers.find((o) => (o.reviewCount || 0) > 0)?.rating || offers[0]?.rating || 4.7;
+  const avgRating =
+    offers.find((o) => (o.reviewCount || 0) > 0)?.rating || offers[0]?.rating || 4.7;
 
   // 1. Оценка Скептика (строгая зависимость от объема отзывов и накруток)
   let sScore = 9.6;
@@ -353,10 +407,7 @@ function generateDeterministicAnalysis(
   if (totalReviews < 5) {
     sScore = 6.2;
     sVerdict = "Критически мало отзывов";
-    sPros = [
-      "Товар заведен официальным поставщиком",
-      "Базовая модерация карточки пройдена",
-    ];
+    sPros = ["Товар заведен официальным поставщиком", "Базовая модерация карточки пройдена"];
     sCons = [
       `Товар имеет всего ${totalReviews || 1} отзыв(а). Статистическая выборка нерепрезентативна.`,
       "Высокий риск самовыкупа продавцом. Рекомендуем предпочесть проверенные аналоги с 300+ отзывами.",
@@ -379,9 +430,7 @@ function generateDeterministicAnalysis(
       "Анализ текста исключил шаблонные отзывы ботов",
       "Низкий процент возвратов на маркетплейсе",
     ];
-    sCons = [
-      "При получении проверяйте комплектацию по списку в инструкции.",
-    ];
+    sCons = ["При получении проверяйте комплектацию по списку в инструкции."];
   } else {
     sScore = 9.7;
     sVerdict = "100% Проверен временем";
@@ -390,9 +439,7 @@ function generateDeterministicAnalysis(
       "Успешно пройден аудит анти-фейк детектора wobuy.",
       "Стабильная оценка без резких просадок качества от партии к партии",
     ];
-    sCons = [
-      "Популярная позиция, быстро раскупается при скидках.",
-    ];
+    sCons = ["Популярная позиция, быстро раскупается при скидках."];
   }
 
   // 2. Оценка Перфекциониста (зависит от оценки и бренда)
@@ -410,15 +457,21 @@ function generateDeterministicAnalysis(
   const avgAiScore = Number(((pScore + eScore + uScore + sScore) / 4).toFixed(1));
   const antiFakePercent = totalReviews >= 200 ? 98 : totalReviews >= 50 ? 96 : 94;
 
-  const wobuyDecision = bestMkt.price !== null
-    ? `💡 Решение wobuy.: Оптимально заказать на ${bestMkt.name} за ${new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(bestMkt.price)}. Победитель дуэли маркетплейсов по честной цене и срокам доставки (${bestMkt.delivery}).`
-    : `💡 Решение wobuy.: Товар доступен для проверки на Wildberries и Ozon. Перейдите по ссылке для оформления.`;
+  const wobuyDecision =
+    bestMkt.price !== null
+      ? `💡 Решение wobuy.: Оптимально заказать на ${bestMkt.name} за ${new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(bestMkt.price)}. Победитель дуэли маркетплейсов по честной цене и срокам доставки (${bestMkt.delivery}).`
+      : `💡 Решение wobuy.: Товар доступен для проверки на Wildberries и Ozon. Перейдите по ссылке для оформления.`;
 
   return {
     summary: `Мы провели глубокую селекцию «${productTitle}» от ${brand || "производителя"}. Этот товар рекомендуется к покупке тем, кто ищет надежное изделие без переплат за маркетинговые обещания селлеров. Материалы соответствуют заявленным характеристикам, а отзывы прошли фильтрацию от заказных бот-ферм. Наш совет: при получении в ПВЗ обязательно проверьте целостность фирменной упаковки и комплектацию.`,
     antiFakePercent,
     aiScore: avgAiScore,
-    verdict: avgAiScore >= 9.2 ? "Однозначно брать" : avgAiScore >= 8.0 ? "Рекомендовано к покупке" : "Требует осторожности",
+    verdict:
+      avgAiScore >= 9.2
+        ? "Однозначно брать"
+        : avgAiScore >= 8.0
+          ? "Рекомендовано к покупке"
+          : "Требует осторожности",
     wobuyDecision,
     perspectives: [
       {
@@ -428,14 +481,17 @@ function generateDeterministicAnalysis(
         textColor: "text-[#00FF87]",
         score: pScore,
         title: "Качество и материалы",
-        verdictTag: pScore >= 9.5 ? "Премиальное качество" : pScore >= 8.5 ? "Надежная сборка" : "Среднее качество",
+        verdictTag:
+          pScore >= 9.5
+            ? "Премиальное качество"
+            : pScore >= 8.5
+              ? "Надежная сборка"
+              : "Среднее качество",
         pros: [
           `Качественные сертифицированные материалы сборки от бренда ${brand || "производителя"}`,
           `Средняя оценка пользователей: ${avgRating.toFixed(1)} из 5.0`,
         ],
-        cons: [
-          "Обязательно проверяйте целостность заводской упаковки при получении в ПВЗ.",
-        ],
+        cons: ["Обязательно проверяйте целостность заводской упаковки при получении в ПВЗ."],
       },
       {
         archetype: "Экономный",
@@ -449,9 +505,7 @@ function generateDeterministicAnalysis(
           `Текущая стоимость ${bestMkt.price ? `${bestMkt.price} ₽` : "выгодная"} соответствует рыночной медиане`,
           "Отсутствие скрытых наценок продавца",
         ],
-        cons: [
-          "Лучшая цена доступна при оплате через банковский сервис маркетплейса.",
-        ],
+        cons: ["Лучшая цена доступна при оплате через банковский сервис маркетплейса."],
       },
       {
         archetype: "Срочный",
@@ -465,9 +519,7 @@ function generateDeterministicAnalysis(
           "Отгрузка производится с центрального FBO склада маркетплейса",
           `Подтвержденный реалистичный срок доставки: ${bestMkt.delivery}`,
         ],
-        cons: [
-          "Сроки могут незначительно увеличиваться в периоды пиковых сезонных распродаж.",
-        ],
+        cons: ["Сроки могут незначительно увеличиваться в периоды пиковых сезонных распродаж."],
       },
       {
         archetype: "Скептик",
@@ -492,9 +544,16 @@ function generateDeterministicAnalysis(
     duelData: (() => {
       const isCurrentWb = bestMkt.marketplace === "wildberries";
       const altPlatform = isCurrentWb ? ("Ozon" as const) : ("Wildberries" as const);
-      const altOffer = comparison.find((c) => (isCurrentWb ? c.marketplace === "ozon" : c.marketplace === "wildberries"));
+      const altOffer = comparison.find((c) =>
+        isCurrentWb ? c.marketplace === "ozon" : c.marketplace === "wildberries",
+      );
       const currentPrice = bestMkt.price || price || 2500;
-      const altPrice = altOffer?.price && altOffer.price > 0 ? altOffer.price : isCurrentWb ? Math.round(currentPrice * 1.04) : Math.round(currentPrice * 0.97);
+      const altPrice =
+        altOffer?.price && altOffer.price > 0
+          ? altOffer.price
+          : isCurrentWb
+            ? Math.round(currentPrice * 1.04)
+            : Math.round(currentPrice * 0.97);
       const priceDiff = altPrice - currentPrice;
       const deliveryDiffDays = isCurrentWb ? 2 : -2;
 
@@ -520,7 +579,9 @@ function generateDeterministicAnalysis(
         priceDifference: priceDiff,
         deliveryDifferenceDays: deliveryDiffDays,
         verdict: duelVerdict,
-        url: altOffer?.url || buildMarketplaceDeepLink(isCurrentWb ? "ozon" : "wildberries", productTitle),
+        url:
+          altOffer?.url ||
+          buildMarketplaceDeepLink(isCurrentWb ? "ozon" : "wildberries", productTitle),
       };
     })(),
     // Блок 3. Калькулятор реальной стоимости (TCO)
@@ -535,88 +596,91 @@ function generateDeterministicAnalysis(
           : "Честная стоимость покупки: бесплатный самовывоз в ПВЗ, скрытые комиссии и риск брака равны 0 ₽.",
     },
     // Блок 4. Панель «Конфликт интересов» (Диалог ИИ-Агентов строго для конкретного маркетплейса)
-    agentsDialogue: effectiveMarketplace === "wildberries"
-      ? [
-          {
-            archetype: "perfectionist",
-            name: "Перфекционист",
-            emoji: "💎",
-            role: "Эксперт по материалам",
-            score: pScore,
-            argument:
-              `«Материалы премиальные. Сертифицированный бренд ${brand || "оригинал"} с официальной поставкой на Wildberries. Заводская сборка без дефектов, полное соответствие ГОСТ.»`,
-          },
-          {
-            archetype: "budget",
-            name: "Экономный",
-            emoji: "🏷️",
-            role: "Прагматик бюджета",
-            score: eScore,
-            argument:
-              `«Текущая цена ${bestMkt.price ? `${bestMkt.price} ₽` : "выгодная"} на Wildberries — абсолютный минимум в категории. Максимальная выгода через WB Кошелек без скрытых наценок.»`,
-          },
-          {
-            archetype: "skeptic",
-            name: "Скептик",
-            emoji: "🕵️",
-            role: "Арбитр и Анти-Фейк",
-            score: sScore,
-            argument:
-              `«На Wildberries проверено ${totalReviews} отзывов: алгоритм подтвердил отсутствие накруток бот-фермами (траст ${antiFakePercent}%). Честный селлер без фейковых самовыкупов.»`,
-          },
-          {
-            archetype: "urgent",
-            name: "Срочный",
-            emoji: "⚡",
-            role: "Логист FBO",
-            score: uScore,
-            argument:
-              `«Отгрузка с регионального склада FBO Wildberries (${bestMkt.delivery}). Товар упакован и готов к выдаче в твоем ПВЗ в кратчайшие сроки.»`,
-          },
-        ]
-      : [
-          {
-            archetype: "perfectionist",
-            name: "Перфекционист",
-            emoji: "💎",
-            role: "Эксперт по материалам",
-            score: pScore,
-            argument:
-              `«Официальная поставка на Ozon от верифицированного продавца ${brand || "бренда"}. Качественные сертифицированные материалы и полная заводская комплектация.»`,
-          },
-          {
-            archetype: "budget",
-            name: "Экономный",
-            emoji: "🏷️",
-            role: "Прагматик бюджета",
-            score: eScore,
-            argument:
-              `«На Ozon цена ${bestMkt.price ? `${bestMkt.price} ₽` : "выгодная"} с Ozon Картой дает реальную экономию. Минимальный TCO и прозрачные условия без скрытых доплат.»`,
-          },
-          {
-            archetype: "skeptic",
-            name: "Скептик",
-            emoji: "🕵️",
-            role: "Арбитр и Анти-Фейк",
-            score: sScore,
-            argument:
-              `«Анализ отзывов на Ozon подтвердил подлинность на ${antiFakePercent}%. Селлер проверен, действует расширенная гарантия легкого возврата 30 дней.»`,
-          },
-          {
-            archetype: "urgent",
-            name: "Срочный",
-            emoji: "⚡",
-            role: "Логист FBO",
-            score: uScore,
-            argument:
-              `«Отгрузка с центрального хаба Ozon Express (${bestMkt.delivery}). Товар уже на полке склада, логистика без переноса сроков.»`,
-          },
-        ],
+    agentsDialogue:
+      effectiveMarketplace === "wildberries"
+        ? [
+            {
+              archetype: "perfectionist",
+              name: "Перфекционист",
+              emoji: "💎",
+              role: "Эксперт по материалам",
+              score: pScore,
+              argument: `«Материалы премиальные. Сертифицированный бренд ${brand || "оригинал"} с официальной поставкой на Wildberries. Заводская сборка без дефектов, полное соответствие ГОСТ.»`,
+            },
+            {
+              archetype: "budget",
+              name: "Экономный",
+              emoji: "🏷️",
+              role: "Прагматик бюджета",
+              score: eScore,
+              argument: `«Текущая цена ${bestMkt.price ? `${bestMkt.price} ₽` : "выгодная"} на Wildberries — абсолютный минимум в категории. Максимальная выгода через WB Кошелек без скрытых наценок.»`,
+            },
+            {
+              archetype: "skeptic",
+              name: "Скептик",
+              emoji: "🕵️",
+              role: "Арбитр и Анти-Фейк",
+              score: sScore,
+              argument: `«На Wildberries проверено ${totalReviews} отзывов: алгоритм подтвердил отсутствие накруток бот-фермами (траст ${antiFakePercent}%). Честный селлер без фейковых самовыкупов.»`,
+            },
+            {
+              archetype: "urgent",
+              name: "Срочный",
+              emoji: "⚡",
+              role: "Логист FBO",
+              score: uScore,
+              argument: `«Отгрузка с регионального склада FBO Wildberries (${bestMkt.delivery}). Товар упакован и готов к выдаче в твоем ПВЗ в кратчайшие сроки.»`,
+            },
+          ]
+        : [
+            {
+              archetype: "perfectionist",
+              name: "Перфекционист",
+              emoji: "💎",
+              role: "Эксперт по материалам",
+              score: pScore,
+              argument: `«Официальная поставка на Ozon от верифицированного продавца ${brand || "бренда"}. Качественные сертифицированные материалы и полная заводская комплектация.»`,
+            },
+            {
+              archetype: "budget",
+              name: "Экономный",
+              emoji: "🏷️",
+              role: "Прагматик бюджета",
+              score: eScore,
+              argument: `«На Ozon цена ${bestMkt.price ? `${bestMkt.price} ₽` : "выгодная"} с Ozon Картой дает реальную экономию. Минимальный TCO и прозрачные условия без скрытых доплат.»`,
+            },
+            {
+              archetype: "skeptic",
+              name: "Скептик",
+              emoji: "🕵️",
+              role: "Арбитр и Анти-Фейк",
+              score: sScore,
+              argument: `«Анализ отзывов на Ozon подтвердил подлинность на ${antiFakePercent}%. Селлер проверен, действует расширенная гарантия легкого возврата 30 дней.»`,
+            },
+            {
+              archetype: "urgent",
+              name: "Срочный",
+              emoji: "⚡",
+              role: "Логист FBO",
+              score: uScore,
+              argument: `«Отгрузка с центрального хаба Ozon Express (${bestMkt.delivery}). Товар уже на полке склада, логистика без переноса сроков.»`,
+            },
+          ],
     // Блок 5. Глубокий семантический анализ отзывов (Review Analyst)
     reviewSummary: {
       aiText: `«${productTitle}» от ${brand || "производителя"} демонстрирует стабильные потребительские оценки. Реальные покупатели отмечают надежность сборки и соответствие заявленным характеристикам. Потенциальные замечания касаются лишь стандартных нюансов транспортировки.`,
-      pros: sPros.length > 0 ? sPros : ["Высокое качество сборки", "Отсутствие массовых возвратов", "Стабильные характеристики"],
-      cons: sCons.length > 0 ? sCons : ["Рекомендуется проверять заводскую упаковку при получении в ПВЗ"],
+      pros:
+        sPros.length > 0
+          ? sPros
+          : [
+              "Высокое качество сборки",
+              "Отсутствие массовых возвратов",
+              "Стабильные характеристики",
+            ],
+      cons:
+        sCons.length > 0
+          ? sCons
+          : ["Рекомендуется проверять заводскую упаковку при получении в ПВЗ"],
     },
     // Блок 6. График «Детектор манипуляций с ценами»
     priceTrend: {
@@ -662,7 +726,11 @@ function generateDeterministicAnalysis(
       },
     ],
     funnelStats: generateAuditFunnelStats(
-      offers.filter((o) => o.marketplace.toLowerCase().includes("wildberries") || o.marketplace.toLowerCase().includes("wb")).length,
+      offers.filter(
+        (o) =>
+          o.marketplace.toLowerCase().includes("wildberries") ||
+          o.marketplace.toLowerCase().includes("wb"),
+      ).length,
       offers.filter((o) => o.marketplace.toLowerCase().includes("ozon")).length,
       productTitle,
     ),
@@ -675,20 +743,29 @@ function formatAnalysisResult(
     antiFakePercent?: number;
     verdict?: string;
     wobuyDecision?: string;
-    agents?: Record<string, {
-      score?: number;
-      title?: string;
-      verdictTag?: string;
-      pros?: string[];
-      cons?: string[];
-    }>;
+    agents?: Record<
+      string,
+      {
+        score?: number;
+        title?: string;
+        verdictTag?: string;
+        pros?: string[];
+        cons?: string[];
+      }
+    >;
     specifications?: Array<{ label: string; value: string }>;
   },
   productTitle: string,
   brand: string,
   category: string,
   price: number,
-  offers: Array<{ marketplace: string; price: number | null; rating: number | null; deliveryText?: string; url?: string }>,
+  offers: Array<{
+    marketplace: string;
+    price: number | null;
+    rating: number | null;
+    deliveryText?: string;
+    url?: string;
+  }>,
   triumphContext?: TriumphContext,
   targetMarketplace?: "wildberries" | "ozon",
 ): AiAnalysisResult {
@@ -698,7 +775,13 @@ function formatAnalysisResult(
   const sScore = p.agents?.skeptic?.score || 9.5;
 
   const avgAiScore = Number(((pScore + eScore + uScore + sScore) / 4).toFixed(1));
-  const comparison = buildMarketplaceComparison(productTitle, price, offers, triumphContext, targetMarketplace);
+  const comparison = buildMarketplaceComparison(
+    productTitle,
+    price,
+    offers,
+    triumphContext,
+    targetMarketplace,
+  );
   const bestMkt = comparison.find((c) => c.isRecommended) || comparison[0];
 
   const effectiveMarketplace: "wildberries" | "ozon" = targetMarketplace
@@ -796,9 +879,16 @@ function formatAnalysisResult(
     duelData: (() => {
       const isCurrentWb = bestMkt.marketplace === "wildberries";
       const altPlatform = isCurrentWb ? ("Ozon" as const) : ("Wildberries" as const);
-      const altOffer = comparison.find((c) => (isCurrentWb ? c.marketplace === "ozon" : c.marketplace === "wildberries"));
+      const altOffer = comparison.find((c) =>
+        isCurrentWb ? c.marketplace === "ozon" : c.marketplace === "wildberries",
+      );
       const currentPrice = bestMkt.price || price || 2500;
-      const altPrice = altOffer?.price && altOffer.price > 0 ? altOffer.price : isCurrentWb ? Math.round(currentPrice * 1.04) : Math.round(currentPrice * 0.97);
+      const altPrice =
+        altOffer?.price && altOffer.price > 0
+          ? altOffer.price
+          : isCurrentWb
+            ? Math.round(currentPrice * 1.04)
+            : Math.round(currentPrice * 0.97);
       const priceDiff = altPrice - currentPrice;
       const deliveryDiffDays = isCurrentWb ? 2 : -2;
 
@@ -824,7 +914,9 @@ function formatAnalysisResult(
         priceDifference: priceDiff,
         deliveryDifferenceDays: deliveryDiffDays,
         verdict: duelVerdict,
-        url: altOffer?.url || buildMarketplaceDeepLink(isCurrentWb ? "ozon" : "wildberries", productTitle),
+        url:
+          altOffer?.url ||
+          buildMarketplaceDeepLink(isCurrentWb ? "ozon" : "wildberries", productTitle),
       };
     })(),
     // Блок 3. Калькулятор реальной стоимости (TCO)
@@ -839,79 +931,84 @@ function formatAnalysisResult(
           : "Честная стоимость покупки: бесплатный самовывоз в ПВЗ, скрытые комиссии и риск брака равны 0 ₽.",
     },
     // Блок 4. Панель «Конфликт интересов» (Диалог ИИ-Агентов строго для конкретного маркетплейса)
-    agentsDialogue: effectiveMarketplace === "wildberries"
-      ? [
-          {
-            archetype: "perfectionist",
-            name: "Перфекционист",
-            emoji: "💎",
-            role: "Эксперт по материалам",
-            score: pScore,
-            argument: `«Материалы премиальные. Сертифицированный бренд ${brand || "оригинал"} с официальной поставкой на Wildberries. Заводское качество.»`,
-          },
-          {
-            archetype: "budget",
-            name: "Экономный",
-            emoji: "🏷️",
-            role: "Прагматик бюджета",
-            score: eScore,
-            argument: `«Текущая цена ${bestMkt.price || price} ₽ на Wildberries находится на минимуме за последние 30 дней. Переплачивать за аналоги нет смысла.»`,
-          },
-          {
-            archetype: "urgent",
-            name: "Срочный",
-            emoji: "⚡",
-            role: "Логист FBO",
-            score: uScore,
-            argument: `«Отгрузка с центрального хаба FBO Wildberries (${bestMkt.delivery}). Доставка до твоего ПВЗ займет 1–2 дня без задержек.»`,
-          },
-          {
-            archetype: "skeptic",
-            name: "Скептик",
-            emoji: "🕵️",
-            role: "Арбитр и Анти-Фейк",
-            score: sScore,
-            argument: `«Селлер на Wildberries верифицирован. Алгоритм отфильтровал подозрительные отзывы ботов. Товар подтвержден реальными покупателями.»`,
-          },
-        ]
-      : [
-          {
-            archetype: "perfectionist",
-            name: "Перфекционист",
-            emoji: "💎",
-            role: "Эксперт по материалам",
-            score: pScore,
-            argument: `«Официальная поставка на Ozon от проверенного бренда ${brand || "оригинал"}. Высокий стандарт сборки.»`,
-          },
-          {
-            archetype: "budget",
-            name: "Экономный",
-            emoji: "🏷️",
-            role: "Прагматик бюджета",
-            score: eScore,
-            argument: `«На Ozon цена ${bestMkt.price || price} ₽ с Ozon Картой дает максимальную экономию. Минимальный TCO и прозрачные условия.»`,
-          },
-          {
-            archetype: "urgent",
-            name: "Срочный",
-            emoji: "⚡",
-            role: "Логист FBO",
-            score: uScore,
-            argument: `«Склад Ozon FBO (${bestMkt.delivery}). Быстрая обработка заказа и доставка в ПВЗ за 1–2 дня.»`,
-          },
-          {
-            archetype: "skeptic",
-            name: "Скептик",
-            emoji: "🕵️",
-            role: "Арбитр и Анти-Фейк",
-            score: sScore,
-            argument: `«Продавец Ozon верифицирован. Защита от подделок подтверждена на ${p.antiFakePercent || 96}%, действует гарантия возврата 30 дней.»`,
-          },
-        ],
+    agentsDialogue:
+      effectiveMarketplace === "wildberries"
+        ? [
+            {
+              archetype: "perfectionist",
+              name: "Перфекционист",
+              emoji: "💎",
+              role: "Эксперт по материалам",
+              score: pScore,
+              argument: `«Материалы премиальные. Сертифицированный бренд ${brand || "оригинал"} с официальной поставкой на Wildberries. Заводское качество.»`,
+            },
+            {
+              archetype: "budget",
+              name: "Экономный",
+              emoji: "🏷️",
+              role: "Прагматик бюджета",
+              score: eScore,
+              argument: `«Текущая цена ${bestMkt.price || price} ₽ на Wildberries находится на минимуме за последние 30 дней. Переплачивать за аналоги нет смысла.»`,
+            },
+            {
+              archetype: "urgent",
+              name: "Срочный",
+              emoji: "⚡",
+              role: "Логист FBO",
+              score: uScore,
+              argument: `«Отгрузка с центрального хаба FBO Wildberries (${bestMkt.delivery}). Доставка до твоего ПВЗ займет 1–2 дня без задержек.»`,
+            },
+            {
+              archetype: "skeptic",
+              name: "Скептик",
+              emoji: "🕵️",
+              role: "Арбитр и Анти-Фейк",
+              score: sScore,
+              argument: `«Селлер на Wildberries верифицирован. Алгоритм отфильтровал подозрительные отзывы ботов. Товар подтвержден реальными покупателями.»`,
+            },
+          ]
+        : [
+            {
+              archetype: "perfectionist",
+              name: "Перфекционист",
+              emoji: "💎",
+              role: "Эксперт по материалам",
+              score: pScore,
+              argument: `«Официальная поставка на Ozon от проверенного бренда ${brand || "оригинал"}. Высокий стандарт сборки.»`,
+            },
+            {
+              archetype: "budget",
+              name: "Экономный",
+              emoji: "🏷️",
+              role: "Прагматик бюджета",
+              score: eScore,
+              argument: `«На Ozon цена ${bestMkt.price || price} ₽ с Ozon Картой дает максимальную экономию. Минимальный TCO и прозрачные условия.»`,
+            },
+            {
+              archetype: "urgent",
+              name: "Срочный",
+              emoji: "⚡",
+              role: "Логист FBO",
+              score: uScore,
+              argument: `«Склад Ozon FBO (${bestMkt.delivery}). Быстрая обработка заказа и доставка в ПВЗ за 1–2 дня.»`,
+            },
+            {
+              archetype: "skeptic",
+              name: "Скептик",
+              emoji: "🕵️",
+              role: "Арбитр и Анти-Фейк",
+              score: sScore,
+              argument: `«Продавец Ozon верифицирован. Защита от подделок подтверждена на ${p.antiFakePercent || 96}%, действует гарантия возврата 30 дней.»`,
+            },
+          ],
     // Блок 5. Глубокий семантический анализ отзывов (Review Analyst)
     reviewSummary: {
       aiText: `«${productTitle}» от ${brand || "производителя"} на ${effectiveMarketplaceName} демонстрирует стабильные потребительские оценки. Реальные покупатели отмечают надежность сборки и соответствие заявленным характеристикам.`,
-      pros: ["Высокое качество сборки", "Отсутствие массовых возвратов", "Стабильные характеристики"],
+      pros: [
+        "Высокое качество сборки",
+        "Отсутствие массовых возвратов",
+        "Стабильные характеристики",
+      ],
       cons: ["Рекомендуется проверять заводскую упаковку при получении в ПВЗ"],
     },
     // Блок 6. График «Детектор манипуляций с ценами»
@@ -944,7 +1041,11 @@ function formatAnalysisResult(
       },
     ],
     funnelStats: generateAuditFunnelStats(
-      offers.filter((o) => o.marketplace.toLowerCase().includes("wildberries") || o.marketplace.toLowerCase().includes("wb")).length,
+      offers.filter(
+        (o) =>
+          o.marketplace.toLowerCase().includes("wildberries") ||
+          o.marketplace.toLowerCase().includes("wb"),
+      ).length,
       offers.filter((o) => o.marketplace.toLowerCase().includes("ozon")).length,
       productTitle,
     ),

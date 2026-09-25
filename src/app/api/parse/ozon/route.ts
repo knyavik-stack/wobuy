@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchOzon } from "@/lib/parsers/ozon";
+import { searchOzon, getOzonProxyInfo } from "@/lib/parsers/ozon";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   const sanitizedQuery = query.slice(0, 150).replace(/[<>]/g, "");
 
   const debug = searchParams.get("debug") === "1";
+  const proxyInfo = getOzonProxyInfo();
   const workerUrl =
     process.env.OZON_SCRAPER_WORKER_URL ||
     process.env.CLOUDFLARE_WORKER_URL ||
@@ -38,14 +39,19 @@ export async function GET(req: NextRequest) {
       query: sanitizedQuery,
       count: products.length,
       tookMs: Date.now() - startTime,
+      proxy: proxyInfo,
       workerConfigured: Boolean(workerUrl),
       workerUrl: workerUrl ? `${workerUrl.slice(0, 20)}...` : null,
       products,
       diagnostic: debug
         ? {
-            channel: workerUrl ? "Cloudflare Worker Scraper" : "Direct Datacenter Composer API",
+            channel: workerUrl
+              ? "Cloudflare Worker Scraper"
+              : proxyInfo.configured
+                ? `Direct Proxy (${proxyInfo.maskedUrl})`
+                : "Direct Datacenter Composer API",
             hasProducts: products.length > 0,
-            wafBypassRecommended: "Deploy /workers/ozon-worker.js to Cloudflare for 100% stable parsing",
+            proxyActive: proxyInfo.configured,
           }
         : undefined,
     });
@@ -54,4 +60,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Ошибка при поиске на Ozon" }, { status: 500 });
   }
 }
-

@@ -10,10 +10,7 @@ interface TcoCalculatorCardProps {
   brand?: string;
 }
 
-export function TcoCalculatorCard({
-  tco,
-  currency = "RUB",
-}: TcoCalculatorCardProps) {
+export function TcoCalculatorCard({ tco, currency = "RUB" }: TcoCalculatorCardProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
   if (!tco) return null;
@@ -58,7 +55,13 @@ export function TcoCalculatorCard({
 
       {showTooltip && (
         <div className="mt-4 rounded-2xl border border-[#00FF87]/20 bg-[#0D0F14] p-4 text-xs leading-relaxed text-slate-300">
-          <strong className="text-white">TCO (Total Cost of Ownership) в wobuy<span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span></strong> — это итоговая сумма, которую вы реально заплатите. Мы исключаем навязанные платные подписки, проверяем платность обратной логистики в ваш ПВЗ при отказе и закладываем коэффициент риска брака на основе реальных отзывов.
+          <strong className="text-white">
+            TCO (Total Cost of Ownership) в wobuy
+            <span className="text-[#00FF87] drop-shadow-[0_0_8px_#00FF87]">.</span>
+          </strong>{" "}
+          — это итоговая сумма, которую вы реально заплатите. Мы исключаем навязанные платные
+          подписки, проверяем платность обратной логистики в ваш ПВЗ при отказе и закладываем
+          коэффициент риска брака на основе реальных отзывов.
         </div>
       )}
 
@@ -70,9 +73,7 @@ export function TcoCalculatorCard({
             <span>Базовая цена на МП</span>
             <span className="text-[10px] text-slate-500">ценник</span>
           </div>
-          <div className="mt-2 text-xl font-black text-white">
-            {formatMoney(tco.basePrice)}
-          </div>
+          <div className="mt-2 text-xl font-black text-white">{formatMoney(tco.basePrice)}</div>
           <div className="mt-1 flex items-center gap-1 text-[11px] text-emerald-400">
             <CheckCircle2 className="h-3 w-3" />
             <span>Без наценок</span>
@@ -88,9 +89,7 @@ export function TcoCalculatorCard({
           <div className="mt-2 text-xl font-black text-[#00FF87]">
             {tco.deliveryCost === 0 ? "0 ₽" : formatMoney(tco.deliveryCost)}
           </div>
-          <div className="mt-1 text-[11px] text-slate-400">
-            Бесплатный самовывоз в пункте
-          </div>
+          <div className="mt-1 text-[11px] text-slate-400">Бесплатный самовывоз в пункте</div>
         </div>
 
         {/* Риск возврата и брака */}
@@ -99,11 +98,15 @@ export function TcoCalculatorCard({
             <span>Риск брака / возврата</span>
             <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" />
           </div>
-          <div className={`mt-2 text-xl font-black ${tco.returnRiskCost === 0 ? "text-[#00FF87]" : "text-amber-400"}`}>
+          <div
+            className={`mt-2 text-xl font-black ${tco.returnRiskCost === 0 ? "text-[#00FF87]" : "text-amber-400"}`}
+          >
             {tco.returnRiskCost === 0 ? "0 ₽" : `+${formatMoney(tco.returnRiskCost)}`}
           </div>
           <div className="mt-1 text-[11px] text-slate-400">
-            {tco.returnRiskCost === 0 ? "Надежная партия, 0% брака" : "Риск платной обратной доставки"}
+            {tco.returnRiskCost === 0
+              ? "Надежная партия, 0% брака"
+              : "Риск платной обратной доставки"}
           </div>
         </div>
       </div>

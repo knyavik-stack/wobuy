@@ -129,13 +129,20 @@ async function scrapeOzonQuery(query, limit = 15) {
     if (interceptedData?.widgetStates) {
       const apiResults = [];
       for (const [key, stateStr] of Object.entries(interceptedData.widgetStates)) {
-        if (!key.includes("searchResults") && !key.includes("tileGrid") && !key.includes("megaPaginator")) continue;
+        if (
+          !key.includes("searchResults") &&
+          !key.includes("tileGrid") &&
+          !key.includes("megaPaginator")
+        )
+          continue;
         try {
           const state = typeof stateStr === "string" ? JSON.parse(stateStr) : stateStr;
           const items = state.items || state.products || state.searchResults || [];
           for (const item of items) {
             if (apiResults.length >= limit) break;
-            const sku = String(item.sku || item.id || item.action?.link?.match(/\d{8,12}/)?.[0] || "");
+            const sku = String(
+              item.sku || item.id || item.action?.link?.match(/\d{8,12}/)?.[0] || "",
+            );
             if (!sku || sku.length < 5) continue;
 
             const title = item.cellTrackingInfo?.title || item.title || item.name || query;
@@ -208,7 +215,9 @@ async function scrapeOzonQuery(query, limit = 15) {
           container = container.parentElement;
           if (
             container.classList &&
-            (Array.from(container.classList).some((c) => c.includes("tile") || c.includes("card") || c.includes("item")) ||
+            (Array.from(container.classList).some(
+              (c) => c.includes("tile") || c.includes("card") || c.includes("item"),
+            ) ||
               container.getAttribute("data-widget"))
           ) {
             break;
@@ -217,10 +226,18 @@ async function scrapeOzonQuery(query, limit = 15) {
 
         // Извлечение заголовка
         let title = "";
-        const titleElements = container.querySelectorAll('span, [class*="title"], [class*="name"], [class*="tsBody"]');
+        const titleElements = container.querySelectorAll(
+          'span, [class*="title"], [class*="name"], [class*="tsBody"]',
+        );
         for (const el of titleElements) {
           const t = el.textContent?.trim() || "";
-          if (t.length >= 10 && !t.includes("₽") && !t.includes("%") && !t.includes("отзыв") && !t.includes("Ozon")) {
+          if (
+            t.length >= 10 &&
+            !t.includes("₽") &&
+            !t.includes("%") &&
+            !t.includes("отзыв") &&
+            !t.includes("Ozon")
+          ) {
             title = t;
             break;
           }
@@ -331,7 +348,13 @@ app.get("/search", async (req, res) => {
   const isRefresh = req.query.refresh === "1" || req.query.force === "1";
   const cacheKey = `${query.toLowerCase()}_${limit}`;
   const cached = searchCache.get(cacheKey);
-  if (!isRefresh && cached && cached.data && cached.data.length > 0 && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+  if (
+    !isRefresh &&
+    cached &&
+    cached.data &&
+    cached.data.length > 0 &&
+    Date.now() - cached.timestamp < CACHE_TTL_MS
+  ) {
     return res.json({
       status: "ok",
       source: "cache",

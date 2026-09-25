@@ -24,7 +24,11 @@ function normalizeMarketplace(raw: string): "wildberries" | "ozon" {
   return "wildberries";
 }
 
-export function DeliveryAnalysisCard({ offers = [], currency = "RUB", targetMarketplace }: DeliveryAnalysisCardProps) {
+export function DeliveryAnalysisCard({
+  offers = [],
+  currency = "RUB",
+  targetMarketplace,
+}: DeliveryAnalysisCardProps) {
   // Строгая дедупликация: ровно 2 маркетплейса (WB и Ozon).
   const marketplaceMap = new Map<"wildberries" | "ozon", OfferDeliveryInfo>();
 
@@ -91,7 +95,12 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB", targetMark
           </div>
           <div>
             <h3 className="text-sm font-extrabold uppercase tracking-wider text-white sm:text-base">
-              ИИ-Анализ логистики и доставки {targetMarketplace ? (targetMarketplace === "wildberries" ? "на Wildberries" : "на Ozon") : ""}
+              ИИ-Анализ логистики и доставки{" "}
+              {targetMarketplace
+                ? targetMarketplace === "wildberries"
+                  ? "на Wildberries"
+                  : "на Ozon"
+                : ""}
             </h3>
             <p className="text-xs text-slate-400">
               {targetMarketplace
@@ -117,9 +126,7 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB", targetMark
             <div className="flex items-center gap-3">
               <MarketplaceBadge marketplace={off.marketplace} size="sm" showLabel={true} />
               <div>
-                <div className="text-xs font-bold text-white">
-                  {off.deliveryText}
-                </div>
+                <div className="text-xs font-bold text-white">{off.deliveryText}</div>
                 <div className="flex items-center gap-1 text-[10px] text-slate-400">
                   <MapPin className="h-3 w-3 text-slate-500" />
                   <span>{off.warehouse}</span>
@@ -130,7 +137,11 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB", targetMark
             <div className="flex items-center justify-between gap-4 sm:justify-end">
               <div className="text-left sm:text-right">
                 <div className="text-xs font-black text-white">
-                  {new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 }).format(off.price)}
+                  {new Intl.NumberFormat("ru-RU", {
+                    style: "currency",
+                    currency,
+                    maximumFractionDigits: 0,
+                  }).format(off.price)}
                 </div>
                 <div className="text-[10px] text-emerald-400">
                   Индекс сохранности {off.speedRating ? `${off.speedRating * 10}%` : "95%"}
@@ -154,7 +165,8 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB", targetMark
             <span>Сохранность упаковки</span>
           </div>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-            По данным отчетов ПВЗ: 98.4% заказов доставляются в идеальном состоянии без замятий заводской коробки.
+            По данным отчетов ПВЗ: 98.4% заказов доставляются в идеальном состоянии без замятий
+            заводской коробки.
           </p>
         </div>
 
@@ -164,7 +176,8 @@ export function DeliveryAnalysisCard({ offers = [], currency = "RUB", targetMark
             <span>Условия возврата</span>
           </div>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-            Бесплатный возврат в любом пункте выдачи в течение 14 дней с момента получения при сохранении товарного вида.
+            Бесплатный возврат в любом пункте выдачи в течение 14 дней с момента получения при
+            сохранении товарного вида.
           </p>
         </div>
       </div>

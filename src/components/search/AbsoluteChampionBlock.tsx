@@ -26,19 +26,8 @@ interface AbsoluteChampionBlockProps {
   query?: string;
 }
 
-export function AbsoluteChampionBlock({
-  champion,
-  duel,
-  query,
-}: AbsoluteChampionBlockProps) {
-  const {
-    product,
-    matchedOffer,
-    tcoPrice,
-    deliverySpeedLabel,
-    antiFakePercent,
-    pros,
-  } = champion;
+export function AbsoluteChampionBlock({ champion, duel, query }: AbsoluteChampionBlockProps) {
+  const { product, matchedOffer, tcoPrice, deliverySpeedLabel, antiFakePercent, pros } = champion;
 
   const isWb = matchedOffer.marketplace.toLowerCase().includes("wildberries");
   const marketplaceName = isWb ? "Wildberries" : "Ozon";
@@ -59,7 +48,8 @@ export function AbsoluteChampionBlock({
   if (safeOfferUrl) productLinkParams.set("offerUrl", safeOfferUrl);
   const internalAuditLink = `/product/${product.id}?${productLinkParams.toString()}`;
 
-  const championScore = product.aiScore || (isWb ? duel.wbArbitrationScore : duel.ozonArbitrationScore) || 9.8;
+  const championScore =
+    product.aiScore || (isWb ? duel.wbArbitrationScore : duel.ozonArbitrationScore) || 9.8;
   const imageSrc = (product.images && product.images[0]) || product.imageUrl || "/placeholder.png";
 
   return (
@@ -78,7 +68,10 @@ export function AbsoluteChampionBlock({
             <Award className="h-3.5 w-3.5" />
             <span>АБСОЛЮТНЫЙ ЧЕМПИОН</span>
             <span className="text-white/40">•</span>
-            <span className="text-white">Выбор wobuy<NeonDot size="xs" /></span>
+            <span className="text-white">
+              Выбор wobuy
+              <NeonDot size="xs" />
+            </span>
           </div>
 
           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
@@ -109,11 +102,7 @@ export function AbsoluteChampionBlock({
 
             {/* Маркетплейс-бейдж на фото */}
             <div className="absolute left-3 top-3">
-              <MarketplaceBadge
-                marketplace={matchedOffer.marketplace}
-                size="md"
-                showLabel={true}
-              />
+              <MarketplaceBadge marketplace={matchedOffer.marketplace} size="md" showLabel={true} />
             </div>
 
             {/* Бейдж траста на фото */}
@@ -141,7 +130,10 @@ export function AbsoluteChampionBlock({
             <div className="mt-3.5 rounded-2xl border border-[#00FF87]/30 bg-black/40 p-4 backdrop-blur-md">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#00FF87]">
                 <Zap className="h-4 w-4 fill-[#00FF87]" />
-                <span>Вердикт ИИ wobuy<NeonDot size="xs" />:</span>
+                <span>
+                  Вердикт ИИ wobuy
+                  <NeonDot size="xs" />:
+                </span>
               </div>
               <p className="mt-1.5 text-xs sm:text-sm font-medium leading-relaxed text-slate-200">
                 {duel.decisiveFactorLabel || duel.skepticVerdict}
@@ -201,19 +193,12 @@ export function AbsoluteChampionBlock({
             ЧЕСТНЫЙ WOBUY SCORE
           </div>
 
-          <NeonScoreCircle
-            score={championScore}
-            size="lg"
-            label="БАЛЛ"
-            glowColor="emerald"
-          />
+          <NeonScoreCircle score={championScore} size="lg" label="БАЛЛ" glowColor="emerald" />
 
           <div className="mt-3 text-xs font-semibold text-slate-300">
             Объективно лучший результат
           </div>
-          <div className="text-[11px] text-slate-400">
-            без рекламы и скрытых комиссий
-          </div>
+          <div className="text-[11px] text-slate-400">без рекламы и скрытых комиссий</div>
 
           {/* CTA-кнопка 1 клик */}
           <div className="mt-4 flex w-full flex-col gap-2">

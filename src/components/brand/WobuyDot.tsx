@@ -19,11 +19,7 @@ const SIZE_PRESETS = {
 /**
  * Фирменная круглая неоновая светящаяся точка бренда wobuy. с мерцанием как в верхнем меню
  */
-export function NeonDot({
-  className = "",
-  animated = true,
-  size = "auto",
-}: NeonDotProps) {
+export function NeonDot({ className = "", animated = true, size = "auto" }: NeonDotProps) {
   const sizeClass = SIZE_PRESETS[size] || SIZE_PRESETS.auto;
 
   return (
@@ -59,7 +55,9 @@ export function WobuyWord({
   size?: "xs" | "sm" | "md" | "lg" | "xl" | "hero" | "auto";
 }) {
   return (
-    <span className={`inline-flex items-baseline font-black tracking-tight whitespace-nowrap ${className}`}>
+    <span
+      className={`inline-flex items-baseline font-black tracking-tight whitespace-nowrap ${className}`}
+    >
       <span>wobuy</span>
       <NeonDot className={dotClassName} animated={animated} size={size} />
     </span>

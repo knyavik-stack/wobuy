@@ -88,16 +88,23 @@ export function generateAuditFunnelStats(
   ozonCandidatesCount: number = 0,
   query: string = "",
 ): AuditFunnelStats {
-  const wbScanned = Math.max(48, wbCandidatesCount > 0 ? Math.round(wbCandidatesCount * 4.5) + 36 : 64);
-  const ozonScanned = Math.max(42, ozonCandidatesCount > 0 ? Math.round(ozonCandidatesCount * 4.2) + 32 : 58);
+  const wbScanned = Math.max(
+    48,
+    wbCandidatesCount > 0 ? Math.round(wbCandidatesCount * 4.5) + 36 : 64,
+  );
+  const ozonScanned = Math.max(
+    42,
+    ozonCandidatesCount > 0 ? Math.round(ozonCandidatesCount * 4.2) + 32 : 58,
+  );
   const totalScanned = wbScanned + ozonScanned;
   const finalistsCount = 4;
   const totalScreenedOut = totalScanned - finalistsCount;
 
   const fakeReviewsOrBots = Math.round(totalScreenedOut * 0.36);
-  const priceAnomaliesOrGouging = Math.round(totalScreenedOut * 0.30);
+  const priceAnomaliesOrGouging = Math.round(totalScreenedOut * 0.3);
   const slowOrUnreliableDelivery = Math.round(totalScreenedOut * 0.21);
-  const lowRatingOrDefects = totalScreenedOut - (fakeReviewsOrBots + priceAnomaliesOrGouging + slowOrUnreliableDelivery);
+  const lowRatingOrDefects =
+    totalScreenedOut - (fakeReviewsOrBots + priceAnomaliesOrGouging + slowOrUnreliableDelivery);
 
   const queryNote = query ? `по запросу «${query}»` : "в категории";
 
@@ -157,11 +164,7 @@ export function generateAuditFunnelStats(
 /**
  * Расчет Total Cost of Ownership (TCO) с учетом доставки, риска брака и скидок лояльности
  */
-function calculateTco(
-  price: number,
-  defectRiskRate: number = 2.0,
-  loyaltyRate: number = 5.0,
-) {
+function calculateTco(price: number, defectRiskRate: number = 2.0, loyaltyRate: number = 5.0) {
   const basePrice = Math.max(1, price);
   const deliveryCost = 0; // Бесплатная доставка до ПВЗ
   const loyaltyDiscount = Math.round(basePrice * (loyaltyRate / 100));
@@ -228,10 +231,7 @@ export function buildHybridMatrix2x2(
   // --- ЭТАП III: Скоринг и отбор слотов Матрицы 2+2 ---
 
   // Функция скоринга предложения маркетплейса
-  const scoreOffer = (
-    p: SearchProduct,
-    targetMarketplace: "wildberries" | "ozon",
-  ) => {
+  const scoreOffer = (p: SearchProduct, targetMarketplace: "wildberries" | "ozon") => {
     const offer = p.offers.find((o) => o.marketplace.toLowerCase().includes(targetMarketplace));
     if (!offer || !offer.price) return -1;
 
@@ -268,10 +268,14 @@ export function buildHybridMatrix2x2(
 
   if (hasRealOzon) {
     product1 = wbCandidates[0] || screenedPool[0];
-    offer1 = product1.offers.find((o) => o.marketplace.toLowerCase().includes("wildberries")) || product1.offers[0];
+    offer1 =
+      product1.offers.find((o) => o.marketplace.toLowerCase().includes("wildberries")) ||
+      product1.offers[0];
 
     product2 = ozonCandidates[0];
-    offer2 = product2.offers.find((o) => o.marketplace.toLowerCase().includes("ozon")) || product2.offers[0];
+    offer2 =
+      product2.offers.find((o) => o.marketplace.toLowerCase().includes("ozon")) ||
+      product2.offers[0];
   } else {
     // Если в выдаче только один маркетплейс (WB), честно выбираем Топ-1 и Топ-2 реальных товара
     product1 = screenedPool[0];
@@ -300,7 +304,9 @@ export function buildHybridMatrix2x2(
 
   // Формируем СЛОТ 1
   const slot1Title = hasRealOzon ? "WB-Чемпион" : "Выбор wobuy. (Топ-1)";
-  const slot1Subtitle = hasRealOzon ? "Лидер маркетплейса Wildberries" : "Лидер качества по оценке ИИ";
+  const slot1Subtitle = hasRealOzon
+    ? "Лидер маркетплейса Wildberries"
+    : "Лидер качества по оценке ИИ";
   const slot1Tag = hasRealOzon ? "№1 на WB" : "№1 Выбор";
 
   product1.triumph = {
@@ -370,7 +376,11 @@ export function buildHybridMatrix2x2(
       `Рейтинг ${offer2.rating || 4.8} (${offer2.reviewCount || 300}+ отзывов)`,
       "Анти-Фейк аудит подтверждает подлинность отзывов",
     ],
-    cons: [days2 > days1 ? `Доставка на ${days2 - days1} дн. дольше лидера` : "Меньше суммарных отзывов, чем у топ-1"],
+    cons: [
+      days2 > days1
+        ? `Доставка на ${days2 - days1} дн. дольше лидера`
+        : "Меньше суммарных отзывов, чем у топ-1",
+    ],
     antiFakePercent: product2.antiFakePercent || 96,
     fakeReviewsDetected: Math.round((100 - (product2.antiFakePercent || 96)) * 1.4),
     tcoBreakdown: tco2,
@@ -390,32 +400,41 @@ export function buildHybridMatrix2x2(
 
   // --- СВЯЗКА-ДУЭЛЬ (Арбитраж Скептика) ---
   const priceDiff = Math.abs(tco1.tcoPrice - tco2.tcoPrice);
-  const cheaperWinner = tco1.tcoPrice < tco2.tcoPrice ? "wb" : tco2.tcoPrice < tco1.tcoPrice ? "ozon" : "equal";
-  const cheaperMarketplace = cheaperWinner === "wb" ? "wildberries" : cheaperWinner === "ozon" ? "ozon" : "equal";
+  const cheaperWinner =
+    tco1.tcoPrice < tco2.tcoPrice ? "wb" : tco2.tcoPrice < tco1.tcoPrice ? "ozon" : "equal";
+  const cheaperMarketplace =
+    cheaperWinner === "wb" ? "wildberries" : cheaperWinner === "ozon" ? "ozon" : "equal";
 
-  const p1ShortTitle = product1.title.length > 25 ? `${product1.title.slice(0, 25)}...` : product1.title;
-  const p2ShortTitle = product2.title.length > 25 ? `${product2.title.slice(0, 25)}...` : product2.title;
+  const p1ShortTitle =
+    product1.title.length > 25 ? `${product1.title.slice(0, 25)}...` : product1.title;
+  const p2ShortTitle =
+    product2.title.length > 25 ? `${product2.title.slice(0, 25)}...` : product2.title;
 
   const cheaperSummary =
     cheaperWinner === "ozon"
-      ? (hasRealOzon ? `На Ozon цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽` : `У «${p2ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`)
+      ? hasRealOzon
+        ? `На Ozon цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
+        : `У «${p2ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
       : cheaperWinner === "wb"
-        ? (hasRealOzon ? `На Wildberries цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽` : `У «${p1ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`)
+        ? hasRealOzon
+          ? `На Wildberries цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
+          : `У «${p1ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
         : "Цены на сравниваемые товары равны";
 
   const deliveryDiffDays = Math.abs(days1 - days2);
   const fasterWinner = days1 < days2 ? "wb" : days2 < days1 ? "ozon" : "equal";
-  const fasterMarketplace = fasterWinner === "wb" ? "wildberries" : fasterWinner === "ozon" ? "ozon" : "equal";
+  const fasterMarketplace =
+    fasterWinner === "wb" ? "wildberries" : fasterWinner === "ozon" ? "ozon" : "equal";
 
   const fasterSummary =
     fasterWinner === "wb"
-      ? (hasRealOzon
-          ? `На WB доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
-          : `У «${p1ShortTitle}» доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`)
+      ? hasRealOzon
+        ? `На WB доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
+        : `У «${p1ShortTitle}» доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
       : fasterWinner === "ozon"
-        ? (hasRealOzon
-            ? `На Ozon доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
-            : `У «${p2ShortTitle}» доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`)
+        ? hasRealOzon
+          ? `На Ozon доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
+          : `У «${p2ShortTitle}» доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
         : "Одинаковые сроки доставки";
 
   let skepticVerdict = "";
@@ -456,21 +475,32 @@ export function buildHybridMatrix2x2(
       parameter: "Цена с учетом TCO",
       wbValue: `${wbTco.tcoPrice.toLocaleString("ru-RU")} ₽`,
       ozonValue: `${ozonTco.tcoPrice.toLocaleString("ru-RU")} ₽`,
-      winner: cheaperMarketplace === "wildberries" ? ("wb" as const) : cheaperMarketplace === "ozon" ? ("ozon" as const) : ("tie" as const),
+      winner:
+        cheaperMarketplace === "wildberries"
+          ? ("wb" as const)
+          : cheaperMarketplace === "ozon"
+            ? ("ozon" as const)
+            : ("tie" as const),
       note: cheaperSummary,
     },
     {
       parameter: "Срок доставки",
       wbValue: wbOffer.deliveryText || "1-2 дня",
       ozonValue: ozonOffer.deliveryText || "2-3 дня",
-      winner: fasterMarketplace === "wildberries" ? ("wb" as const) : fasterMarketplace === "ozon" ? ("ozon" as const) : ("tie" as const),
+      winner:
+        fasterMarketplace === "wildberries"
+          ? ("wb" as const)
+          : fasterMarketplace === "ozon"
+            ? ("ozon" as const)
+            : ("tie" as const),
       note: fasterSummary,
     },
     {
       parameter: "Анти-Фейк траст",
       wbValue: `${wbProduct.antiFakePercent}%`,
       ozonValue: `${ozonProduct.antiFakePercent}%`,
-      winner: (wbProduct.antiFakePercent >= ozonProduct.antiFakePercent ? "wb" : "ozon") as "wb" | "ozon",
+      winner: (wbProduct.antiFakePercent >= ozonProduct.antiFakePercent ? "wb" : "ozon") as
+        "wb" | "ozon",
       note: "Проверено ИИ по синтаксису отзывов",
     },
     {
@@ -484,22 +514,43 @@ export function buildHybridMatrix2x2(
 
   // РАСЧЕТ ИНТЕГРАЛЬНОГО ИНДЕКСА АРБИТРАЖА (0-10) АГЕНТА СКЕПТИКА
   const minTco = Math.min(wbTco.tcoPrice, ozonTco.tcoPrice);
-  const wbPriceScore = wbTco.tcoPrice === minTco ? 9.8 : Math.max(6.5, 9.8 - ((wbTco.tcoPrice - minTco) / minTco) * 15);
-  const ozonPriceScore = ozonTco.tcoPrice === minTco ? 9.8 : Math.max(6.5, 9.8 - ((ozonTco.tcoPrice - minTco) / minTco) * 15);
+  const wbPriceScore =
+    wbTco.tcoPrice === minTco
+      ? 9.8
+      : Math.max(6.5, 9.8 - ((wbTco.tcoPrice - minTco) / minTco) * 15);
+  const ozonPriceScore =
+    ozonTco.tcoPrice === minTco
+      ? 9.8
+      : Math.max(6.5, 9.8 - ((ozonTco.tcoPrice - minTco) / minTco) * 15);
 
-  const wbSpeedScore = wbDays === 0 ? 10.0 : wbDays === 1 ? 9.6 : wbDays === 2 ? 8.8 : wbDays === 3 ? 7.6 : 6.5;
-  const ozonSpeedScore = ozonDays === 0 ? 10.0 : ozonDays === 1 ? 9.6 : ozonDays === 2 ? 8.8 : ozonDays === 3 ? 7.6 : 6.5;
+  const wbSpeedScore =
+    wbDays === 0 ? 10.0 : wbDays === 1 ? 9.6 : wbDays === 2 ? 8.8 : wbDays === 3 ? 7.6 : 6.5;
+  const ozonSpeedScore =
+    ozonDays === 0
+      ? 10.0
+      : ozonDays === 1
+        ? 9.6
+        : ozonDays === 2
+          ? 8.8
+          : ozonDays === 3
+            ? 7.6
+            : 6.5;
 
   const wbTrustScore = Math.min(10.0, Math.max(6.0, (wbProduct.antiFakePercent || 96) / 10));
   const ozonTrustScore = Math.min(10.0, Math.max(6.0, (ozonProduct.antiFakePercent || 95) / 10));
 
   const wbRatingVal = wbOffer.rating || 4.9;
   const ozonRatingVal = ozonOffer.rating || 4.8;
-  const wbQualityScore = (wbRatingVal / 5) * 9.5 + Math.min(0.5, Math.log10((wbOffer.reviewCount || 100) + 1) * 0.15);
-  const ozonQualityScore = (ozonRatingVal / 5) * 9.5 + Math.min(0.5, Math.log10((ozonOffer.reviewCount || 100) + 1) * 0.15);
+  const wbQualityScore =
+    (wbRatingVal / 5) * 9.5 + Math.min(0.5, Math.log10((wbOffer.reviewCount || 100) + 1) * 0.15);
+  const ozonQualityScore =
+    (ozonRatingVal / 5) * 9.5 +
+    Math.min(0.5, Math.log10((ozonOffer.reviewCount || 100) + 1) * 0.15);
 
-  let rawWbScore = wbPriceScore * 0.35 + wbSpeedScore * 0.25 + wbTrustScore * 0.25 + wbQualityScore * 0.15;
-  let rawOzonScore = ozonPriceScore * 0.35 + ozonSpeedScore * 0.25 + ozonTrustScore * 0.25 + ozonQualityScore * 0.15;
+  let rawWbScore =
+    wbPriceScore * 0.35 + wbSpeedScore * 0.25 + wbTrustScore * 0.25 + wbQualityScore * 0.15;
+  let rawOzonScore =
+    ozonPriceScore * 0.35 + ozonSpeedScore * 0.25 + ozonTrustScore * 0.25 + ozonQualityScore * 0.15;
 
   if (bestOverallPick === "wildberries" && rawWbScore <= rawOzonScore) {
     rawWbScore = rawOzonScore + 0.6;
@@ -588,11 +639,18 @@ export function buildHybridMatrix2x2(
   });
 
   const baseEconomistProduct = remainingForEconomist[0] || screenedPool[0];
-  const economistOffer = [...baseEconomistProduct.offers].sort((a, b) => (a.price ?? 999999) - (b.price ?? 999999))[0];
+  const economistOffer = [...baseEconomistProduct.offers].sort(
+    (a, b) => (a.price ?? 999999) - (b.price ?? 999999),
+  )[0];
   const economistTco = calculateTco(economistOffer.price || 1200, 2.5, 7);
-  const savingsPercent = Math.max(15, Math.round(((medianPrice - economistTco.tcoPrice) / medianPrice) * 100));
+  const savingsPercent = Math.max(
+    15,
+    Math.round(((medianPrice - economistTco.tcoPrice) / medianPrice) * 100),
+  );
 
-  const economistMp = economistOffer.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon";
+  const economistMp = economistOffer.marketplace.toLowerCase().includes("wildberries")
+    ? "wildberries"
+    : "ozon";
   const economistMpLabel = economistMp === "wildberries" ? "Wildberries" : "Ozon";
 
   // Клонируем объект товара, чтобы избежать мутации других слотов, если выбран тот же товар
@@ -643,10 +701,14 @@ export function buildHybridMatrix2x2(
   });
 
   const baseExpressProduct = remainingForExpress[0] || screenedPool[0];
-  const expressOffer = [...baseExpressProduct.offers].sort((a, b) => parseDeliveryDays(a.deliveryText) - parseDeliveryDays(b.deliveryText))[0];
+  const expressOffer = [...baseExpressProduct.offers].sort(
+    (a, b) => parseDeliveryDays(a.deliveryText) - parseDeliveryDays(b.deliveryText),
+  )[0];
   const expressTco = calculateTco(expressOffer.price || 2100, 1.5, 4);
 
-  const expressMp = expressOffer.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon";
+  const expressMp = expressOffer.marketplace.toLowerCase().includes("wildberries")
+    ? "wildberries"
+    : "ozon";
   const expressMpLabel = expressMp === "wildberries" ? "Wildberries" : "Ozon";
 
   // Клонируем объект товара для изоляции статуса триумфатора
@@ -688,11 +750,7 @@ export function buildHybridMatrix2x2(
   };
 
   // Генерация подробной воронки отбора и статистики 4 агентов
-  const funnelStats = generateAuditFunnelStats(
-    wbCandidates.length,
-    ozonCandidates.length,
-    query,
-  );
+  const funnelStats = generateAuditFunnelStats(wbCandidates.length, ozonCandidates.length, query);
 
   // Прикрепляем воронку к дуэли и товарам-финалистам
   duel.funnelStats = funnelStats;
@@ -714,7 +772,8 @@ export function buildHybridMatrix2x2(
   const wbAlternatives = screenedPool
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("wildberries")))
     .map((p) => {
-      const wbOff = p.offers.find((o) => o.marketplace.toLowerCase().includes("wildberries")) || p.offers[0];
+      const wbOff =
+        p.offers.find((o) => o.marketplace.toLowerCase().includes("wildberries")) || p.offers[0];
       return {
         ...p,
         offers: [wbOff, ...p.offers.filter((o) => o.id !== wbOff.id)],

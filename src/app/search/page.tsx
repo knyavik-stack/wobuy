@@ -43,11 +43,6 @@ export default async function SearchPage({
   }
 
   return (
-    <SearchResults
-      query={query}
-      products={products}
-      view={view}
-      initialMatrix={initialMatrix}
-    />
+    <SearchResults query={query} products={products} view={view} initialMatrix={initialMatrix} />
   );
 }

@@ -1,5 +1,9 @@
 import fs from "fs";
 import path from "path";
+import https from "https";
+import http from "http";
+import { SocksProxyAgent } from "socks-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { RawMarketplaceOffer } from "./types";
 import { buildOzonProductUrl } from "@/lib/marketplace-links";
 import { secureLogger } from "@/lib/utils/secure-logger";
@@ -17,18 +21,84 @@ export const OZON_DEFAULT_HEADERS: Record<string, string> = {
 };
 
 /**
- * Читает сохраненные cookies для обхода первичных проверок
+ * Получает агент прокси (SOCKS5 / HTTP / HTTPS)
+ */
+function getProxyAgent(): http.Agent | https.Agent | undefined {
+  const proxyUrl =
+    process.env.OZON_PROXY_URL ||
+    process.env.PROXY_URL ||
+    process.env.HTTPS_PROXY ||
+    process.env.HTTP_PROXY;
+
+  if (!proxyUrl || !proxyUrl.trim()) return undefined;
+
+  try {
+    const trimmed = proxyUrl.trim();
+    if (trimmed.startsWith("socks")) {
+      return new SocksProxyAgent(trimmed);
+    }
+    return new HttpsProxyAgent(trimmed);
+  } catch (err) {
+    secureLogger.warn("[Ozon Proxy] Ошибка инициализации ProxyAgent:", (err as Error)?.message);
+    return undefined;
+  }
+}
+
+/**
+ * Информация о настроенном прокси (без раскрытия логина и пароля)
+ */
+export function getOzonProxyInfo(): {
+  configured: boolean;
+  maskedUrl?: string;
+  type?: string;
+  ipVerified?: boolean;
+} {
+  const rawProxy =
+    process.env.OZON_PROXY_URL ||
+    process.env.PROXY_URL ||
+    process.env.HTTPS_PROXY ||
+    process.env.HTTP_PROXY;
+
+  if (!rawProxy || !rawProxy.trim()) {
+    return { configured: false };
+  }
+
+  try {
+    const url = new URL(rawProxy.trim());
+    const authPart = url.username ? `${url.username.slice(0, 2)}***:***@` : "";
+    const masked = `${url.protocol}//${authPart}${url.hostname}:${url.port || (url.protocol === "https:" ? 443 : 80)}`;
+    return {
+      configured: true,
+      maskedUrl: masked,
+      type: url.protocol.replace(":", ""),
+    };
+  } catch {
+    return { configured: true, maskedUrl: "configured (custom format)" };
+  }
+}
+
+/**
+ * Читает сохраненные cookies из env или cookie.txt для обхода Antibot
  */
 function getOzonCookies(): string {
+  // 1. Проверяем переменную окружения OZON_COOKIE
+  if (process.env.OZON_COOKIE && process.env.OZON_COOKIE.trim()) {
+    return process.env.OZON_COOKIE.trim();
+  }
+
+  // 2. Проверяем файл cookie.txt
   try {
     const cookiePath = path.resolve(process.cwd(), "cookie.txt");
     if (fs.existsSync(cookiePath)) {
       const content = fs.readFileSync(cookiePath, "utf-8");
       const pairs: string[] = [];
-      for (const line of content.split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue;
-        const parts = trimmed.split("\t");
+      for (const rawLine of content.split("\n")) {
+        let line = rawLine.trim();
+        if (!line || (line.startsWith("#") && !line.startsWith("#HttpOnly_"))) continue;
+        if (line.startsWith("#HttpOnly_")) {
+          line = line.substring("#HttpOnly_".length);
+        }
+        const parts = line.split("\t");
         if (parts.length >= 7) {
           pairs.push(`${parts[5]}=${parts[6]}`);
         }
@@ -40,124 +110,244 @@ function getOzonCookies(): string {
 }
 
 /**
+ * Выполняет HTTP-запрос через прокси с поддержкой редиректов и Cookie Jar
+ */
+async function fetchOzonHttp(
+  targetUrl: string,
+  options: { timeoutMs?: number; customHeaders?: Record<string, string> } = {},
+): Promise<{
+  status: number;
+  body: string;
+  headers: Record<string, string | string[] | undefined>;
+} | null> {
+  const { timeoutMs = 12000, customHeaders = {} } = options;
+  const agent = getProxyAgent();
+  const cookiesMap = new Map<string, string>();
+
+  // Инициализируем известными cookies
+  const initialCookies = getOzonCookies();
+  if (initialCookies) {
+    for (const part of initialCookies.split(";")) {
+      const [k, ...v] = part.trim().split("=");
+      if (k && v.length) cookiesMap.set(k.trim(), v.join("=").trim());
+    }
+  }
+
+  let currentUrl = targetUrl;
+
+  for (let redirectCount = 0; redirectCount < 4; redirectCount++) {
+    const parsed = new URL(currentUrl);
+    const cookieStr = Array.from(cookiesMap.entries())
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; ");
+
+    const headers: Record<string, string> = {
+      ...OZON_DEFAULT_HEADERS,
+      ...customHeaders,
+    };
+    if (cookieStr) {
+      headers["Cookie"] = cookieStr;
+    }
+
+    try {
+      const res = await new Promise<{
+        status: number;
+        body: string;
+        headers: Record<string, string | string[] | undefined>;
+      }>((resolve, reject) => {
+        const req = https.request(
+          {
+            hostname: parsed.hostname,
+            path: parsed.pathname + parsed.search,
+            method: "GET",
+            agent,
+            headers,
+            timeout: timeoutMs,
+          },
+          (response) => {
+            let body = "";
+            response.on("data", (chunk) => (body += chunk));
+            response.on("end", () => {
+              resolve({
+                status: response.statusCode || 0,
+                headers: response.headers,
+                body,
+              });
+            });
+          },
+        );
+        req.on("error", reject);
+        req.on("timeout", () => {
+          req.destroy();
+          reject(new Error("Request timeout"));
+        });
+        req.end();
+      });
+
+      // Сохраняем новые cookies из заголовков ответа
+      if (res.headers["set-cookie"] && Array.isArray(res.headers["set-cookie"])) {
+        for (const sc of res.headers["set-cookie"]) {
+          const [pair] = sc.split(";");
+          const [k, ...v] = pair.split("=");
+          if (k && v.length) cookiesMap.set(k.trim(), v.join("=").trim());
+        }
+      }
+
+      // Обработка редиректов (301, 302, 307, 308)
+      if (
+        (res.status === 301 || res.status === 302 || res.status === 307 || res.status === 308) &&
+        typeof res.headers.location === "string"
+      ) {
+        currentUrl = res.headers.location.startsWith("http")
+          ? res.headers.location
+          : `https://${parsed.hostname}${res.headers.location}`;
+        continue;
+      }
+
+      return res;
+    } catch (err) {
+      secureLogger.debug("[Ozon Http] Ошибка сетевого соединения:", (err as Error)?.message);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Парсер поиска Ozon.
- * 1. Проверяет наличие выделенного Cloudflare Worker скрапера (OZON_SCRAPER_WORKER_URL)
- * 2. Либо делает прямой защищенный запрос с мобильными заголовками и cookies
- * 3. При блокировке датацентра WAF Ozon безопасно передает управление конвейеру
+ * 1. Проверяет наличие выделенного скрапера (OZON_SCRAPER_WORKER_URL)
+ * 2. Либо делает прямой защищенный запрос через Прокси с Cookie-сессией
+ * 3. При антибот-челлендже WAF Ozon безопасно передает управление конвейеру
  */
 export async function searchOzon(
   query: string,
   options: { page?: number; limit?: number; timeoutMs?: number } = {},
 ): Promise<RawMarketplaceOffer[]> {
-  const { page = 1, limit = 15, timeoutMs = 15000 } = options;
+  const { page = 1, limit = 15, timeoutMs = 12000 } = options;
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
 
   const workerUrl =
     process.env.OZON_SCRAPER_WORKER_URL ||
     process.env.CLOUDFLARE_WORKER_URL ||
-    process.env.SCRAPER_PROXY_URL ||
-    "https://wobuy-ozon-scraper.onrender.com";
+    process.env.SCRAPER_PROXY_URL;
 
-  // 1. Попытка запроса через Playwright / Cloudflare микросервис (100% гарантированный обход WAF)
+  // 1. Попытка запроса через микросервис (обход Antibot JS)
   if (workerUrl) {
     try {
       const workerSearchUrl = `${workerUrl.replace(/\/$/, "")}/search?q=${encodeURIComponent(
         cleanQuery,
       )}&page=${page}&limit=${limit}`;
+
       const res = await fetch(workerSearchUrl, {
         method: "GET",
         signal: AbortSignal.timeout(timeoutMs),
       });
+
       if (res.ok) {
         const workerData = await res.json();
-        
-        // 1.1 Если микросервис вернул прямой массив спарсенных товаров
         if (Array.isArray(workerData?.products) && workerData.products.length > 0) {
           const directOffers: RawMarketplaceOffer[] = workerData.products.map(
-            (p: Record<string, unknown>) => ({
-              id: String(p.id || `ozon-${p.sku}`),
-              marketplace: "ozon" as const,
-              externalId: String(p.sku || p.id),
-              title: String(p.title || cleanQuery),
-              brand: String(p.brand || "Ozon Seller"),
-              price: Number(p.price) || 2000,
-              originalPrice: Number(p.originalPrice) || Number(p.price) || 2500,
-              discountPercent:
-                Number(p.originalPrice) && Number(p.price) && Number(p.originalPrice) > Number(p.price)
-                  ? Math.round(((Number(p.originalPrice) - Number(p.price)) / Number(p.originalPrice)) * 100)
-                  : 0,
-              currency: "RUB",
-              rating: Number(p.rating) || 4.8,
-              reviewCount: Number(p.reviewCount) || 150,
-              url: String(p.url || buildOzonProductUrl(String(p.title || ""), p.sku as string | number)),
-              imageUrl: String(p.imageUrl || ""),
-              deliveryDays: 2,
-              deliveryText: String(p.deliveryText || "1-2 дня (со склада Ozon)"),
-              availability: "В наличии",
-              sellerName: String(p.sellerName || "Ozon Retail"),
-            }),
+            (p: Record<string, unknown>) => {
+              const sku = String(p.sku || p.id || "");
+              const title = String(p.title || "");
+              const productUrl = String(
+                p.url || (sku ? `https://www.ozon.ru/product/${sku}/` : ""),
+              );
+              const price = Number(p.price) || 0;
+              const originalPrice = Number(p.originalPrice) || price;
+
+              return {
+                id: String(p.id || `ozon-${sku}`),
+                marketplace: "ozon" as const,
+                externalId: sku,
+                title,
+                brand: String(p.brand || "Ozon Seller"),
+                price,
+                originalPrice,
+                discountPercent:
+                  originalPrice > price && price > 0
+                    ? Math.round(((originalPrice - price) / originalPrice) * 100)
+                    : 0,
+                currency: "RUB",
+                rating: Number(p.rating) || 4.8,
+                reviewCount: Number(p.reviewCount) || 150,
+                url: productUrl,
+                imageUrl: String(p.imageUrl || ""),
+                deliveryDays: 2,
+                deliveryText: String(p.deliveryText || "1-2 дня (со склада Ozon)"),
+                availability: "В наличии",
+                sellerName: String(p.sellerName || "Ozon Retail"),
+              };
+            },
           );
-          return directOffers.slice(0, limit);
+
+          const authenticOffers = directOffers.filter((o) => isRealOzonOffer(o, cleanQuery));
+          if (authenticOffers.length > 0) {
+            return authenticOffers.slice(0, limit);
+          }
         }
 
-        // 1.2 Если микросервис проксировал widgetStates
         const parsedOffers = parseOzonWidgetStates(workerData, cleanQuery, limit);
-        if (parsedOffers.length > 0) return parsedOffers;
+        const authenticParsedOffers = parsedOffers.filter((o) => isRealOzonOffer(o, cleanQuery));
+        if (authenticParsedOffers.length > 0) {
+          return authenticParsedOffers.slice(0, limit);
+        }
       }
     } catch (workerErr) {
-      secureLogger.debug("[Ozon Worker] Сбой ответа от воркера-скрапера:", (workerErr as Error)?.message);
+      secureLogger.debug(
+        "[Ozon Worker] Сбой ответа от воркера-скрапера:",
+        (workerErr as Error)?.message,
+      );
     }
   }
 
-  // 2. Прямая попытка через мобильный composer-api Ozon
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
+  // 2. Прямой запрос к API Ozon через прокси
   try {
     const searchUrl = `https://www.ozon.ru/api/composer-api.bx/page/json/v2?url=${encodeURIComponent(
       `/search/?text=${encodeURIComponent(cleanQuery)}&page=${page}`,
     )}`;
 
-    const headers: Record<string, string> = { ...OZON_DEFAULT_HEADERS };
-    const cookies = getOzonCookies();
-    if (cookies) {
-      headers.Cookie = cookies;
+    const response = await fetchOzonHttp(searchUrl, { timeoutMs });
+    if (response && response.status === 200 && response.body) {
+      try {
+        const data = JSON.parse(response.body) as Record<string, unknown>;
+        const offers = parseOzonWidgetStates(data, cleanQuery, limit);
+        const authenticOffers = offers.filter((o) => isRealOzonOffer(o, cleanQuery));
+        if (authenticOffers.length > 0) {
+          return authenticOffers.slice(0, limit);
+        }
+      } catch {}
     }
-
-    const response = await fetch(searchUrl, {
-      method: "GET",
-      headers,
-      signal: controller.signal,
-      next: { revalidate: 300 },
-    }).catch((networkErr) => {
-      // Ozon WAF блокирует прямые серверные запросы датацентров — перехватываем без падения сервера
-      secureLogger.debug("[Ozon Search] Запрос отклонен WAF маркетплейса", {
-        reason: (networkErr as Error)?.message || "network-drop",
-      });
-      return null;
-    });
-
-    if (response && response.ok) {
-      const data = await response.json();
-      const offers = parseOzonWidgetStates(data, cleanQuery, limit);
-      if (offers.length > 0) return offers;
-    }
-  } catch (err: unknown) {
-    if ((err as Error)?.name !== "AbortError") {
-      secureLogger.debug("[Ozon Search] Ограничение прямого парсинга Ozon:", (err as Error)?.message || err);
-    }
-  } finally {
-    clearTimeout(timer);
+  } catch (err) {
+    secureLogger.debug(
+      "[Ozon Search] Ограничение прямого парсинга Ozon:",
+      (err as Error)?.message || err,
+    );
   }
 
-  // Если прямой парсинг и воркер заблокированы WAF маркетплейса, честно возвращаем пустой список
-  // Без генерации фейковых товаров, выдуманных цен и посторонних картинок
+  // Честный результат: при активной защите WAF без сессии возвращаем пустой список
   return [];
 }
 
 /**
- * Извлекает товары из блоков виджетов Ozon (tileGrid, searchResults, skuGrid и др.)
+ * Валидатор подлинности товара Ozon
+ */
+function isRealOzonOffer(offer: RawMarketplaceOffer, cleanQuery: string): boolean {
+  if (!offer.externalId || offer.externalId.length < 3) return false;
+  if (!offer.url || !offer.url.includes("/product/") || offer.url.includes("/search/"))
+    return false;
+  const trimmedTitle = offer.title.trim().toLowerCase();
+  const trimmedQuery = cleanQuery.trim().toLowerCase();
+  if (trimmedTitle === trimmedQuery && trimmedTitle.length < 20) return false;
+  if (!offer.imageUrl || offer.imageUrl.includes("default.jpg")) return false;
+  if (!offer.price || offer.price <= 0) return false;
+  return true;
+}
+
+/**
+ * Извлекает товары из блоков widgetStates Ozon
  */
 function parseOzonWidgetStates(
   data: Record<string, unknown> | null | undefined,
@@ -186,15 +376,13 @@ function parseOzonWidgetStates(
             item?.sku ||
             item?.id ||
             item?.itemId ||
-            Math.abs(cleanQuery.split("").reduce((a, b) => a + b.charCodeAt(0), 0) + results.length);
-          
-          const title =
-            item?.title ||
-            item?.name ||
-            item?.cellTrackingInfo?.product?.title ||
-            cleanQuery;
+            Math.abs(
+              cleanQuery.split("").reduce((a, b) => a + b.charCodeAt(0), 0) + results.length,
+            );
 
-          // Извлечение цены
+          const title =
+            item?.title || item?.name || item?.cellTrackingInfo?.product?.title || cleanQuery;
+
           const priceStr =
             item?.price?.price ||
             item?.price?.current ||
@@ -211,7 +399,6 @@ function parseOzonWidgetStates(
             ? parseInt(String(origPriceStr).replace(/\D/g, ""), 10)
             : price;
 
-          // Извлечение изображения (Ozon CDN: cdn1.ozone.ru / ir.ozone.ru)
           let imageUrl =
             item?.image?.link ||
             item?.tileImage?.link ||
@@ -224,17 +411,7 @@ function parseOzonWidgetStates(
             imageUrl = `https:${imageUrl.startsWith("//") ? "" : "//"}${imageUrl}`;
           }
 
-          if (!imageUrl) {
-            imageUrl = "";
-          }
-
-          // Извлечение ссылки на товар
-          const rawLink =
-            item?.action?.link ||
-            item?.link ||
-            item?.url ||
-            item?.pageUrl ||
-            "";
+          const rawLink = item?.action?.link || item?.link || item?.url || item?.pageUrl || "";
 
           const productUrl = rawLink
             ? rawLink.startsWith("http")
@@ -263,13 +440,9 @@ function parseOzonWidgetStates(
             sellerName: item?.seller?.name || item?.sellerName || "Ozon Retail",
           });
         }
-      } catch {
-        // Пропускаем некорректно сериализованные поддеревья
-      }
+      } catch {}
     }
   }
 
   return results.slice(0, limit);
 }
-
-

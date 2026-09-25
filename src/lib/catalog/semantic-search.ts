@@ -47,7 +47,9 @@ export async function searchProductsSemantically(
           const productIds = data.map((p: { id: string }) => p.id);
           const { data: offersData } = await supabase
             .from("product_offers")
-            .select("id, product_id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability")
+            .select(
+              "id, product_id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability",
+            )
             .in("product_id", productIds);
 
           const offersMap = new Map<string, Array<Record<string, unknown>>>();
@@ -166,7 +168,11 @@ export async function upsertProductWithEmbedding(product: {
 
     if (!productId) {
       // Генерируем вектор эмбеддинга
-      const textToEmbed = `${product.canonicalName} ${product.brand} ${product.category} ${product.description}`.slice(0, 1000);
+      const textToEmbed =
+        `${product.canonicalName} ${product.brand} ${product.category} ${product.description}`.slice(
+          0,
+          1000,
+        );
       const embedding = await generateEmbedding(textToEmbed);
 
       const insertPayload: Record<string, unknown> = {
@@ -226,9 +232,7 @@ export async function upsertProductWithEmbedding(product: {
               .update(offerPayload)
               .eq("id", existingOffers[0].id);
           } else {
-            await supabase
-              .from("product_offers")
-              .insert(offerPayload);
+            await supabase.from("product_offers").insert(offerPayload);
           }
         } catch (offerErr) {
           console.warn("[Upsert Product] Offer save warning:", offerErr);

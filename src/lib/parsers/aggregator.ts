@@ -45,7 +45,9 @@ export async function aggregateMarketplaceSearch(
   if (isWbArticle) {
     const directWbProduct = await getWildberriesProductDetail(cleanQuery);
     if (directWbProduct) {
-      const ozonOffers = await searchOzon(directWbProduct.title || directWbProduct.brand, { limit: 3 }).catch(() => []);
+      const ozonOffers = await searchOzon(directWbProduct.title || directWbProduct.brand, {
+        limit: 3,
+      }).catch(() => []);
       const canonical = clusterAndDeduplicateOffers([directWbProduct, ...ozonOffers]);
       SEARCH_CACHE.set(cacheKey, { timestamp: now, data: canonical });
       return canonical;
@@ -59,14 +61,20 @@ export async function aggregateMarketplaceSearch(
         limit: options.limit || 15,
         timeoutMs: options.timeoutMs || 7000,
       }).catch((err) => {
-        secureLogger.debug("[Aggregator] Парсер Wildberries вернул ошибку, переход на AI:", (err as Error)?.message || err);
+        secureLogger.debug(
+          "[Aggregator] Парсер Wildberries вернул ошибку, переход на AI:",
+          (err as Error)?.message || err,
+        );
         return [] as RawMarketplaceOffer[];
       }),
       searchOzon(cleanQuery, {
         limit: options.limit || 10,
         timeoutMs: options.timeoutMs || 15000,
       }).catch((err) => {
-        secureLogger.debug("[Aggregator] Парсер Ozon вернул ошибку, переход на зеркальный дуэльный пул:", (err as Error)?.message || err);
+        secureLogger.debug(
+          "[Aggregator] Парсер Ozon вернул ошибку, переход на зеркальный дуэльный пул:",
+          (err as Error)?.message || err,
+        );
         return [] as RawMarketplaceOffer[];
       }),
     ]);

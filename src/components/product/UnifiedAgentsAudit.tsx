@@ -80,7 +80,8 @@ export function UnifiedAgentsAudit({
               </span>
             </div>
             <p className="mt-0.5 text-xs text-slate-400">
-              Живой аргументированный диалог 4 независимых ИИ-экспертов wobuy. исключительно для площадки {recommendedMarketplace}
+              Живой аргументированный диалог 4 независимых ИИ-экспертов wobuy. исключительно для
+              площадки {recommendedMarketplace}
             </p>
           </div>
         </div>
@@ -89,7 +90,9 @@ export function UnifiedAgentsAudit({
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0D0F14] px-3.5 py-1.5">
             <span className="text-xs text-slate-400">Итоговый балл:</span>
-            <strong className="text-sm font-black text-[#00FF87]">{avgScore.toFixed(1)} / 10</strong>
+            <strong className="text-sm font-black text-[#00FF87]">
+              {avgScore.toFixed(1)} / 10
+            </strong>
           </div>
 
           <div className="flex rounded-xl border border-white/10 bg-[#0D0F14] p-0.5">
@@ -97,7 +100,9 @@ export function UnifiedAgentsAudit({
               type="button"
               onClick={() => setActiveTab("battle")}
               className={`flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-bold transition ${
-                activeTab === "battle" ? "bg-[#00FF87] text-black shadow-sm" : "text-slate-400 hover:text-white"
+                activeTab === "battle"
+                  ? "bg-[#00FF87] text-black shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               <Flame className="h-3.5 w-3.5" />
@@ -107,7 +112,9 @@ export function UnifiedAgentsAudit({
               type="button"
               onClick={() => setActiveTab("cards")}
               className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
-                activeTab === "cards" ? "bg-[#00FF87] text-black shadow-sm" : "text-slate-400 hover:text-white"
+                activeTab === "cards"
+                  ? "bg-[#00FF87] text-black shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               Карточки агентов
@@ -116,7 +123,9 @@ export function UnifiedAgentsAudit({
               type="button"
               onClick={() => setActiveTab("funnel")}
               className={`flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-bold transition ${
-                activeTab === "funnel" ? "bg-[#00FF87] text-black shadow-sm" : "text-slate-400 hover:text-white"
+                activeTab === "funnel"
+                  ? "bg-[#00FF87] text-black shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               <Filter className="h-3.5 w-3.5" />
@@ -150,7 +159,9 @@ export function UnifiedAgentsAudit({
                     <div className="flex items-center gap-2.5">
                       <span className="text-2xl">{persp.emoji}</span>
                       <div>
-                        <div className={`text-xs font-black uppercase tracking-wider ${persp.textColor}`}>
+                        <div
+                          className={`text-xs font-black uppercase tracking-wider ${persp.textColor}`}
+                        >
                           {persp.archetype}
                         </div>
                         <div className="text-[10px] font-semibold text-slate-400">
@@ -160,18 +171,11 @@ export function UnifiedAgentsAudit({
                     </div>
 
                     {/* Оценка агента в неоновом круге */}
-                    <NeonScoreCircle
-                      score={persp.score}
-                      size="sm"
-                      label={label}
-                      glowColor={glow}
-                    />
+                    <NeonScoreCircle score={persp.score} size="sm" label={label} glowColor={glow} />
                   </div>
 
                   {/* Тематика и специализация */}
-                  <div className="mt-3 text-xs font-black text-white">
-                    {persp.title}
-                  </div>
+                  <div className="mt-3 text-xs font-black text-white">{persp.title}</div>
 
                   {/* Аргументы ЗА (Плюсы) */}
                   <div className="mt-3.5 space-y-2">
@@ -179,7 +183,10 @@ export function UnifiedAgentsAudit({
                       Подтвержденные факты:
                     </div>
                     {persp.pros.map((pro, proIdx) => (
-                      <div key={proIdx} className="flex items-start gap-1.5 text-xs text-slate-300 leading-relaxed">
+                      <div
+                        key={proIdx}
+                        className="flex items-start gap-1.5 text-xs text-slate-300 leading-relaxed"
+                      >
                         <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
                         <span>{pro}</span>
                       </div>
@@ -194,7 +201,10 @@ export function UnifiedAgentsAudit({
                         <span>Предостережения эксперта:</span>
                       </div>
                       {persp.cons.map((con, conIdx) => (
-                        <div key={conIdx} className="flex items-start gap-1.5 text-xs text-slate-300 leading-relaxed">
+                        <div
+                          key={conIdx}
+                          className="flex items-start gap-1.5 text-xs text-slate-300 leading-relaxed"
+                        >
                           <span className="text-amber-400 font-bold">•</span>
                           <span>{con}</span>
                         </div>
@@ -206,7 +216,8 @@ export function UnifiedAgentsAudit({
                 {/* Нижняя сноска */}
                 <div className="mt-4 pt-2 text-right">
                   <span className="text-[10px] font-bold text-slate-400">
-                    Аудит wobuy<NeonDot size="xs" /> проверен
+                    Аудит wobuy
+                    <NeonDot size="xs" /> проверен
                   </span>
                 </div>
               </div>
@@ -231,60 +242,61 @@ export function UnifiedAgentsAudit({
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-300">
-              Перфекционист оценивает материалы и сборку, Экономный лоббирует реальную выгоду без накруток, а Скептик подтверждает отсутствие бот-отзывов и защиту от брака.
+              Перфекционист оценивает материалы и сборку, Экономный лоббирует реальную выгоду без
+              накруток, а Скептик подтверждает отсутствие бот-отзывов и защиту от брака.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {dialogue.map((entry, dIdx) => {
-            const glow = getGlowColor(dIdx);
-            return (
-              <div
-                key={dIdx}
-                className="relative flex flex-col justify-between rounded-3xl border border-white/10 bg-[#0D0F14] p-5 shadow-lg transition-all duration-300 hover:border-white/20 hover:-translate-y-1"
-              >
-                <div>
-                  {/* Шапка диалога агента с неоновым баллом */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{entry.emoji}</span>
-                      <div>
-                        <div className="text-xs font-black uppercase tracking-wider text-white">
-                          {entry.name}
-                        </div>
-                        <div className="text-[10px] font-semibold text-slate-400">
-                          {entry.role}
+            {dialogue.map((entry, dIdx) => {
+              const glow = getGlowColor(dIdx);
+              return (
+                <div
+                  key={dIdx}
+                  className="relative flex flex-col justify-between rounded-3xl border border-white/10 bg-[#0D0F14] p-5 shadow-lg transition-all duration-300 hover:border-white/20 hover:-translate-y-1"
+                >
+                  <div>
+                    {/* Шапка диалога агента с неоновым баллом */}
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-2xl">{entry.emoji}</span>
+                        <div>
+                          <div className="text-xs font-black uppercase tracking-wider text-white">
+                            {entry.name}
+                          </div>
+                          <div className="text-[10px] font-semibold text-slate-400">
+                            {entry.role}
+                          </div>
                         </div>
                       </div>
+
+                      <NeonScoreCircle
+                        score={entry.score}
+                        size="sm"
+                        label="БАЛЛ"
+                        glowColor={glow}
+                      />
                     </div>
 
-                    <NeonScoreCircle
-                      score={entry.score}
-                      size="sm"
-                      label="БАЛЛ"
-                      glowColor={glow}
-                    />
+                    {/* Аргумент в дебатах */}
+                    <div className="mt-4">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        Позиция в баттле:
+                      </span>
+                      <p className="mt-1.5 text-xs leading-relaxed text-slate-200 font-medium italic border-l-2 border-white/20 pl-2.5">
+                        «{entry.argument.replace(/^[«"]+|[»"]+$/g, "").trim()}»
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Аргумент в дебатах */}
-                  <div className="mt-4">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      Позиция в баттле:
+                  <div className="mt-4 pt-2 text-right">
+                    <span className="text-[10px] font-bold text-slate-500">
+                      Аргумент подтвержден
                     </span>
-                    <p className="mt-1.5 text-xs leading-relaxed text-slate-200 font-medium italic border-l-2 border-white/20 pl-2.5">
-                      «{entry.argument.replace(/^[«"]+|[»"]+$/g, "").trim()}»
-                    </p>
                   </div>
                 </div>
-
-                <div className="mt-4 pt-2 text-right">
-                  <span className="text-[10px] font-bold text-slate-500">
-                    Аргумент подтвержден
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
           </div>
         </div>
       )}
@@ -307,10 +319,12 @@ export function UnifiedAgentsAudit({
           <ShieldCheck className="h-5 w-5 text-[#00FF87] shrink-0" />
           <div>
             <div className="text-xs font-black uppercase tracking-wider text-white">
-              Финальный вердикт консенсуса wobuy<NeonDot size="xs" />
+              Финальный вердикт консенсуса wobuy
+              <NeonDot size="xs" />
             </div>
             <p className="text-xs text-slate-200 font-medium mt-0.5">
-              {finalVerdict} — рекомендация заказывать на площадке <strong>{recommendedMarketplace}</strong>
+              {finalVerdict} — рекомендация заказывать на площадке{" "}
+              <strong>{recommendedMarketplace}</strong>
             </p>
           </div>
         </div>

@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, ShieldCheck, AlertTriangle, ThumbsUp, ThumbsDown, Bot, Check } from "lucide-react";
+import {
+  MessageSquare,
+  ShieldCheck,
+  AlertTriangle,
+  ThumbsUp,
+  ThumbsDown,
+  Bot,
+  Check,
+} from "lucide-react";
 
 interface ReviewsAnalysisCardProps {
   productTitle: string;
@@ -18,7 +26,9 @@ export function ReviewsAnalysisCard({
   const [activeTab, setActiveTab] = useState<"summary" | "bots" | "pros_cons">("summary");
 
   const hasReviews = reviewCount > 0;
-  const filteredBotsCount = hasReviews ? Math.max(0, Math.round((reviewCount * (100 - antiFakeScore)) / 100)) : 0;
+  const filteredBotsCount = hasReviews
+    ? Math.max(0, Math.round((reviewCount * (100 - antiFakeScore)) / 100))
+    : 0;
   const realReviewsCount = hasReviews ? Math.max(0, reviewCount - filteredBotsCount) : 0;
   const displayRating = rating > 0 ? rating.toFixed(1) : "—";
 
@@ -51,7 +61,9 @@ export function ReviewsAnalysisCard({
       {/* Метрики отсева ботов */}
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/5 bg-[#0D0F14] p-3.5 text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Реальные отзывы</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Реальные отзывы
+          </div>
           <div className="mt-1 text-xl font-black text-white">
             {hasReviews ? realReviewsCount.toLocaleString("ru-RU") : "0"}
           </div>
@@ -61,7 +73,9 @@ export function ReviewsAnalysisCard({
         </div>
 
         <div className="rounded-2xl border border-purple-500/20 bg-purple-950/20 p-3.5 text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-purple-300">Отсеяно накруток</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-purple-300">
+            Отсеяно накруток
+          </div>
           <div className="mt-1 text-xl font-black text-purple-400">{filteredBotsCount}</div>
           <div className="mt-0.5 text-[10px] text-purple-300">
             {hasReviews ? "Бот-шаблоны и спам" : "Накруток не обнаружено"}
@@ -69,7 +83,9 @@ export function ReviewsAnalysisCard({
         </div>
 
         <div className="rounded-2xl border border-white/5 bg-[#0D0F14] p-3.5 text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Честный рейтинг</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Честный рейтинг
+          </div>
           <div className="mt-1 text-xl font-black text-[#00FF87]">
             {hasReviews ? `${displayRating} / 5.0` : "Новинка"}
           </div>
@@ -190,7 +206,8 @@ export function ReviewsAnalysisCard({
               <>
                 <div className="rounded-xl border border-white/5 bg-[#0D0F14] p-3 text-[11px] text-slate-400">
                   <span className="font-semibold text-white">Пример отсеянного шаблона: </span>
-                  «Все отлично, спасибо продавцу за быструю доставку 5 звезд» (однотипные аккаунты с регистрацией в один день).
+                  «Все отлично, спасибо продавцу за быструю доставку 5 звезд» (однотипные аккаунты с
+                  регистрацией в один день).
                 </div>
                 <p className="text-[11px] text-emerald-400">
                   ✓ Все эти отзывы исключены из расчета AI Score и рейтинга wobuy.

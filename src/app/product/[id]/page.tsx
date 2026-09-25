@@ -75,7 +75,7 @@ export default async function ProductPage({
     const matchedOffer = resolved.offers.find((o) =>
       slotMp.includes("ozon")
         ? o.marketplace.toLowerCase().includes("ozon")
-        : o.marketplace.toLowerCase().includes("wildberries")
+        : o.marketplace.toLowerCase().includes("wildberries"),
     );
     if (matchedOffer) {
       matchedOffer.price = urlPrice;
@@ -121,26 +121,57 @@ export default async function ProductPage({
   const currency = bestOffer?.currency || "RUB";
 
   // Считываем контекст триумфатора из модели товара или параметров URL
-  const triumphData = resolved.triumph || (sParams.fromSlot ? {
-    slotType: (sParams.fromSlot === "wb_champion" ? "wb" : sParams.fromSlot === "ozon_champion" ? "ozon" : sParams.fromSlot) as "wb" | "ozon" | "economist" | "express",
-    badgeTitle: sParams.slotTitle || (sParams.fromSlot === "express" ? "Триумф Срочного" : sParams.fromSlot === "economist" ? "Триумф Экономного" : "Победитель"),
-    badgeSubtitle: sParams.fromSlot === "express" ? "Экспресс-доставка FBO" : sParams.fromSlot === "economist" ? "Минимальная цена на рынке" : "Лидер маркетплейса",
-    marketplace: sParams.slotMarketplace || (bestOffer?.marketplace?.toLowerCase().includes("wildberries") ? "wildberries" : "ozon"),
-    verdict: sParams.fromSlot === "express"
-      ? "wobuy. выбрал этот товар за лучшую скорость логистики со склада FBO."
-      : sParams.fromSlot === "economist"
-        ? "wobuy. выбрал этот товар за минимальную подтвержденную цену в категории."
-        : "wobuy. выбрал этот товар как абсолютного лидера категории.",
-  } : null);
+  const triumphData =
+    resolved.triumph ||
+    (sParams.fromSlot
+      ? {
+          slotType: (sParams.fromSlot === "wb_champion"
+            ? "wb"
+            : sParams.fromSlot === "ozon_champion"
+              ? "ozon"
+              : sParams.fromSlot) as "wb" | "ozon" | "economist" | "express",
+          badgeTitle:
+            sParams.slotTitle ||
+            (sParams.fromSlot === "express"
+              ? "Триумф Срочного"
+              : sParams.fromSlot === "economist"
+                ? "Триумф Экономного"
+                : "Победитель"),
+          badgeSubtitle:
+            sParams.fromSlot === "express"
+              ? "Экспресс-доставка FBO"
+              : sParams.fromSlot === "economist"
+                ? "Минимальная цена на рынке"
+                : "Лидер маркетплейса",
+          marketplace:
+            sParams.slotMarketplace ||
+            (bestOffer?.marketplace?.toLowerCase().includes("wildberries")
+              ? "wildberries"
+              : "ozon"),
+          verdict:
+            sParams.fromSlot === "express"
+              ? "wobuy. выбрал этот товар за лучшую скорость логистики со склада FBO."
+              : sParams.fromSlot === "economist"
+                ? "wobuy. выбрал этот товар за минимальную подтвержденную цену в категории."
+                : "wobuy. выбрал этот товар как абсолютного лидера категории.",
+        }
+      : null);
 
   // Строго определяем маркетплейс конкретного товара, для которого произошел результат поиска
   const explicitMp = (sParams.slotMarketplace || "").toLowerCase();
   const targetMarketplace: "wildberries" | "ozon" =
-    explicitMp.includes("ozon") || sParams.fromSlot === "ozon_champion" || sParams.fromSlot === "ozon"
+    explicitMp.includes("ozon") ||
+    sParams.fromSlot === "ozon_champion" ||
+    sParams.fromSlot === "ozon"
       ? "ozon"
-      : explicitMp.includes("wildberries") || explicitMp === "wb" || sParams.fromSlot === "wb_champion" || sParams.fromSlot === "wb"
+      : explicitMp.includes("wildberries") ||
+          explicitMp === "wb" ||
+          sParams.fromSlot === "wb_champion" ||
+          sParams.fromSlot === "wb"
         ? "wildberries"
-        : (bestOffer?.marketplace?.toLowerCase().includes("ozon") ? "ozon" : "wildberries");
+        : bestOffer?.marketplace?.toLowerCase().includes("ozon")
+          ? "ozon"
+          : "wildberries";
   const targetMarketplaceName = targetMarketplace === "wildberries" ? "Wildberries" : "Ozon";
 
   // Выполняем генерацию полного вердикта мультиагентного анализа wobuy. строго для конкретного маркетплейса
@@ -157,13 +188,15 @@ export default async function ProductPage({
       deliveryText: o.deliveryText,
       url: o.url,
     })),
-    triumphData ? {
-      slotType: triumphData.slotType,
-      badgeTitle: triumphData.badgeTitle,
-      badgeSubtitle: triumphData.badgeSubtitle,
-      marketplace: triumphData.marketplace,
-      verdict: triumphData.verdict,
-    } : undefined,
+    triumphData
+      ? {
+          slotType: triumphData.slotType,
+          badgeTitle: triumphData.badgeTitle,
+          badgeSubtitle: triumphData.badgeSubtitle,
+          marketplace: triumphData.marketplace,
+          verdict: triumphData.verdict,
+        }
+      : undefined,
     targetMarketplace,
   );
 
@@ -171,13 +204,12 @@ export default async function ProductPage({
   // Единый согласованный процент доверия анти-фейк (без рассинхрона!)
   const antiFakePercent = analysis?.antiFakePercent ?? resolved.antiFakePercent ?? 96;
 
-  const productImages = resolved.images && resolved.images.length > 0
-    ? resolved.images
-    : [resolved.imageUrl];
+  const productImages =
+    resolved.images && resolved.images.length > 0 ? resolved.images : [resolved.imageUrl];
 
   // Сравнение предложений строго для конкретного маркетплейса поиска (без других маркетплейсов)
   const rawComparison = (analysis?.marketplaceComparison || []).filter(
-    (m) => m.marketplace === targetMarketplace
+    (m) => m.marketplace === targetMarketplace,
   );
 
   const marketplaceList = rawComparison.map((m) => {
@@ -186,23 +218,28 @@ export default async function ProductPage({
       ...m,
       url: sanitizedUrl,
       isRecommended: true,
-      statusBadge: triumphData?.slotType === "express"
-        ? (targetMarketplace === "wildberries" ? "★ Экспресс FBO" : "★ Экспресс Ozon")
-        : "★ Выбор wobuy.",
+      statusBadge:
+        triumphData?.slotType === "express"
+          ? targetMarketplace === "wildberries"
+            ? "★ Экспресс FBO"
+            : "★ Экспресс Ozon"
+          : "★ Выбор wobuy.",
       statusType: "success" as const,
     };
   });
 
-  const matchedTargetOffer = offers.find((o) =>
-    targetMarketplace === "wildberries"
-      ? o.marketplace.toLowerCase().includes("wildberries") || o.marketplace.toLowerCase().includes("wb")
-      : o.marketplace.toLowerCase().includes("ozon")
-  ) || bestOffer;
+  const matchedTargetOffer =
+    offers.find((o) =>
+      targetMarketplace === "wildberries"
+        ? o.marketplace.toLowerCase().includes("wildberries") ||
+          o.marketplace.toLowerCase().includes("wb")
+        : o.marketplace.toLowerCase().includes("ozon"),
+    ) || bestOffer;
 
   const winnerMarketplaceName = targetMarketplaceName;
   const winnerUrl = sanitizeMarketplaceOfferUrl(
     winnerMarketplaceName,
-    urlOfferUrl || matchedTargetOffer?.url || (marketplaceList[0]?.url) || "",
+    urlOfferUrl || matchedTargetOffer?.url || marketplaceList[0]?.url || "",
     resolved.title,
   );
 
@@ -227,10 +264,7 @@ export default async function ProductPage({
           </div>
 
           <div className="flex items-center gap-3">
-            <ProductFavoriteButton
-              productId={resolved.id}
-              initialIsFavorite={Boolean(favorite)}
-            />
+            <ProductFavoriteButton productId={resolved.id} initialIsFavorite={Boolean(favorite)} />
             {winnerUrl && (
               <a
                 href={winnerUrl}
@@ -250,18 +284,26 @@ export default async function ProductPage({
       <main className="mx-auto max-w-7xl px-4 pt-6 md:px-8">
         {/* Хлебные крошки */}
         <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-          <Link href="/" className="hover:text-white">Главная</Link>
+          <Link href="/" className="hover:text-white">
+            Главная
+          </Link>
           <span>/</span>
           {fromQuery ? (
             <>
-              <Link href={`/search?q=${encodeURIComponent(fromQuery)}`} className="hover:text-white text-emerald-400 font-medium">
+              <Link
+                href={`/search?q=${encodeURIComponent(fromQuery)}`}
+                className="hover:text-white text-emerald-400 font-medium"
+              >
                 Поиск: «{fromQuery}»
               </Link>
               <span>/</span>
             </>
           ) : (
             <>
-              <Link href={`/search?category=${encodeURIComponent(resolved.category)}`} className="hover:text-white">
+              <Link
+                href={`/search?category=${encodeURIComponent(resolved.category)}`}
+                className="hover:text-white"
+              >
                 {resolved.category}
               </Link>
               <span>/</span>
@@ -337,7 +379,8 @@ export default async function ProductPage({
                           {triumphData.badgeTitle}
                         </span>
                         <span className="rounded-full border border-[#00FF87]/40 bg-[#00FF87]/10 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
-                          Триумфатор wobuy<NeonDot size="xs" />
+                          Триумфатор wobuy
+                          <NeonDot size="xs" />
                         </span>
                       </div>
                       <p className="text-[11px] font-medium text-slate-400">
@@ -349,20 +392,29 @@ export default async function ProductPage({
                   <div className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold text-white">
                     <span className="text-slate-400">Отобран на:</span>
                     <span className="font-extrabold text-[#00FF87]">
-                      {triumphData.marketplace.toLowerCase().includes("wildberries") || triumphData.marketplace === "wb" ? "Wildberries" : "Ozon"}
+                      {triumphData.marketplace.toLowerCase().includes("wildberries") ||
+                      triumphData.marketplace === "wb"
+                        ? "Wildberries"
+                        : "Ozon"}
                     </span>
                   </div>
                 </div>
 
                 <div className="mt-3 rounded-xl border border-white/5 bg-black/30 p-3 text-xs leading-relaxed text-slate-200">
-                  <span className="font-black text-white">Почему wobuy<NeonDot size="xs" /> выбрал этот товар: </span>
+                  <span className="font-black text-white">
+                    Почему wobuy
+                    <NeonDot size="xs" /> выбрал этот товар:{" "}
+                  </span>
                   <span className="text-slate-200">{triumphData.verdict}</span>
                 </div>
               </div>
             )}
 
             {/* КАРТОЧКА ПРЕДЛОЖЕНИЯ ПОБЕДИТЕЛЯ: СТРОГО ДЛЯ МАРКЕТПЛЕЙСА ПОИСКА */}
-            <div id="product-offer-section" className="flex flex-1 flex-col justify-between rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl">
+            <div
+              id="product-offer-section"
+              className="flex flex-1 flex-col justify-between rounded-3xl border border-white/10 bg-[#12151B] p-5 shadow-xl"
+            >
               <div>
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -370,10 +422,14 @@ export default async function ProductPage({
                       Победитель отбора: {winnerMarketplaceName}
                     </h3>
                     <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-black text-[#00FF87]">
-                      Выбор wobuy<NeonDot size="xs" animated={false} />
+                      Выбор wobuy
+                      <NeonDot size="xs" animated={false} />
                     </span>
                   </div>
-                  <span className="text-xs font-bold text-white">Верифицировано wobuy<NeonDot size="xs" /></span>
+                  <span className="text-xs font-bold text-white">
+                    Верифицировано wobuy
+                    <NeonDot size="xs" />
+                  </span>
                 </div>
 
                 {/* Заключение и рекомендация wobuy. */}
@@ -385,7 +441,8 @@ export default async function ProductPage({
                           ✓
                         </div>
                         <span className="text-xs font-black uppercase tracking-wider text-[#00FF87]">
-                          Заключение и рекомендация wobuy<NeonDot size="xs" />
+                          Заключение и рекомендация wobuy
+                          <NeonDot size="xs" />
                         </span>
                       </div>
                       <span className="rounded-full border border-emerald-500/30 bg-emerald-900/40 px-2 py-0.5 text-[10px] font-bold text-[#00FF87]">
@@ -400,11 +457,16 @@ export default async function ProductPage({
                     <div className="mt-2.5 flex flex-wrap items-center gap-4 text-xs">
                       <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
                         <CheckCircle2 className="h-3.5 w-3.5 text-[#00FF87] shrink-0" />
-                        <span>Победитель отбора: <strong className="text-white">{winnerMarketplaceName}</strong></span>
+                        <span>
+                          Победитель отбора:{" "}
+                          <strong className="text-white">{winnerMarketplaceName}</strong>
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-300">
                         <span className="text-purple-400 font-bold">•</span>
-                        <span>Траст отзывов: <strong className="text-white">{antiFakePercent}%</strong></span>
+                        <span>
+                          Траст отзывов: <strong className="text-white">{antiFakePercent}%</strong>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -417,7 +479,8 @@ export default async function ProductPage({
                   <div className="flex items-center justify-between">
                     <MarketplaceBadge marketplace={targetMarketplace} size="md" showLabel={true} />
                     <span className="inline-flex items-baseline rounded-full bg-[#00FF87] px-2.5 py-0.5 text-[10px] font-black text-black">
-                      ★ Победитель отбора wobuy<NeonDot size="xs" animated={false} />
+                      ★ Победитель отбора wobuy
+                      <NeonDot size="xs" animated={false} />
                     </span>
                   </div>
 
@@ -432,13 +495,21 @@ export default async function ProductPage({
                       </span>
                       {((matchedTargetOffer?.reviewCount || bestOffer?.reviewCount) ?? 0) > 0 && (
                         <span className="text-[11px] text-slate-400">
-                          ({((matchedTargetOffer?.reviewCount || bestOffer?.reviewCount) ?? 0).toLocaleString("ru-RU")} отзывов)
+                          (
+                          {(
+                            (matchedTargetOffer?.reviewCount || bestOffer?.reviewCount) ??
+                            0
+                          ).toLocaleString("ru-RU")}{" "}
+                          отзывов)
                         </span>
                       )}
                       <span className="text-slate-600">•</span>
                       <span className="inline-flex items-center gap-1 text-[11px] text-slate-300">
                         <Clock className="h-3 w-3 text-slate-400" />
-                        {matchedTargetOffer?.deliveryText || (targetMarketplace === "wildberries" ? "1-2 дня (со склада WB)" : "1-2 дня (со склада Ozon)")}
+                        {matchedTargetOffer?.deliveryText ||
+                          (targetMarketplace === "wildberries"
+                            ? "1-2 дня (со склада WB)"
+                            : "1-2 дня (со склада Ozon)")}
                       </span>
                     </div>
                   </div>
@@ -465,36 +536,48 @@ export default async function ProductPage({
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00FF87]/15 text-[#00FF87] border border-[#00FF87]/30">
               <Sliders className="h-4 w-4" />
             </div>
-            <span>Рекомендательный вердикт и характеристики от ИИ wobuy<NeonDot size="sm" /></span>
+            <span>
+              Рекомендательный вердикт и характеристики от ИИ wobuy
+              <NeonDot size="sm" />
+            </span>
           </div>
 
           {/* Живое связное описание в рекомендательной форме от лица ИИ */}
           <div className="mt-4 rounded-2xl border border-white/5 bg-[#0D0F14] p-5 text-sm leading-relaxed text-slate-200">
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white mb-2">
               <Sparkles className="h-4 w-4 text-[#00FF87]" />
-              <span>Вердикт ИИ-эксперта wobuy<NeonDot size="xs" />:</span>
+              <span>
+                Вердикт ИИ-эксперта wobuy
+                <NeonDot size="xs" />:
+              </span>
             </div>
             <p className="font-medium">
-              Мы провели полный независимый аудит модели <strong>{resolved.title}</strong> от бренда <strong>{resolved.brand}</strong>.
-              По нашей оценке, это один из наиболее сбалансированных вариантов в категории «{resolved.category}».
-              Качество материалов и заводская сборка полностью соответствуют заявленному классу, а доля подозрительных бот-отзывов минимальна (индекс траста {antiFakePercent}%).
+              Мы провели полный независимый аудит модели <strong>{resolved.title}</strong> от бренда{" "}
+              <strong>{resolved.brand}</strong>. По нашей оценке, это один из наиболее
+              сбалансированных вариантов в категории «{resolved.category}». Качество материалов и
+              заводская сборка полностью соответствуют заявленному классу, а доля подозрительных
+              бот-отзывов минимальна (индекс траста {antiFakePercent}%).
             </p>
             <div className="mt-3 flex items-start gap-2 text-xs text-slate-300 border-t border-white/5 pt-3">
               <CheckCircle2 className="h-4 w-4 text-[#00FF87] shrink-0 mt-0.5" />
               <span>
-                <strong>Кому рекомендуем:</strong> тем, кто ценит долговечность и честное соотношение цены и функционала. При получении в ПВЗ {winnerMarketplaceName} рекомендуем проверить целостность заводской упаковки и комплектацию.
+                <strong>Кому рекомендуем:</strong> тем, кто ценит долговечность и честное
+                соотношение цены и функционала. При получении в ПВЗ {winnerMarketplaceName}{" "}
+                рекомендуем проверить целостность заводской упаковки и комплектацию.
               </span>
             </div>
           </div>
 
           {/* Структурированные ключевые характеристики */}
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {(analysis?.specifications || [
-              { label: "Бренд", value: resolved.brand || "Оригинал" },
-              { label: "Категория", value: resolved.category || "Каталог" },
-              { label: "Аудит подлинности", value: `Пройден на ${antiFakePercent}%` },
-              { label: "Рекомендация wobuy", value: `Покупка на ${winnerMarketplaceName}` },
-            ]).map((spec, sIdx) => (
+            {(
+              analysis?.specifications || [
+                { label: "Бренд", value: resolved.brand || "Оригинал" },
+                { label: "Категория", value: resolved.category || "Каталог" },
+                { label: "Аудит подлинности", value: `Пройден на ${antiFakePercent}%` },
+                { label: "Рекомендация wobuy", value: `Покупка на ${winnerMarketplaceName}` },
+              ]
+            ).map((spec, sIdx) => (
               <div
                 key={sIdx}
                 className="flex items-center justify-between rounded-2xl border border-white/5 bg-[#0D0F14] p-4 text-xs"
@@ -502,7 +585,8 @@ export default async function ProductPage({
                 <span className="flex items-center text-slate-400">
                   {spec.label === "Рекомендация wobuy" ? (
                     <span className="inline-flex items-baseline">
-                      Рекомендация wobuy<NeonDot size="xs" />
+                      Рекомендация wobuy
+                      <NeonDot size="xs" />
                     </span>
                   ) : (
                     spec.label

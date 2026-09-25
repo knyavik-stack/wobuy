@@ -5,7 +5,10 @@ import { ShieldCheck, Sparkles, Scale } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer id="global-footer" className="relative z-10 w-full border-t border-white/10 bg-[#080A0E] py-8 text-xs text-slate-400">
+    <footer
+      id="global-footer"
+      className="relative z-10 w-full border-t border-white/10 bg-[#080A0E] py-8 text-xs text-slate-400"
+    >
       <div className="mx-auto max-w-7xl px-4 md:px-8 space-y-6">
         {/* Верхняя компактная линия: Бренд, статус и ссылки */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/5 pb-6">
@@ -13,7 +16,8 @@ export function Footer() {
             <BrandLogo size="sm" />
             <span className="hidden sm:inline text-slate-600">•</span>
             <span className="text-xs text-slate-300 font-medium">
-              Сервис честной селекции товаров wobuy<NeonDot size="xs" />
+              Сервис честной селекции товаров wobuy
+              <NeonDot size="xs" />
             </span>
           </div>
 
@@ -33,16 +37,10 @@ export function Footer() {
               <span>Кабинет</span>
             </Link>
             <span className="text-slate-700">•</span>
-            <Link
-              href="/privacy"
-              className="text-slate-400 transition hover:text-white"
-            >
+            <Link href="/privacy" className="text-slate-400 transition hover:text-white">
               Политика
             </Link>
-            <Link
-              href="/terms"
-              className="text-slate-400 transition hover:text-white"
-            >
+            <Link href="/terms" className="text-slate-400 transition hover:text-white">
               Соглашение
             </Link>
           </div>
@@ -51,7 +49,14 @@ export function Footer() {
         {/* Объединенная монолитная строка копирайта и защиты */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-[11px] text-slate-400">
           <div className="flex flex-wrap items-center gap-2">
-            <span>© 2026 <strong className="font-bold text-white">wobuy<NeonDot size="xs" /></strong> (домен wobuy.ru). Все права защищены.</span>
+            <span>
+              © 2026{" "}
+              <strong className="font-bold text-white">
+                wobuy
+                <NeonDot size="xs" />
+              </strong>{" "}
+              (домен wobuy.ru). Все права защищены.
+            </span>
             <span className="hidden md:inline text-slate-600">•</span>
             <span className="inline-flex items-center gap-1 text-slate-300">
               <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" />
@@ -59,9 +64,7 @@ export function Footer() {
             </span>
           </div>
 
-          <div className="text-[10px] text-slate-400">
-            Без рекламы и проплаченных позиций
-          </div>
+          <div className="text-[10px] text-slate-400">Без рекламы и проплаченных позиций</div>
         </div>
       </div>
     </footer>

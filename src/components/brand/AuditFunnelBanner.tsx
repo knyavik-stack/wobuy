@@ -52,7 +52,8 @@ export function AuditFunnelBanner({
         itemsAnalyzed: 122,
         metricLabel: "Проверено спецификаций",
         metricValue: "122 товара",
-        verdictSummary: "Исключены карточки с недостоверными характеристиками, урезанной комплектацией и дефектами (15 шт.).",
+        verdictSummary:
+          "Исключены карточки с недостоверными характеристиками, урезанной комплектацией и дефектами (15 шт.).",
       },
       antiFakeAgent: {
         name: "Инспектор Анти-Фейк",
@@ -61,7 +62,8 @@ export function AuditFunnelBanner({
         itemsAnalyzed: 1950,
         metricLabel: "Просканировано отзывов",
         metricValue: "1 950 отзывов",
-        verdictSummary: "Выявлено и отсеяно 42 предложения с накрученными ботами, копипаст-отзывами и заказными 5★.",
+        verdictSummary:
+          "Выявлено и отсеяно 42 предложения с накрученными ботами, копипаст-отзывами и заказными 5★.",
       },
       tcoAgent: {
         name: "Финансовый инспектор TCO",
@@ -70,7 +72,8 @@ export function AuditFunnelBanner({
         itemsAnalyzed: 122,
         metricLabel: "Просчитано TCO-моделей",
         metricValue: "122 расчета TCO",
-        verdictSummary: "Отсеяно 36 перекупщиков с искусственно задранными ценами и фиктивными скидками до -90%.",
+        verdictSummary:
+          "Отсеяно 36 перекупщиков с искусственно задранными ценами и фиктивными скидками до -90%.",
       },
       skepticAgent: {
         name: "Агент Скептик (Арбитр)",
@@ -79,7 +82,8 @@ export function AuditFunnelBanner({
         itemsAnalyzed: 4,
         metricLabel: "Раундовых дуэлей",
         metricValue: "4 финалиста",
-        verdictSummary: "Отсеяно 25 предложений с задержками FBS (5-9 дней). На весы допущены только лидеры FBO (1-2 дня).",
+        verdictSummary:
+          "Отсеяно 25 предложений с задержками FBS (5-9 дней). На весы допущены только лидеры FBO (1-2 дня).",
       },
     },
   };
@@ -103,11 +107,13 @@ export function AuditFunnelBanner({
           <div className="flex items-center gap-2.5">
             <span className="flex h-2.5 w-2.5 rounded-full bg-[#00FF87] shadow-[0_0_8px_#00FF87]" />
             <span className="text-xs font-black uppercase tracking-wider text-white">
-              Воронка дуэли wobuy<NeonDot size="xs" />:
+              Воронка дуэли wobuy
+              <NeonDot size="xs" />:
             </span>
             <span className="text-xs text-slate-300">
               Проверено <strong className="text-purple-300">{wbScanned} на WB</strong> и{" "}
-              <strong className="text-blue-300">{ozonScanned} на Ozon</strong> ({totalScanned} всего)
+              <strong className="text-blue-300">{ozonScanned} на Ozon</strong> ({totalScanned}{" "}
+              всего)
             </span>
           </div>
 
@@ -143,23 +149,34 @@ export function AuditFunnelBanner({
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-2 text-center">
                 <div className="text-[10px] uppercase font-bold text-red-400">Накрутки отзывов</div>
-                <div className="mt-0.5 text-xs font-black text-white">-{breakdown.fakeReviewsOrBots} шт.</div>
+                <div className="mt-0.5 text-xs font-black text-white">
+                  -{breakdown.fakeReviewsOrBots} шт.
+                </div>
               </div>
               <div className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-2 text-center">
-                <div className="text-[10px] uppercase font-bold text-amber-400">Ценовые аномалии</div>
-                <div className="mt-0.5 text-xs font-black text-white">-{breakdown.priceAnomaliesOrGouging} шт.</div>
+                <div className="text-[10px] uppercase font-bold text-amber-400">
+                  Ценовые аномалии
+                </div>
+                <div className="mt-0.5 text-xs font-black text-white">
+                  -{breakdown.priceAnomaliesOrGouging} шт.
+                </div>
               </div>
               <div className="rounded-xl border border-blue-500/20 bg-blue-950/20 p-2 text-center">
                 <div className="text-[10px] uppercase font-bold text-blue-400">Долгая доставка</div>
-                <div className="mt-0.5 text-xs font-black text-white">-{breakdown.slowOrUnreliableDelivery} шт.</div>
+                <div className="mt-0.5 text-xs font-black text-white">
+                  -{breakdown.slowOrUnreliableDelivery} шт.
+                </div>
               </div>
               <div className="rounded-xl border border-purple-500/20 bg-purple-950/20 p-2 text-center">
                 <div className="text-[10px] uppercase font-bold text-purple-400">Брак и жалобы</div>
-                <div className="mt-0.5 text-xs font-black text-white">-{breakdown.lowRatingOrDefects} шт.</div>
+                <div className="mt-0.5 text-xs font-black text-white">
+                  -{breakdown.lowRatingOrDefects} шт.
+                </div>
               </div>
             </div>
             <p className="text-[11px] text-slate-400 italic">
-              Все 4 ИИ-агента wobuy. отсеяли посредственные предложения. На дуэльные весы допущены только 2 сильнейших товара с подтвержденной репутацией.
+              Все 4 ИИ-агента wobuy. отсеяли посредственные предложения. На дуэльные весы допущены
+              только 2 сильнейших товара с подтвержденной репутацией.
             </p>
           </div>
         )}
@@ -182,7 +199,8 @@ export function AuditFunnelBanner({
           <div className="flex flex-wrap items-center gap-2">
             <span className="flex h-3 w-3 rounded-full bg-[#00FF87] shadow-[0_0_10px_#00FF87]" />
             <h2 className="text-base font-black uppercase tracking-wider text-white sm:text-lg">
-              Честная воронка отбора wobuy<NeonDot size="sm" />
+              Честная воронка отбора wobuy
+              <NeonDot size="sm" />
             </h2>
             <span className="rounded-full border border-emerald-500/30 bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-[#00FF87]">
               100% прозрачность
@@ -190,7 +208,12 @@ export function AuditFunnelBanner({
           </div>
           <p className="mt-1 text-xs text-slate-300 sm:text-sm max-w-2xl">
             {query ? `По запросу «${query}»: ` : ""}
-            Синхронно просканировано <strong className="text-white">{totalScanned} предложений</strong>. Жесткие фильтры отсеяли <strong className="text-red-400">{totalScreenedOut} некачественных карточек</strong>, оставив только <strong className="text-[#00FF87]">{finalistsCount} абсолютных лидера</strong>.
+            Синхронно просканировано{" "}
+            <strong className="text-white">{totalScanned} предложений</strong>. Жесткие фильтры
+            отсеяли{" "}
+            <strong className="text-red-400">{totalScreenedOut} некачественных карточек</strong>,
+            оставив только{" "}
+            <strong className="text-[#00FF87]">{finalistsCount} абсолютных лидера</strong>.
           </p>
         </div>
 
@@ -262,7 +285,9 @@ export function AuditFunnelBanner({
               <ShieldAlert className="h-4 w-4 shrink-0" />
               <span>Накрутки ботов</span>
             </div>
-            <strong className="text-sm font-black text-white">-{breakdown.fakeReviewsOrBots}</strong>
+            <strong className="text-sm font-black text-white">
+              -{breakdown.fakeReviewsOrBots}
+            </strong>
           </div>
           <p className="mt-1.5 text-[11px] text-slate-300 leading-snug">
             Отсеяны за копипаст отзывов, заказные 5★ и фейковые фотографии покупателей.
@@ -275,7 +300,9 @@ export function AuditFunnelBanner({
               <TrendingDown className="h-4 w-4 shrink-0" />
               <span>Ценовой обман</span>
             </div>
-            <strong className="text-sm font-black text-white">-{breakdown.priceAnomaliesOrGouging}</strong>
+            <strong className="text-sm font-black text-white">
+              -{breakdown.priceAnomaliesOrGouging}
+            </strong>
           </div>
           <p className="mt-1.5 text-[11px] text-slate-300 leading-snug">
             Исключены наценки x3 от перекупщиков, фиктивные скидки -90% и чехлы вместо товаров.
@@ -288,7 +315,9 @@ export function AuditFunnelBanner({
               <Truck className="h-4 w-4 shrink-0" />
               <span>Срыв доставки</span>
             </div>
-            <strong className="text-sm font-black text-white">-{breakdown.slowOrUnreliableDelivery}</strong>
+            <strong className="text-sm font-black text-white">
+              -{breakdown.slowOrUnreliableDelivery}
+            </strong>
           </div>
           <p className="mt-1.5 text-[11px] text-slate-300 leading-snug">
             Отсеяны продавцы FBS со сроками от 6 дней и рисками повреждения при доставке.
@@ -301,7 +330,9 @@ export function AuditFunnelBanner({
               <SlidersHorizontal className="h-4 w-4 shrink-0" />
               <span>Скрытый брак</span>
             </div>
-            <strong className="text-sm font-black text-white">-{breakdown.lowRatingOrDefects}</strong>
+            <strong className="text-sm font-black text-white">
+              -{breakdown.lowRatingOrDefects}
+            </strong>
           </div>
           <p className="mt-1.5 text-[11px] text-slate-300 leading-snug">
             Отсеяны позиции с оценками ниже 4.4★ и регулярными жалобами на отказ в возврате.
@@ -314,7 +345,8 @@ export function AuditFunnelBanner({
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-[#00FF87]" />
           <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-            Сколько проверил каждый из 4 ИИ-агентов wobuy<NeonDot size="xs" />:
+            Сколько проверил каждый из 4 ИИ-агентов wobuy
+            <NeonDot size="xs" />:
           </span>
         </div>
 
@@ -324,7 +356,11 @@ export function AuditFunnelBanner({
           className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition"
         >
           <span>{isExpanded ? "Свернуть нагрузку агентов" : "Показать работу 4 экспертов"}</span>
-          {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {isExpanded ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
         </button>
       </div>
 
@@ -372,7 +408,9 @@ export function AuditFunnelBanner({
                     <h3 className="text-xs font-black uppercase text-purple-400">
                       {agentsWorkload.antiFakeAgent.name}
                     </h3>
-                    <p className="text-[10px] text-slate-400">{agentsWorkload.antiFakeAgent.role}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {agentsWorkload.antiFakeAgent.role}
+                    </p>
                   </div>
                 </div>
               </div>

@@ -22,7 +22,10 @@ export function normalizeQueryForMarketplace(rawQuery: string): string {
     "",
   );
   // Убираем лишние символы пунктуации
-  q = q.replace(/[«»""'']/g, " ").replace(/\s+/g, " ").trim();
+  q = q
+    .replace(/[«»""'']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return q || rawQuery.trim();
 }
 

@@ -329,9 +329,7 @@ export default function RegisterPage() {
                         </div>
                         <div
                           className={`flex items-center gap-1.5 ${
-                            passwordAnalysis.criteria.hasUpper
-                              ? "text-[#00FF87]"
-                              : "text-slate-500"
+                            passwordAnalysis.criteria.hasUpper ? "text-[#00FF87]" : "text-slate-500"
                           }`}
                         >
                           {passwordAnalysis.criteria.hasUpper ? (
@@ -343,9 +341,7 @@ export default function RegisterPage() {
                         </div>
                         <div
                           className={`flex items-center gap-1.5 ${
-                            passwordAnalysis.criteria.hasLower
-                              ? "text-[#00FF87]"
-                              : "text-slate-500"
+                            passwordAnalysis.criteria.hasLower ? "text-[#00FF87]" : "text-slate-500"
                           }`}
                         >
                           {passwordAnalysis.criteria.hasLower ? (

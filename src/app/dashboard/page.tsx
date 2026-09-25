@@ -87,7 +87,7 @@ export default async function DashboardPage() {
   const displayName =
     typeof user.user_metadata?.display_name === "string" && user.user_metadata.display_name.trim()
       ? user.user_metadata.display_name.trim()
-      : user.email?.split("@")[0] ?? "Пользователь";
+      : (user.email?.split("@")[0] ?? "Пользователь");
 
   const totalFavorites = favorites?.length ?? 0;
   const totalSearches = searches?.length ?? 0;
@@ -116,7 +116,8 @@ export default async function DashboardPage() {
                 Привет, <span className="text-[#00FF87]">{displayName}</span> 👋
               </h1>
               <p className="max-w-2xl text-xs leading-relaxed text-slate-400 sm:text-sm">
-                Твой персональный центр умного шопинга. Здесь собраны отслеживаемые товары, сохранённые поиски и история просмотров с нейроанализом цен.
+                Твой персональный центр умного шопинга. Здесь собраны отслеживаемые товары,
+                сохранённые поиски и история просмотров с нейроанализом цен.
               </p>
             </div>
 
@@ -205,7 +206,9 @@ export default async function DashboardPage() {
                       antiFakePercent: metrics.antiFakePercent,
                     };
                   })
-                  .filter((p) => !p.productId.startsWith("prod-") && !p.productId.startsWith("demo-"))}
+                  .filter(
+                    (p) => !p.productId.startsWith("prod-") && !p.productId.startsWith("demo-"),
+                  )}
               />
             </section>
 
@@ -246,7 +249,9 @@ export default async function DashboardPage() {
                       imageUrl: img,
                     };
                   })
-                  .filter((p) => !p.productId.startsWith("prod-") && !p.productId.startsWith("demo-"))}
+                  .filter(
+                    (p) => !p.productId.startsWith("prod-") && !p.productId.startsWith("demo-"),
+                  )}
               />
             </section>
           </div>
@@ -284,7 +289,8 @@ export default async function DashboardPage() {
                 <h3 className="font-extrabold text-white">Рекомендации wobuy.</h3>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                Нейросеть непрерывно мониторит маркетплейсы Wildberries и Ozon. Как только цена на сохранённый товар упадёт, мы подсветим лучшую сделку.
+                Нейросеть непрерывно мониторит маркетплейсы Wildberries и Ozon. Как только цена на
+                сохранённый товар упадёт, мы подсветим лучшую сделку.
               </p>
 
               <div className="mt-4 space-y-2">

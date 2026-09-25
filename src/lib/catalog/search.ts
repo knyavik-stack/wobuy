@@ -39,7 +39,8 @@ export function computeProductAiMetrics(
   const totalReviews = offers.reduce((acc, o) => acc + (o.reviewCount || 0), 0);
 
   const avgRating = validOffersWithRating.length
-    ? validOffersWithRating.reduce((a, b) => a + (b.rating || 4.7), 0) / validOffersWithRating.length
+    ? validOffersWithRating.reduce((a, b) => a + (b.rating || 4.7), 0) /
+      validOffersWithRating.length
     : 0;
 
   let aiScore: number;
@@ -48,7 +49,8 @@ export function computeProductAiMetrics(
 
   if (totalReviews > 0 && avgRating > 0) {
     aiScore = Number(Math.min(9.9, Math.max(7.5, (avgRating / 5) * 9.8)).toFixed(1));
-    antiFakePercent = totalReviews >= 500 ? 99 : totalReviews >= 100 ? 97 : totalReviews >= 10 ? 94 : 90;
+    antiFakePercent =
+      totalReviews >= 500 ? 99 : totalReviews >= 100 ? 97 : totalReviews >= 10 ? 94 : 90;
     aiTags = [
       `Анти-Фейк: ${antiFakePercent}%`,
       "Честная цена",
@@ -68,7 +70,8 @@ export function computeProductAiMetrics(
 
   const bestPrice = validPrices.length ? Math.min(...validPrices) : 2500;
   const maxPrice = validPrices.length ? Math.max(...validPrices) : bestPrice;
-  const discountPercent = maxPrice > bestPrice ? Math.round(((maxPrice - bestPrice) / maxPrice) * 100) : 12;
+  const discountPercent =
+    maxPrice > bestPrice ? Math.round(((maxPrice - bestPrice) / maxPrice) * 100) : 12;
 
   const sparkline = [
     Math.round(bestPrice * 1.15),
@@ -176,7 +179,10 @@ export function getStoredLiveProduct(id: string): SearchProduct | undefined {
 /**
  * Гарантированное разрешение товара по ID (исключает 404 ошибку, рассинхрон с поиском и подвисания)
  */
-export async function resolveProductById(id: string, fromQuery?: string): Promise<SearchProduct | null> {
+export async function resolveProductById(
+  id: string,
+  fromQuery?: string,
+): Promise<SearchProduct | null> {
   // 1. Проверяем локальный кэш (мгновенно)
   const stored = LIVE_PRODUCTS_STORE.get(id);
   if (stored) return stored;
@@ -196,7 +202,9 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
   if (fromQuery && fromQuery.trim()) {
     try {
       const searchPromise = searchProducts(fromQuery.trim());
-      const timeoutPromise = new Promise<SearchProduct[]>((resolve) => setTimeout(() => resolve([]), 2500));
+      const timeoutPromise = new Promise<SearchProduct[]>((resolve) =>
+        setTimeout(() => resolve([]), 2500),
+      );
       const searchResults = await Promise.race([searchPromise, timeoutPromise]);
 
       // Точное совпадение по ID
@@ -210,7 +218,8 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
       const digitsMatch = id.match(/\d{6,11}/);
       if (digitsMatch) {
         const matchedByDigits = searchResults.find(
-          (p) => p.id.includes(digitsMatch[0]) || p.offers.some((o) => o.id.includes(digitsMatch[0])),
+          (p) =>
+            p.id.includes(digitsMatch[0]) || p.offers.some((o) => o.id.includes(digitsMatch[0])),
         );
         if (matchedByDigits) {
           LIVE_PRODUCTS_STORE.set(id, matchedByDigits);
@@ -259,12 +268,9 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
 
       if (wbItem) {
         const category = inferCategoryFromTitle(wbItem.title);
-        const metrics = computeProductAiMetrics(
-          `wb-${wbItem.externalId}`,
-          category,
-          wbItem.brand,
-          [wbItem],
-        );
+        const metrics = computeProductAiMetrics(`wb-${wbItem.externalId}`, category, wbItem.brand, [
+          wbItem,
+        ]);
 
         const wbPrice = wbItem.price || 2400;
         const prod: SearchProduct = {
@@ -272,7 +278,8 @@ export async function resolveProductById(id: string, fromQuery?: string): Promis
           title: wbItem.title,
           brand: wbItem.brand,
           category,
-          description: wbItem.description || `Оригинальный товар «${wbItem.title}». Проверен ИИ wobuy.`,
+          description:
+            wbItem.description || `Оригинальный товар «${wbItem.title}». Проверен ИИ wobuy.`,
           imageUrl: wbItem.imageUrl,
           images: [wbItem.imageUrl],
           aiScore: metrics.aiScore,
@@ -441,9 +448,7 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
           "id, canonical_name, brand, category, description, image_url, product_offers(id, marketplace, title, url, price, currency, rating, review_count, delivery_text, availability)",
         )
         .eq("is_active", true)
-        .or(
-          `canonical_name.ilike.${pattern},brand.ilike.${pattern},category.ilike.${pattern}`,
-        )
+        .or(`canonical_name.ilike.${pattern},brand.ilike.${pattern},category.ilike.${pattern}`)
         .limit(20);
 
       if (!error && data && data.length > 0) {

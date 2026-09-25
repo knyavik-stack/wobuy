@@ -81,7 +81,10 @@ export function getWbImageUrl(nmId: number | string, imageIndex = 1): string {
 /**
  * Быстрая серверная верификация рабочего URL картинки с перебором соседних корзин
  */
-export async function resolveAccurateWbImageUrl(nmId: number | string, imageIndex = 1): Promise<string> {
+export async function resolveAccurateWbImageUrl(
+  nmId: number | string,
+  imageIndex = 1,
+): Promise<string> {
   const id = typeof nmId === "string" ? parseInt(nmId, 10) : nmId;
   if (isNaN(id) || id <= 0) return "";
 
@@ -133,8 +136,8 @@ export const WB_APP_HEADERS = {
   Accept: "*/*",
   "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
   "User-Agent": "Wildberries/4.10.0 (iPhone; iOS 17.4; Scale/3.00)",
-  "Origin": "https://www.wildberries.ru",
-  "Referer": "https://www.wildberries.ru/",
+  Origin: "https://www.wildberries.ru",
+  Referer: "https://www.wildberries.ru/",
 };
 
 export const WB_DEFAULT_HEADERS = WB_APP_HEADERS;

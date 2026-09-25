@@ -18,11 +18,7 @@ type FavoriteItem = {
   antiFakePercent: number;
 };
 
-export function DashboardFavoritesList({
-  initialFavorites,
-}: {
-  initialFavorites: FavoriteItem[];
-}) {
+export function DashboardFavoritesList({ initialFavorites }: { initialFavorites: FavoriteItem[] }) {
   const [items, setItems] = useState<FavoriteItem[]>(initialFavorites);
 
   const handleRemove = async (productId: string) => {
@@ -37,7 +33,8 @@ export function DashboardFavoritesList({
         <Heart className="mx-auto h-8 w-8 text-slate-600" />
         <h4 className="mt-3 text-sm font-bold text-white">Список избранного пуст</h4>
         <p className="mt-1 text-xs text-slate-400">
-          Нажимай на иконку сердечка на карточке любого товара, чтобы следить за динамикой цены и скидками.
+          Нажимай на иконку сердечка на карточке любого товара, чтобы следить за динамикой цены и
+          скидками.
         </p>
         <Link
           href="/search"
@@ -80,7 +77,9 @@ export function DashboardFavoritesList({
               <div>
                 <div className="flex items-center justify-between gap-1 text-[10px] font-bold text-slate-400">
                   <span className="truncate text-[#00FF87]">{item.brand}</span>
-                  <span className="shrink-0">{new Date(item.createdAt).toLocaleDateString("ru-RU")}</span>
+                  <span className="shrink-0">
+                    {new Date(item.createdAt).toLocaleDateString("ru-RU")}
+                  </span>
                 </div>
                 <Link
                   href={`/product/${item.productId}`}

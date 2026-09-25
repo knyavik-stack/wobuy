@@ -26,8 +26,8 @@ export function MarketplaceBadge({
           size === "sm"
             ? "px-2 py-0.5 text-[10px]"
             : size === "md"
-            ? "px-2.5 py-1 text-xs"
-            : "px-3 py-1.5 text-sm"
+              ? "px-2.5 py-1 text-xs"
+              : "px-3 py-1.5 text-sm"
         } ${className}`}
       >
         <div className="flex h-3.5 w-3.5 items-center justify-center rounded-sm bg-gradient-to-br from-[#cb11ab] to-[#481173] text-[9px] font-black leading-none text-white shadow-xs">
@@ -45,8 +45,8 @@ export function MarketplaceBadge({
           size === "sm"
             ? "px-2 py-0.5 text-[10px]"
             : size === "md"
-            ? "px-2.5 py-1 text-xs"
-            : "px-3 py-1.5 text-sm"
+              ? "px-2.5 py-1 text-xs"
+              : "px-3 py-1.5 text-sm"
         } ${className}`}
       >
         <div className="flex h-3.5 w-3.5 items-center justify-center rounded-sm bg-gradient-to-br from-[#005bff] to-[#0040b3] text-[9px] font-black leading-none text-white shadow-xs">
@@ -63,8 +63,8 @@ export function MarketplaceBadge({
         size === "sm"
           ? "px-2 py-0.5 text-[10px]"
           : size === "md"
-          ? "px-2.5 py-1 text-xs"
-          : "px-3 py-1.5 text-sm"
+            ? "px-2.5 py-1 text-xs"
+            : "px-3 py-1.5 text-sm"
       } ${className}`}
     >
       <div className="flex h-3.5 w-3.5 items-center justify-center rounded-sm bg-white/20 text-[9px] font-bold text-white">

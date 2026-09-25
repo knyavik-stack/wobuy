@@ -37,10 +37,13 @@
 ---
 
 ## 🧪 Проверка работы API:
+
 ```bash
 curl "https://your-service-url/search?q=лопата+для+снега"
 ```
+
 Ответ:
+
 ```json
 {
   "status": "ok",

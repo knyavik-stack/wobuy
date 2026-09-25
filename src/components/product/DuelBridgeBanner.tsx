@@ -12,11 +12,7 @@ interface DuelBridgeBannerProps {
   productTitle?: string;
 }
 
-export function DuelBridgeBanner({
-  duelData,
-  currentPrice,
-  productTitle,
-}: DuelBridgeBannerProps) {
+export function DuelBridgeBanner({ duelData, currentPrice, productTitle }: DuelBridgeBannerProps) {
   if (!duelData || !duelData.hasMatchingSku) {
     return null;
   }
@@ -51,9 +47,7 @@ export function DuelBridgeBanner({
             </span>
           </div>
 
-          <p className="text-sm font-semibold leading-relaxed text-slate-100">
-            {duelData.verdict}
-          </p>
+          <p className="text-sm font-semibold leading-relaxed text-slate-100">{duelData.verdict}</p>
 
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
             <div className="flex items-center gap-1.5">
@@ -69,7 +63,9 @@ export function DuelBridgeBanner({
             </div>
             <span>•</span>
             <span className={isAltCheaper ? "text-emerald-400 font-bold" : "text-slate-300"}>
-              {isAltCheaper ? `Выгода ${absDiff.toLocaleString("ru-RU")} ₽` : `Дороже на ${absDiff.toLocaleString("ru-RU")} ₽`}
+              {isAltCheaper
+                ? `Выгода ${absDiff.toLocaleString("ru-RU")} ₽`
+                : `Дороже на ${absDiff.toLocaleString("ru-RU")} ₽`}
             </span>
           </div>
         </div>

@@ -60,115 +60,117 @@ export function MarketplaceComparisonCard({
         {items
           .filter((i) => i.marketplace === "wildberries" || i.marketplace === "ozon")
           .map((item, idx) => {
-          const isBest = item.isRecommended || (item.price !== null && item.price === minPrice);
+            const isBest = item.isRecommended || (item.price !== null && item.price === minPrice);
 
-          return (
-            <div
-              key={idx}
-              className={`relative flex flex-col justify-between rounded-2xl border p-5 transition duration-200 ${
-                isBest
-                  ? "border-[#00FF87] bg-emerald-950/25 shadow-[0_0_25px_rgba(0,255,135,0.2)] ring-1 ring-[#00FF87]/30"
-                  : "border-white/10 bg-[#0D0F14] hover:border-white/20"
-              }`}
-            >
-              {isBest && (
-                <div className="absolute -top-3 right-4 rounded-full bg-[#00FF87] px-3.5 py-1 text-[11px] font-black uppercase tracking-wider text-black shadow-lg">
-                  🏆 Победитель дуэли
-                </div>
-              )}
+            return (
+              <div
+                key={idx}
+                className={`relative flex flex-col justify-between rounded-2xl border p-5 transition duration-200 ${
+                  isBest
+                    ? "border-[#00FF87] bg-emerald-950/25 shadow-[0_0_25px_rgba(0,255,135,0.2)] ring-1 ring-[#00FF87]/30"
+                    : "border-white/10 bg-[#0D0F14] hover:border-white/20"
+                }`}
+              >
+                {isBest && (
+                  <div className="absolute -top-3 right-4 rounded-full bg-[#00FF87] px-3.5 py-1 text-[11px] font-black uppercase tracking-wider text-black shadow-lg">
+                    🏆 Победитель дуэли
+                  </div>
+                )}
 
-              <div className="space-y-4">
-                {/* Маркетплейс + Оценка маркетплейса */}
-                <div className="flex items-center justify-between">
-                  <MarketplaceBadge marketplace={item.marketplace} size="md" showLabel={true} />
-                  {item.reviewsCount > 0 ? (
-                    <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-amber-400">
-                      <Star className="h-3 w-3 fill-amber-400" />
-                      <span>{item.rating.toFixed(1)}</span>
-                      <span className="text-[10px] font-normal text-slate-400">
-                        ({item.reviewsCount.toLocaleString("ru-RU")})
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-400">
-                      {item.price ? "Новинка" : "Поиск"}
-                    </div>
-                  )}
-                </div>
-
-                {/* Цена */}
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-2xl font-black ${isBest ? "text-[#00FF87]" : item.price ? "text-white" : "text-slate-400 text-lg"}`}>
-                    {item.price ? formatPrice(item.price, currency) : "Поиск аналогов"}
-                  </span>
-                  {isBest && item.price ? (
-                    <span className="rounded-md bg-[#00FF87]/20 px-2 py-0.5 text-[11px] font-bold text-[#00FF87]">
-                      Лучшая цена
-                    </span>
-                  ) : item.price && minPrice > 0 ? (
-                    <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
-                      +{formatPrice(item.price - minPrice, currency)}
-                    </span>
-                  ) : null}
-                </div>
-
-                {/* Вердикт агента по данному маркетплейсу */}
-                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-slate-300">
-                  <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    {isBest ? (
-                      <>
-                        <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" />
-                        <span className="text-[#00FF87]">Аудит маркетплейса:</span>
-                      </>
+                <div className="space-y-4">
+                  {/* Маркетплейс + Оценка маркетплейса */}
+                  <div className="flex items-center justify-between">
+                    <MarketplaceBadge marketplace={item.marketplace} size="md" showLabel={true} />
+                    {item.reviewsCount > 0 ? (
+                      <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs font-bold text-amber-400">
+                        <Star className="h-3 w-3 fill-amber-400" />
+                        <span>{item.rating.toFixed(1)}</span>
+                        <span className="text-[10px] font-normal text-slate-400">
+                          ({item.reviewsCount.toLocaleString("ru-RU")})
+                        </span>
+                      </div>
                     ) : (
-                      <>
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-                        <span className="text-amber-300">Особенности площадки:</span>
-                      </>
+                      <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-400">
+                        {item.price ? "Новинка" : "Поиск"}
+                      </div>
                     )}
                   </div>
-                  <p className="text-slate-300 text-xs">{item.verdictDetail}</p>
-                </div>
 
-                {/* Характеристики доставки и возврата */}
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-start gap-2 text-slate-300">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
-                    <div>
-                      <span className="text-slate-400">Доставка: </span>
-                      <strong className="text-white">{item.delivery}</strong>
-                    </div>
+                  {/* Цена */}
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className={`text-2xl font-black ${isBest ? "text-[#00FF87]" : item.price ? "text-white" : "text-slate-400 text-lg"}`}
+                    >
+                      {item.price ? formatPrice(item.price, currency) : "Поиск аналогов"}
+                    </span>
+                    {isBest && item.price ? (
+                      <span className="rounded-md bg-[#00FF87]/20 px-2 py-0.5 text-[11px] font-bold text-[#00FF87]">
+                        Лучшая цена
+                      </span>
+                    ) : item.price && minPrice > 0 ? (
+                      <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">
+                        +{formatPrice(item.price - minPrice, currency)}
+                      </span>
+                    ) : null}
                   </div>
 
-                  <div className="flex items-start gap-2 text-slate-300">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
-                    <div>
-                      <span className="text-slate-400">Возврат: </span>
-                      <span>{item.returnPolicy}</span>
+                  {/* Вердикт агента по данному маркетплейсу */}
+                  <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs leading-relaxed text-slate-300">
+                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      {isBest ? (
+                        <>
+                          <ShieldCheck className="h-3.5 w-3.5 text-[#00FF87]" />
+                          <span className="text-[#00FF87]">Аудит маркетплейса:</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                          <span className="text-amber-300">Особенности площадки:</span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-slate-300 text-xs">{item.verdictDetail}</p>
+                  </div>
+
+                  {/* Характеристики доставки и возврата */}
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-start gap-2 text-slate-300">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
+                      <div>
+                        <span className="text-slate-400">Доставка: </span>
+                        <strong className="text-white">{item.delivery}</strong>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 text-slate-300">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#00FF87]" />
+                      <div>
+                        <span className="text-slate-400">Возврат: </span>
+                        <span>{item.returnPolicy}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Кнопка перехода с прямым диплинком на карточку маркетплейса */}
-              <div className="mt-5">
-                <a
-                  href={sanitizeMarketplaceOfferUrl(item.marketplace, item.url, item.name)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-extrabold transition ${
-                    isBest && item.price
-                      ? "bg-[#00FF87] text-black shadow-[0_0_15px_rgba(0,255,135,0.4)] hover:bg-[#00E576]"
-                      : "border border-white/15 bg-white/5 text-white hover:border-[#00FF87]/50 hover:bg-white/10"
-                  }`}
-                >
-                  <span>{item.price ? `Купить на ${item.name}` : `Искать на ${item.name}`}</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                {/* Кнопка перехода с прямым диплинком на карточку маркетплейса */}
+                <div className="mt-5">
+                  <a
+                    href={sanitizeMarketplaceOfferUrl(item.marketplace, item.url, item.name)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`flex h-11 w-full items-center justify-center gap-2 rounded-full text-xs font-extrabold transition ${
+                      isBest && item.price
+                        ? "bg-[#00FF87] text-black shadow-[0_0_15px_rgba(0,255,135,0.4)] hover:bg-[#00E576]"
+                        : "border border-white/15 bg-white/5 text-white hover:border-[#00FF87]/50 hover:bg-white/10"
+                    }`}
+                  >
+                    <span>{item.price ? `Купить на ${item.name}` : `Искать на ${item.name}`}</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
     </section>
   );

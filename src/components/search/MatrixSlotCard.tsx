@@ -119,12 +119,7 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
           </div>
 
           <div className="flex items-center gap-2">
-            <NeonScoreCircle
-              score={aiScore}
-              size="sm"
-              label="БАЛЛ"
-              glowColor={scoreGlow}
-            />
+            <NeonScoreCircle score={aiScore} size="sm" label="БАЛЛ" glowColor={scoreGlow} />
           </div>
         </div>
       </div>
@@ -199,9 +194,7 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
             </div>
 
             {/* Краткий вердикт ИИ */}
-            <p className="mt-2.5 text-xs text-slate-300 line-clamp-2">
-              {aiVerdict}
-            </p>
+            <p className="mt-2.5 text-xs text-slate-300 line-clamp-2">{aiVerdict}</p>
           </div>
 
           {/* Кнопка раскрытия "Почему этот выбор?" */}
@@ -261,7 +254,10 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
               <div className="mt-2 border-t border-white/5 pt-2 text-[11px] text-slate-400">
                 <span>Базовая цена: {tcoBreakdown.basePrice} ₽</span>
                 {tcoBreakdown.loyaltyDiscount > 0 && (
-                  <span className="text-emerald-400"> • Скидка по карте: -{tcoBreakdown.loyaltyDiscount} ₽</span>
+                  <span className="text-emerald-400">
+                    {" "}
+                    • Скидка по карте: -{tcoBreakdown.loyaltyDiscount} ₽
+                  </span>
                 )}
               </div>
             </div>
@@ -295,7 +291,8 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
           >
             <span>Разбор в</span>
             <span className="inline-flex items-baseline font-black text-white transition-colors group-hover/btn:text-black">
-              wobuy<NeonDot size="xs" />
+              wobuy
+              <NeonDot size="xs" />
             </span>
           </Link>
         </div>

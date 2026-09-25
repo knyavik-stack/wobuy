@@ -24,7 +24,9 @@ export function ProductGallery({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-  const validImages = images.filter((img) => img && typeof img === "string" && img.startsWith("http"));
+  const validImages = images.filter(
+    (img) => img && typeof img === "string" && img.startsWith("http"),
+  );
   const galleryImages = validImages.length > 0 ? validImages : [];
   const activeImage = galleryImages[currentIndex] || "";
 
@@ -71,7 +73,9 @@ export function ProductGallery({
 
   if (isCompact) {
     return (
-      <div className={`group/gallery relative flex h-44 w-full items-center justify-center overflow-hidden rounded-2xl bg-[#0D0F14] sm:h-40 sm:w-40 sm:shrink-0 ${className}`}>
+      <div
+        className={`group/gallery relative flex h-44 w-full items-center justify-center overflow-hidden rounded-2xl bg-[#0D0F14] sm:h-40 sm:w-40 sm:shrink-0 ${className}`}
+      >
         {/* Фотография или видеофайл */}
         {activeImage ? (
           isVideoMedia(activeImage) ? (

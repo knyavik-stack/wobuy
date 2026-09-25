@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Loader2, Save, User, Mail, Shield, KeyRound, ExternalLink } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Save,
+  User,
+  Mail,
+  Shield,
+  KeyRound,
+  ExternalLink,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -125,10 +134,12 @@ export default function ProfileSettings({
 
           <div className="mt-4 space-y-2 text-xs leading-relaxed text-slate-400">
             <p>
-              Авторизация и сессии защищены сквозным шифрованием через Supabase Auth и протокол OAuth 2.0.
+              Авторизация и сессии защищены сквозным шифрованием через Supabase Auth и протокол
+              OAuth 2.0.
             </p>
             <p className="text-slate-500">
-              Для смены текущего пароля или восстановления доступа перейди в форму сброса: на твою почту придёт защищённая одноразовая ссылка.
+              Для смены текущего пароля или восстановления доступа перейди в форму сброса: на твою
+              почту придёт защищённая одноразовая ссылка.
             </p>
           </div>
         </div>

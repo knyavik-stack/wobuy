@@ -92,7 +92,9 @@ export function NeonScoreCircle({
   const center = dimensions.svgSize / 2;
 
   return (
-    <div className={`relative inline-flex shrink-0 flex-col items-center justify-center ${className}`}>
+    <div
+      className={`relative inline-flex shrink-0 flex-col items-center justify-center ${className}`}
+    >
       <div
         className="relative flex items-center justify-center"
         style={{ width: dimensions.svgSize, height: dimensions.svgSize }}
