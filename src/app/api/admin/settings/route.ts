@@ -5,6 +5,8 @@ import {
   updateFeatureFlags,
   getSystemSettings,
   updateSystemSettings,
+  getSeoSettings,
+  updateSeoSettings,
 } from "@/lib/admin/settings-store";
 import { getOzonProxyInfo } from "@/lib/parsers/ozon";
 import { secureLogger } from "@/lib/utils/secure-logger";
@@ -17,12 +19,14 @@ export async function GET(req: NextRequest) {
 
   const featureFlags = getFeatureFlags();
   const systemSettings = getSystemSettings();
+  const seoSettings = getSeoSettings();
   const proxyInfo = getOzonProxyInfo();
 
   return NextResponse.json({
     success: true,
     featureFlags,
     systemSettings,
+    seoSettings,
     proxyInfo,
   });
 }
@@ -59,6 +63,15 @@ export async function POST(req: NextRequest) {
         success: true,
         message: "Системные настройки успешно обновлены.",
         systemSettings: updatedSettings,
+      });
+    }
+
+    if (type === "seo_settings") {
+      const updatedSeo = updateSeoSettings(updates, admin.username);
+      return NextResponse.json({
+        success: true,
+        message: "Настройки SEO и индексации успешно сохранены и применены.",
+        seoSettings: updatedSeo,
       });
     }
 

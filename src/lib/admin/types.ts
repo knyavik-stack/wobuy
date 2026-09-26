@@ -30,6 +30,25 @@ export interface SystemSettings {
   contactSupportEmail: string;
 }
 
+export interface SeoSettings {
+  siteName: string;
+  defaultTitle: string;
+  titleTemplate: string;
+  defaultDescription: string;
+  siteKeywords: string;
+  canonicalBaseUrl: string;
+  ogImageUrl: string;
+  twitterCardType: "summary_large_image" | "summary";
+  robotsIndexing: "index, follow" | "noindex, nofollow" | "noindex, follow";
+  sitemapEnabled: boolean;
+  jsonLdEnabled: boolean;
+  catalogTitlePattern: string;
+  productTitlePattern: string;
+  yandexVerification: string;
+  googleVerification: string;
+  customHeadSnippet?: string;
+}
+
 export interface AuditLogEntry {
   id: string;
   timestamp: string;

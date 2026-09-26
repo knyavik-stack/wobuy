@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { secureLogger } from "@/lib/utils/secure-logger";
+import { getFeatureFlags, getSystemSettings } from "@/lib/admin/settings-store";
 
 interface AnalyzeRequestBody {
   productTitle: string;
@@ -12,10 +13,21 @@ interface AnalyzeRequestBody {
 }
 
 export async function POST(req: NextRequest) {
-  // Защита от спама и DDoS (макс. 30 запросов в минуту на IP)
-  const rateLimit = checkRateLimit(req, { limit: 30, windowMs: 60_000 }, "ai-analyze");
+  const flags = getFeatureFlags();
+  const settings = getSystemSettings();
+
+  if (!flags.enableAiAgents) {
+    return NextResponse.json(
+      { error: "ИИ-агенты временно отключены в настройках платформы." },
+      { status: 503 },
+    );
+  }
+
+  // Защита от спама и DDoS с динамическим лимитом из админки
+  const aiLimit = settings.rateLimitAi || 30;
+  const rateLimit = checkRateLimit(req, { limit: aiLimit, windowMs: 60_000 }, "ai-analyze");
   if (!rateLimit.allowed && rateLimit.response) {
-    secureLogger.warn("Превышен лимит запросов к AI анализу", { remaining: rateLimit.remaining });
+    secureLogger.warn("Превышен лимит запросов к AI анализу", { limit: aiLimit, remaining: rateLimit.remaining });
     return rateLimit.response;
   }
 
@@ -38,9 +50,12 @@ export async function POST(req: NextRequest) {
       category: sanitizedCategory,
     });
 
+    const minAntiFake = settings.minAntiFakePercent || 85;
+
     const systemPrompt = `Ты — ядро 4 ИИ-агентов платформы wobuy. (сервис честного и осознанного выбора товаров на маркетплейсах РФ).
 Твоя задача — проанализировать товар и сгенерировать объективный честный разбор по 4 архетипам покупателей на чистом русском языке.
 Не используй рекламных штампов и клише. Пиши строго по фактам.
+Базовый порог анти-фейк для проверенных оригиналов: от ${minAntiFake}%.
 
 Формат ответа — строго валидный JSON без markdown-тегов:
 {

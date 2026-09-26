@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { searchWildberries, getWildberriesProductDetail } from "@/lib/parsers/wildberries";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { secureLogger } from "@/lib/utils/secure-logger";
+import { getFeatureFlags, getSystemSettings } from "@/lib/admin/settings-store";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +11,20 @@ export const dynamic = "force-dynamic";
  * GET /api/parse/wb?query=...&article=...&debug=1
  */
 export async function GET(req: NextRequest) {
-  const rateLimit = checkRateLimit(req, { limit: 40, windowMs: 60_000 }, "parse-wb");
+  const flags = getFeatureFlags();
+  const settings = getSystemSettings();
+
+  if (!flags.enableWildberriesParser) {
+    return NextResponse.json(
+      { error: "Парсер Wildberries временно отключен в кабинете администратора." },
+      { status: 503 },
+    );
+  }
+
+  const parserLimit = settings.rateLimitParsers || 40;
+  const rateLimit = checkRateLimit(req, { limit: parserLimit, windowMs: 60_000 }, "parse-wb");
   if (!rateLimit.allowed && rateLimit.response) {
-    secureLogger.warn("Превышен лимит запросов к парсеру Wildberries");
+    secureLogger.warn("Превышен лимит запросов к парсеру Wildberries", { limit: parserLimit });
     return rateLimit.response;
   }
 
@@ -60,23 +72,16 @@ export async function GET(req: NextRequest) {
       count: products.length,
       tookMs: Date.now() - startTime,
       products,
-      ...(debug
+      diagnostic: debug
         ? {
-            diagnostic: {
-              hasProducts: products.length > 0,
-              firstProduct: products[0] || null,
-            },
+            mode: "web-search-with-cdn-resolve",
+            hasResults: products.length > 0,
+            hasRealImages: products.some((p) => p.imageUrl && p.imageUrl.includes("wbbasket.ru")),
           }
-        : {}),
+        : undefined,
     });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: (err as Error)?.message || "Ошибка парсинга Wildberries",
-        tookMs: Date.now() - startTime,
-      },
-      { status: 500 },
-    );
+  } catch (err) {
+    secureLogger.error("Ошибка при поиске на Wildberries:", err);
+    return NextResponse.json({ error: "Ошибка при поиске на Wildberries" }, { status: 500 });
   }
 }

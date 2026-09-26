@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -28,6 +29,63 @@ import { DeliveryAnalysisCard } from "@/components/analytics/DeliveryAnalysisCar
 import { PriceHistoryCard } from "@/components/analytics/PriceHistoryCard";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
 import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
+import { getSeoSettings, getFeatureFlags } from "@/lib/admin/settings-store";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const seo = getSeoSettings();
+  const product = await resolveProductById(id);
+
+  if (!product) {
+    return {
+      title: "Товар не найден | wobuy.",
+      description: "Запрашиваемый товар не найден в каталоге wobuy.",
+    };
+  }
+
+  const validPrices = product.offers
+    .map((o) => o.price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+  const minPrice = validPrices.length ? Math.min(...validPrices) : 0;
+  const formattedPrice = minPrice > 0 ? `${minPrice.toLocaleString("ru-RU")} ₽` : "";
+
+  const titlePattern = seo.productTitlePattern || "{title} — купить по честной цене | wobuy.";
+  const dynamicTitle = titlePattern
+    .replace(/\{title\}/g, product.title || "")
+    .replace(/\{brand\}/g, product.brand || "")
+    .replace(/\{price\}/g, formattedPrice);
+
+  const description = product.description
+    ? product.description.slice(0, 160)
+    : `Купить ${product.title} ${product.brand ? `бренда ${product.brand}` : ""} по честной цене ${formattedPrice}. Сравнение предложений на маркетплейсах, честный анализ отзывов ИИ на wobuy.`;
+
+  const canonicalUrl = `${(seo.canonicalBaseUrl || "https://wobuy.ru").replace(/\/+$/, "")}/product/${product.id}`;
+
+  return {
+    title: dynamicTitle,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      type: "website",
+      title: dynamicTitle,
+      description,
+      url: canonicalUrl,
+      images: product.imageUrl ? [{ url: product.imageUrl, alt: product.title }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: dynamicTitle,
+      description,
+      images: product.imageUrl ? [product.imageUrl] : [],
+    },
+  };
+}
 
 function formatPrice(price: number | null, currency: string) {
   if (price === null) return "от 2 450 ₽";
@@ -119,6 +177,52 @@ export default async function ProductPage({
   const bestOffer = sortedOffers[0];
   const bestPrice = (urlPrice || bestOffer?.price) ?? null;
   const currency = bestOffer?.currency || "RUB";
+
+  const flags = getFeatureFlags();
+  const seo = getSeoSettings();
+
+  const validPrices = offers
+    .map((o) => o.price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+  const maxPrice = validPrices.length ? Math.max(...validPrices) : (bestPrice || 2500);
+
+  const productJsonLd = seo.jsonLdEnabled
+    ? {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": resolved.title,
+        "image": resolved.imageUrl ? [resolved.imageUrl] : [],
+        "description": resolved.description || resolved.title,
+        "brand": {
+          "@type": "Brand",
+          "name": resolved.brand || "wobuy.",
+        },
+        "offers": {
+          "@type": "AggregateOffer",
+          "url": `${(seo.canonicalBaseUrl || "https://wobuy.ru").replace(/\/+$/, "")}/product/${resolved.id}`,
+          "priceCurrency": currency,
+          "lowPrice": bestPrice || 2500,
+          "highPrice": maxPrice,
+          "offerCount": offers.length || 1,
+          "offers": offers.map((o) => ({
+            "@type": "Offer",
+            "price": o.price || bestPrice || 2500,
+            "priceCurrency": o.currency || currency,
+            "url": o.url,
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@type": "Organization",
+              "name": o.marketplace,
+            },
+          })),
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": bestOffer?.rating || 4.8,
+          "reviewCount": bestOffer?.reviewCount || 100,
+        },
+      }
+    : null;
 
   // Считываем контекст триумфатора из модели товара или параметров URL
   const triumphData =
@@ -599,26 +703,30 @@ export default async function ProductPage({
         </section>
 
         {/* БЛОК: КАЛЬКУЛЯТОР ЧЕСТНОЙ СТОИМОСТИ ПОКУПКИ (TCO) — РАСТЯНУТ ПО ГОРИЗОНТАЛИ */}
-        <div className="mt-8">
-          <TcoCalculatorCard
-            tco={analysis?.tcoBreakdown}
-            currency={currency}
-            brand={resolved.brand}
-          />
-        </div>
+        {flags.enableTcoCalculator && (
+          <div className="mt-8">
+            <TcoCalculatorCard
+              tco={analysis?.tcoBreakdown}
+              currency={currency}
+              brand={resolved.brand}
+            />
+          </div>
+        )}
 
         {/* СЕКЦИЯ: ОБЪЕДИНЕННЫЙ МУЛЬТИАГЕНТНЫЙ АУДИТ 4 ИИ-ЭКСПЕРТОВ (КОНФЛИКТ ИНТЕРЕСОВ + НЕОНОВЫЕ КРУГИ) */}
-        <section className="mt-8">
-          <UnifiedAgentsAudit
-            perspectives={analysis?.perspectives}
-            dialogue={analysis?.agentsDialogue}
-            avgScore={aggregateScore}
-            finalVerdict={analysis?.verdict || "Рекомендовано к покупке"}
-            recommendedMarketplace={winnerMarketplaceName}
-            funnelStats={analysis?.funnelStats}
-            productTitle={resolved.title}
-          />
-        </section>
+        {flags.enableAiAgents && (
+          <section className="mt-8">
+            <UnifiedAgentsAudit
+              perspectives={analysis?.perspectives}
+              dialogue={analysis?.agentsDialogue}
+              avgScore={aggregateScore}
+              finalVerdict={analysis?.verdict || "Рекомендовано к покупке"}
+              recommendedMarketplace={winnerMarketplaceName}
+              funnelStats={analysis?.funnelStats}
+              productTitle={resolved.title}
+            />
+          </section>
+        )}
 
         {/* 3 АНАЛИТИЧЕСКИХ МОДУЛЯ: Семантика отзывов, Доставка со складов, Детектор манипуляций с ценой */}
         <section className="mt-8 space-y-6">
@@ -656,6 +764,14 @@ export default async function ProductPage({
           <FomoAlternativesDrawer alternatives={analysis?.fomoAlternatives} />
         </section>
       </main>
+
+      {/* Schema.org Product JSON-LD */}
+      {productJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        />
+      )}
 
       {/* Мобильная нижняя панель навигации */}
       <MobileBottomNav />

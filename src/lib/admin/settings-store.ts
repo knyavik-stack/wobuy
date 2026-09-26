@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { FeatureFlags, SystemSettings, AuditLogEntry, AnalyticsSummary } from "./types";
+import { FeatureFlags, SystemSettings, SeoSettings, AuditLogEntry, AnalyticsSummary } from "./types";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
@@ -31,9 +31,30 @@ const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   contactSupportEmail: "support@wobuy.ru",
 };
 
+// Дефолтные настройки SEO и индексации
+export const DEFAULT_SEO_SETTINGS: SeoSettings = {
+  siteName: "wobuy.",
+  defaultTitle: "wobuy. — Умный поиск и честное сравнение цен на маркетплейсах",
+  titleTemplate: "%s | wobuy.",
+  defaultDescription: "wobuy. — ИИ-помощник для поиска, сравнения цен и выбора лучших предложений на Wildberries и Ozon. 100% честные цены, анти-фейк анализ и умная доставка.",
+  siteKeywords: "wobuy, поиск товаров, сравнение цен, wildberries, ozon, маркетплейсы, честные отзывы, анти фейк, искусственный интеллект, умный шопинг",
+  canonicalBaseUrl: process.env.NEXT_PUBLIC_APP_URL || "https://wobuy.ru",
+  ogImageUrl: "/og-preview.png",
+  twitterCardType: "summary_large_image",
+  robotsIndexing: "index, follow",
+  sitemapEnabled: true,
+  jsonLdEnabled: true,
+  catalogTitlePattern: "{query} — купить по выгодной цене | wobuy.",
+  productTitlePattern: "{title} — купить по честной цене со скидкой | wobuy.",
+  yandexVerification: "",
+  googleVerification: "",
+  customHeadSnippet: "",
+};
+
 // In-memory состояние для сверхбыстрого доступа
 let cachedFeatureFlags: FeatureFlags = { ...DEFAULT_FEATURE_FLAGS };
 let cachedSystemSettings: SystemSettings = { ...DEFAULT_SYSTEM_SETTINGS };
+let cachedSeoSettings: SeoSettings = { ...DEFAULT_SEO_SETTINGS };
 const auditLogsStore: AuditLogEntry[] = [];
 const searchAnalyticsStore: Array<{ query: string; timestamp: string; tookMs: number; resultsCount: number }> = [];
 
@@ -53,6 +74,9 @@ function loadPersistedSettings() {
       }
       if (parsed.systemSettings) {
         cachedSystemSettings = { ...DEFAULT_SYSTEM_SETTINGS, ...parsed.systemSettings };
+      }
+      if (parsed.seoSettings) {
+        cachedSeoSettings = { ...DEFAULT_SEO_SETTINGS, ...parsed.seoSettings };
       }
     }
   } catch (err) {
@@ -75,6 +99,7 @@ function persistSettingsToFile() {
     const payload = {
       featureFlags: cachedFeatureFlags,
       systemSettings: cachedSystemSettings,
+      seoSettings: cachedSeoSettings,
       updatedAt: new Date().toISOString(),
     };
     fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(payload, null, 2), "utf-8");
@@ -131,6 +156,31 @@ export function updateSystemSettings(updates: Partial<SystemSettings>, adminUser
   });
 
   return { ...cachedSystemSettings };
+}
+
+/**
+ * Получить настройки SEO
+ */
+export function getSeoSettings(): SeoSettings {
+  return { ...cachedSeoSettings };
+}
+
+/**
+ * Обновить настройки SEO
+ */
+export function updateSeoSettings(updates: Partial<SeoSettings>, adminUsername = "admin"): SeoSettings {
+  cachedSeoSettings = { ...cachedSeoSettings, ...updates };
+  persistSettingsToFile();
+
+  addAuditLog({
+    adminUsername,
+    action: "UPDATE_SEO_SETTINGS",
+    details: updates as Record<string, unknown>,
+    ipAddress: "internal",
+    status: "success",
+  });
+
+  return { ...cachedSeoSettings };
 }
 
 /**

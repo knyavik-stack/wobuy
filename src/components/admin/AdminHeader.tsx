@@ -13,6 +13,7 @@ import {
   FileText,
   ExternalLink,
   RefreshCw,
+  Globe,
 } from "lucide-react";
 import { AdminUser } from "@/lib/admin/types";
 
@@ -44,6 +45,7 @@ export function AdminHeader({
     { id: "analytics", label: "Аналитика", icon: BarChart3 },
     { id: "users", label: "Пользователи", icon: Users },
     { id: "flags", label: "Функции сайта", icon: ToggleLeft },
+    { id: "seo", label: "SEO и Индексация", icon: Globe },
     { id: "settings", label: "Настройки и Защита", icon: Sliders },
     { id: "logs", label: "Журнал аудита", icon: FileText },
   ];

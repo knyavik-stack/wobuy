@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-09-26 (Дополнение 15: Полная интеграция настроек админки на живом сайте и динамический SEO-движок)
+
+- **Динамический SEO-движок и вкладка в Кабинете Администратора (`src/components/admin/AdminSeoTab.tsx`, `src/lib/admin/settings-store.ts`, `src/lib/admin/types.ts`)**:
+  - Создана специализированная вкладка «SEO и Индексация» в панели администратора.
+  - Внедрен интерактивный предпросмотр поисковых сниппетов (Google, Яндекс) и социальных карточек (Telegram/OpenGraph) в реальном времени с подсчетом длины символов и индикатором оптимальности (30–65 символов для Title, 120–160 для Description).
+  - Настраиваемые шаблоны заголовков (`titleTemplate`, `catalogTitlePattern`, `productTitlePattern`) с динамической подстановкой переменных `{query}`, `{title}`, `{brand}`, `{price}`.
+  - Управление директивами индексации роботов (`index, follow`, `noindex, follow`, `noindex, nofollow`), Canonical URL, верификацией поисковых систем (`yandex-verification`, `google-site-verification`).
+  - Микроразметка Schema.org JSON-LD: `WebApplication`, `Organization`, `WebSite` с `potentialAction: SearchAction` для sitelinks search box.
+- **Динамические метаданные и Schema.org на всех страницах (`src/app/layout.tsx`, `src/app/product/[id]/page.tsx`, `src/app/search/page.tsx`, `src/app/robots.ts`, `src/app/sitemap.ts`)**:
+  - `layout.tsx` генерирует метаданные и корневой граф JSON-LD строго на основе актуальных настроек SEO из админки.
+  - `product/[id]/page.tsx` формирует кастомизированные метаданные по шаблону и генерирует Schema.org `Product` с ценовым агрегатором (`AggregateOffer`), рейтингом и наличием.
+  - `search/page.tsx` генерирует динамический `BreadcrumbList` JSON-LD и Title/Description по шаблону поиска.
+  - `sitemap.ts` динамически формирует карту сайта всех активных категорий и товаров из Supabase с приоритетами и частотой обновления.
+  - `robots.ts` динамически генерирует правила с запретом индексации `/admin`, `/api`, `/dashboard` и ссылкой на `sitemap.xml`.
+- **Живое сквозное применение всех настроек и флагов (0% заглушек)**:
+  - `FeatureFlags` (`enableWildberriesParser`, `enableOzonParser`, `enableAiAgents`, `enableDuelMatrix`, `enableTcoCalculator`, `enableSemanticSearch`, `enableLiveSearchCache`, `enableMaintenanceMode`) напрямую подключены в конвейеры агрегации (`aggregator.ts`), парсинга (`/api/parse/*`), поиска (`/api/search`), ИИ-анализа (`/api/ai/analyze`) и карточки товаров.
+  - `SystemSettings` (лимиты Rate Limiting, порог анти-фейк, таймаут кэша, лимит выдачи) применяются во всех сетевых шлюзах.
+  - Поисковые запросы автоматически регистрируются в аналитике (`recordSearchAnalytics`).
+
 ## 2026-09-26 (Дополнение 14: Разработка высокозащищенного Кабинета Администратора wobuy)
 
 - **Изоляция секретов и криптографическая авторизация (`src/lib/admin/auth.ts`, `src/app/api/admin/auth/*`, `src/app/admin/login/page.tsx`)**:

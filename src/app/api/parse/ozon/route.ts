@@ -2,11 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { searchOzon, getOzonProxyInfo } from "@/lib/parsers/ozon";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { secureLogger } from "@/lib/utils/secure-logger";
+import { getFeatureFlags, getSystemSettings } from "@/lib/admin/settings-store";
 
 export async function GET(req: NextRequest) {
-  const rateLimit = checkRateLimit(req, { limit: 40, windowMs: 60_000 }, "parse-ozon");
+  const flags = getFeatureFlags();
+  const settings = getSystemSettings();
+
+  if (!flags.enableOzonParser) {
+    return NextResponse.json(
+      { error: "Парсер Ozon временно отключен в кабинете администратора." },
+      { status: 503 },
+    );
+  }
+
+  const parserLimit = settings.rateLimitParsers || 40;
+  const rateLimit = checkRateLimit(req, { limit: parserLimit, windowMs: 60_000 }, "parse-ozon");
   if (!rateLimit.allowed && rateLimit.response) {
-    secureLogger.warn("Превышен лимит запросов к парсеру Ozon");
+    secureLogger.warn("Превышен лимит запросов к парсеру Ozon", { limit: parserLimit });
     return rateLimit.response;
   }
 
@@ -31,7 +43,8 @@ export async function GET(req: NextRequest) {
 
   const startTime = Date.now();
   try {
-    const products = await searchOzon(sanitizedQuery, { limit: 15 });
+    const maxLimit = settings.maxSearchResults || 15;
+    const products = await searchOzon(sanitizedQuery, { limit: Math.min(maxLimit, 15) });
 
     return NextResponse.json({
       success: true,
