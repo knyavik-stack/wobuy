@@ -12,6 +12,7 @@ import {
 } from "./types";
 import { DEFAULT_LEGAL_SETTINGS, DEFAULT_COOKIE_BANNER_SETTINGS, DEFAULT_ROBOTS_SETTINGS } from "@/lib/legal/legal-defaults";
 import { DEFAULT_SEMANTIC_CLUSTERS } from "@/lib/seo/semantic-core";
+import { DEFAULT_FAQ_ITEMS } from "@/lib/seo/faq-defaults";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
@@ -59,6 +60,16 @@ export const DEFAULT_SEO_SETTINGS: SeoSettings = {
   enableProductJsonLd: true,
   enableWebSiteSearchBox: true,
   enableOrganizationJsonLd: true,
+  enableFaqSchema: true,
+  faqItems: [...DEFAULT_FAQ_ITEMS],
+  yandexMetrikaId: "",
+  yandexMetrikaWebvisor: true,
+  yandexMetrikaEcommerce: true,
+  googleAnalyticsId: "",
+  googleTagManagerId: "",
+  topMailRuId: "",
+  indexNowKey: "wobuy2026indexnowkey778899",
+  enableIndexNow: true,
   catalogTitlePattern: "{query} — купить по выгодной цене | wobuy.",
   productTitlePattern: "{title} — купить по честной цене со скидкой | wobuy.",
   yandexVerification: "",

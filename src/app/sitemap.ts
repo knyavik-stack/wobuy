@@ -12,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = (seo.canonicalBaseUrl || "https://wobuy.ru").replace(/\/+$/, "");
   const now = new Date();
 
-  // 1. Главные статические и юридические страницы
+  // 1. Главные статические, ЧПУ-каталог и юридические страницы
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}`,
@@ -21,10 +21,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/search`,
+      url: `${baseUrl}/catalog`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/search`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.9,
     },
     {
       url: `${baseUrl}/contacts`,
@@ -58,15 +64,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // 2. Страницы категорий и семантического ядра
+  // 2. ЧПУ-страницы категорий (/catalog/[slug]) и семантического ядра
   const semanticClusters = getSemanticClusters();
   const semanticRoutes: MetadataRoute.Sitemap = semanticClusters.flatMap((cluster) => {
     const clusterUrl: MetadataRoute.Sitemap = [
       {
-        url: `${baseUrl}/search?category=${encodeURIComponent(cluster.category)}`,
+        url: `${baseUrl}/catalog/${cluster.slug}`,
         lastModified: now,
         changeFrequency: "daily",
-        priority: 0.85,
+        priority: 0.9,
       },
     ];
 

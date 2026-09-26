@@ -12,6 +12,8 @@ import {
   Save,
   RefreshCw,
   Lock,
+  KeyRound,
+  UserCheck,
 } from "lucide-react";
 import { SystemSettings } from "@/lib/admin/types";
 
@@ -21,6 +23,13 @@ export function AdminSettingsTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Смена пароля
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdMessage, setPwdMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -73,6 +82,45 @@ export function AdminSettingsTab() {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setPwdMessage({ type: "error", text: "Пароль должен содержать минимум 6 символов." });
+      return;
+    }
+    if (newPassword !== passwordConfirm) {
+      setPwdMessage({ type: "error", text: "Введенные пароли не совпадают." });
+      return;
+    }
+
+    setPwdSaving(true);
+    setPwdMessage(null);
+
+    try {
+      const res = await fetch("/api/admin/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          newPassword,
+          newUsername: newUsername.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setPwdMessage({ type: "success", text: "Пароль администратора успешно обновлен и активен!" });
+        setNewPassword("");
+        setPasswordConfirm("");
+      } else {
+        setPwdMessage({ type: "error", text: data.error || "Ошибка обновления пароля" });
+      }
+    } catch {
+      setPwdMessage({ type: "error", text: "Ошибка сети при смене пароля." });
+    } finally {
+      setPwdSaving(false);
+    }
+  };
+
   if (loading || !settings) {
     return (
       <div className="flex min-h-[350px] items-center justify-center">
@@ -90,7 +138,7 @@ export function AdminSettingsTab() {
           <span>Системные параметры, лимиты и киберзащита</span>
         </h2>
         <p className="text-xs text-slate-400 mt-1">
-          Конфигурация Rate Limiting, порогов валидации оригинальности, сетевых таймаутов и сервисных сообщений.
+          Конфигурация Rate Limiting, порогов валидации оригинальности, сетевых таймаутов, смена пароля и управление доступом.
         </p>
       </div>
 
@@ -110,6 +158,94 @@ export function AdminSettingsTab() {
           <span>{message.text}</span>
         </div>
       )}
+
+      {/* Форма смены пароля администратора */}
+      <div className="rounded-2xl border border-violet-500/30 bg-gradient-to-tr from-slate-950 via-slate-900 to-violet-950/20 p-6 backdrop-blur-sm space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-violet-400" />
+            <span>Управление паролем и доступом администратора</span>
+          </h3>
+          <span className="rounded bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-300 border border-violet-500/20">
+            Безопасное хэширование SHA-256
+          </span>
+        </div>
+
+        {pwdMessage && (
+          <div
+            className={`rounded-xl border p-3.5 text-xs flex items-center gap-2 ${
+              pwdMessage.type === "success"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                : "border-red-500/30 bg-red-500/10 text-red-300"
+            }`}
+          >
+            {pwdMessage.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+            )}
+            <span>{pwdMessage.text}</span>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordChange} className="space-y-4 text-xs">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label className="block text-slate-300 font-medium mb-1.5">
+                Новый логин / email (необязательно)
+              </label>
+              <input
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Оставьте пустым, чтобы не менять"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-medium mb-1.5">
+                Новый пароль администратора *
+              </label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Минимум 6 символов"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-medium mb-1.5">
+                Подтвердите новый пароль *
+              </label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                placeholder="Повторите пароль"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={pwdSaving}
+              className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 font-bold text-white shadow-md shadow-violet-600/20 hover:bg-violet-500 transition-all disabled:opacity-50"
+            >
+              {pwdSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+              <span>Обновить пароль администратора</span>
+            </button>
+          </div>
+        </form>
+      </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Rate Limiting & Cybersecurity */}
@@ -141,8 +277,8 @@ export function AdminSettingsTab() {
               </label>
               <input
                 type="number"
-                min="5"
-                max="120"
+                min="10"
+                max="300"
                 value={settings.rateLimitParsers}
                 onChange={(e) => setSettings({ ...settings, rateLimitParsers: parseInt(e.target.value, 10) || 40 })}
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-xs text-white focus:border-violet-500 focus:outline-none"
@@ -152,12 +288,12 @@ export function AdminSettingsTab() {
 
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                ИИ-Анализ товаров (/api/ai/analyze)
+                AI-агенты и анализ (/api/ai/*)
               </label>
               <input
                 type="number"
                 min="5"
-                max="60"
+                max="100"
                 value={settings.rateLimitAi}
                 onChange={(e) => setSettings({ ...settings, rateLimitAi: parseInt(e.target.value, 10) || 30 })}
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-xs text-white focus:border-violet-500 focus:outline-none"
@@ -167,32 +303,32 @@ export function AdminSettingsTab() {
           </div>
         </div>
 
-        {/* Quality & Anti-Fake Thresholds */}
+        {/* Anti-Fake & Caching Configuration */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-sm space-y-4">
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-400" />
-            <span>Параметры качества и анти-фейк скоринга</span>
+            <Zap className="h-4 w-4 text-cyan-400" />
+            <span>Параметры алгоритма Анти-Фейк и кэширования</span>
           </h3>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Мин. порог Анти-Фейк (% оригинальности)
+                Минимальный порог оригинальности (%)
               </label>
               <input
                 type="number"
                 min="50"
-                max="99"
+                max="100"
                 value={settings.minAntiFakePercent}
                 onChange={(e) => setSettings({ ...settings, minAntiFakePercent: parseInt(e.target.value, 10) || 85 })}
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-xs text-white focus:border-violet-500 focus:outline-none"
               />
-              <span className="text-[10px] text-slate-500 mt-1 block">Ниже этого порога товар получает предупреждение</span>
+              <span className="text-[10px] text-slate-500 mt-1 block">Товары с меньшим баллом получают статус «Подозрение»</span>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                TTL кэша поиска (минуты)
+                TTL кэша поиска (в минутах)
               </label>
               <input
                 type="number"

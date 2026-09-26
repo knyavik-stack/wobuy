@@ -149,6 +149,13 @@ export function clusterAndDeduplicateOffers(
     let matchedCluster = null;
 
     for (const cluster of clusters) {
+      const hasSameMarketplaceDifferentSku = cluster.offers.some(
+        (o) => o.marketplace === offer.marketplace && o.externalId !== offer.externalId,
+      );
+      if (hasSameMarketplaceDifferentSku) {
+        continue;
+      }
+
       const sameBrand =
         offer.brand &&
         cluster.brand &&

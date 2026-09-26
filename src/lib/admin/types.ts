@@ -38,6 +38,13 @@ export interface RobotsSettings {
   crawlDelay?: number;
 }
 
+export interface FaqItemConfig {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+}
+
 export interface SeoSettings {
   siteName: string;
   defaultTitle: string;
@@ -63,6 +70,16 @@ export interface SeoSettings {
   enableProductJsonLd?: boolean;
   enableWebSiteSearchBox?: boolean;
   enableOrganizationJsonLd?: boolean;
+  enableFaqSchema?: boolean;
+  faqItems?: FaqItemConfig[];
+  yandexMetrikaId?: string;
+  yandexMetrikaWebvisor?: boolean;
+  yandexMetrikaEcommerce?: boolean;
+  googleAnalyticsId?: string;
+  googleTagManagerId?: string;
+  topMailRuId?: string;
+  indexNowKey?: string;
+  enableIndexNow?: boolean;
 }
 
 export interface LegalSettings {

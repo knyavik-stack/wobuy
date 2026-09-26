@@ -2,6 +2,7 @@ import { aggregateMarketplaceSearch } from "@/lib/parsers/aggregator";
 import { CanonicalProductData } from "@/lib/parsers/types";
 import { resolveMarketplaceSearchQuery } from "@/lib/ai/ai-search-engine";
 import { getWildberriesProductDetail } from "@/lib/parsers/wildberries";
+import { isUnwantedAccessory } from "@/lib/parsers/wb-client";
 import { inferCategoryFromTitle } from "@/lib/parsers/deduplicator";
 import {
   buildWildberriesProductUrl,
@@ -377,7 +378,7 @@ export async function searchRealCatalogSupabase(query: string, limit = 20): Prom
     "цена", "отзывы", "оригинал", "топ", "рейтинг", "какой", "какая", "какое", "какие", "где",
   ]);
 
-  // Контекстные слова-уточнения, которые НЕ могут сами по себе давать совпадение без главного предмета поиска
+  // Контекстные слова-уточнения и модельные суффиксы, которые НЕ могут сами по себе давать совпадение без главного предмета/бренда поиска
   const contextModifiers = new Set([
     "квартиры", "квартира", "квартиру", "квартир",
     "дома", "дом", "дому", "домашний", "домашняя", "домашние",
@@ -391,6 +392,9 @@ export async function searchRealCatalogSupabase(query: string, limit = 20): Prom
     "черный", "черная", "белый", "белая", "серый", "серая", "красный", "синий", "зеленый",
     "автоматический", "автоматическая", "электрический", "электрическая", "беспроводной", "беспроводные",
     "товар", "товары", "каталог", "каталога", "жизни",
+    "ultra", "pro", "max", "plus", "mini", "lite", "air", "fe", "se", "neo", "ru", "global",
+    "gb", "гб", "тб", "tb", "5g", "4g", "sim", "esim", "dual", "nano",
+    "black", "white", "silver", "gray", "grey", "gold", "titanium",
   ]);
 
   const allTokens = rawClean
@@ -433,7 +437,13 @@ export async function searchRealCatalogSupabase(query: string, limit = 20): Prom
       .limit(limit);
 
     if (exactData && exactData.length >= 4) {
-      const valid = exactData.filter((p) => isValidMarketplaceImage(p.image_url)).map(mapProduct);
+      const valid = exactData
+        .filter(
+          (p) =>
+            isValidMarketplaceImage(p.image_url) &&
+            !isUnwantedAccessory(p.canonical_name || "", p.category, rawClean),
+        )
+        .map(mapProduct);
       if (valid.length >= 4) {
         return valid;
       }
@@ -462,8 +472,19 @@ export async function searchRealCatalogSupabase(query: string, limit = 20): Prom
           .split(/\s+/)
           .filter(Boolean);
 
+      const knownBrands = new Set([
+        "samsung", "самсунг", "apple", "iphone", "айфон", "xiaomi", "сяоми", "redmi", "редми",
+        "dyson", "дайсон", "sony", "сони", "delonghi", "делонги", "dreame", "polaris", "полярис",
+        "bosch", "бош", "kitfort", "китфорт", "philips", "филипс", "tefal", "тефаль", "haier", "хайер",
+        "braun", "браун", "jbl", "asus", "lenovo", "honor", "huawei", "poco", "realme",
+      ]);
+
       const scored = tokenData
-        .filter((p) => isValidMarketplaceImage(p.image_url))
+        .filter(
+          (p) =>
+            isValidMarketplaceImage(p.image_url) &&
+            !isUnwantedAccessory(p.canonical_name || "", p.category, rawClean),
+        )
         .map((item) => {
           const titleLower = (item.canonical_name || "").toLowerCase();
           const titleWords = extractWords(titleLower);
@@ -483,26 +504,34 @@ export async function searchRealCatalogSupabase(query: string, limit = 20): Prom
           for (let i = 0; i < primaryTokens.length; i++) {
             const token = primaryTokens[i];
             const stem = primaryStems[i];
-            const exactWordMatch = titleWords.some((w) => w === token);
-            const stemWordMatch = titleWords.some((w) => w.startsWith(stem));
-            const catOrBrandMatch =
-              categoryWords.some((w) => w.startsWith(stem)) ||
-              brandWords.some((w) => w.startsWith(stem));
+            const isModelCode = /\d/.test(token);
+            const isBrandToken = knownBrands.has(token);
+
+            const exactWordMatch = titleWords.some((w) => w === token) || brandWords.some((w) => w === token);
+            const stemWordMatch =
+              titleWords.some((w) => w.startsWith(stem)) || brandWords.some((w) => w.startsWith(stem));
+            const catMatch = !isModelCode && !isBrandToken && categoryWords.some((w) => w.startsWith(stem));
 
             if (exactWordMatch) {
               primaryMatches++;
-              score += 12;
+              score += 14;
             } else if (stemWordMatch) {
               primaryMatches++;
-              score += 9;
-            } else if (catOrBrandMatch) {
+              score += 10;
+            } else if (catMatch) {
               primaryMatches++;
-              score += 6;
+              score += 5;
+            } else if (isModelCode || isBrandToken) {
+              // Если в запросе явно указан бренд (например Samsung) или код модели (например S24),
+              // а в товаре его нет — такой товар категорически не подходит!
+              return { item, score: 0 };
             }
           }
 
-          // Обязательное условие: товар должен совпадать хотя бы с одним главным предметным словом (по границе слова!)
-          if (primaryMatches === 0) {
+          // Строгое требование полноты совпадения по главным токенам:
+          const minRequiredMatches =
+            primaryTokens.length <= 2 ? primaryTokens.length : primaryTokens.length - 1;
+          if (primaryMatches < minRequiredMatches) {
             return { item, score: 0 };
           }
 

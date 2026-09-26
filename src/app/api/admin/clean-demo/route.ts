@@ -1,23 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedAdmin, getValidAdminPasswords } from "@/lib/admin/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
 export async function POST(req: NextRequest) {
-  const rateLimit = checkRateLimit(req, { limit: 5, windowMs: 60_000 }, "admin-clean-demo");
+  const rateLimit = checkRateLimit(req, { limit: 10, windowMs: 60_000 }, "admin-clean-demo");
   if (!rateLimit.allowed && rateLimit.response) {
     return rateLimit.response;
   }
 
-  // Строгая fail-closed проверка авторизации администратора
-  const adminSecret = process.env.ADMIN_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const authHeader =
-    req.headers.get("x-admin-key") || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  // 1. Проверяем авторизацию через сессию администратора
+  const admin = getAuthenticatedAdmin(req);
 
-  if (!adminSecret || !authHeader || authHeader !== adminSecret) {
+  // 2. Или через ключ/пароль в заголовках
+  const authHeader =
+    req.headers.get("x-admin-key") ||
+    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+  const validPasswords = getValidAdminPasswords();
+  const validSecrets = [
+    process.env.ADMIN_SECRET_KEY,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    ...validPasswords,
+  ].filter(Boolean);
+
+  const isKeyValid = authHeader && validSecrets.some((s) => s === authHeader);
+
+  if (!admin && !isKeyValid) {
     secureLogger.warn("Несанкционированная попытка доступа к /api/admin/clean-demo");
     return NextResponse.json(
-      { error: "Доступ запрещён: неверный или отсутствующий ключ администратора." },
+      { error: "Доступ запрещён: требуется авторизация администратора." },
       { status: 403 },
     );
   }
@@ -25,13 +38,14 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return NextResponse.json(
-      { error: "Supabase admin credentials are not configured" },
+      { error: "База данных Supabase не сконфигурирована." },
       { status: 500 },
     );
   }
 
   try {
-    secureLogger.info("Запуск административной очистки демо-данных");
+    secureLogger.info(`[Clean Demo] Запуск очистки демо-данных администратором: ${admin?.username || "api-key"}`);
+
     // 1. Поиск ID всех демо-товаров
     const { data: demoProducts, error: findError } = await supabase
       .from("products")
@@ -45,11 +59,10 @@ export async function POST(req: NextRequest) {
     }
 
     const demoIds = (demoProducts || []).map((p) => p.id);
-
     let deletedCount = 0;
 
     if (demoIds.length > 0) {
-      // 2. Удаление связей
+      // 2. Каскадное удаление связей
       await supabase.from("product_offers").delete().in("product_id", demoIds);
       await supabase.from("user_favorites").delete().in("product_id", demoIds);
       await supabase.from("product_view_history").delete().in("product_id", demoIds);
@@ -64,14 +77,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Демо-данные успешно очищены из базы данных",
+      message: `Демо-данные успешно очищены из базы данных. Удалено: ${deletedCount} товаров.`,
       deletedProductsCount: deletedCount,
       deletedIds: demoIds,
     });
   } catch (err: unknown) {
     secureLogger.error("Ошибка при очистке демо-товаров:", err);
     return NextResponse.json(
-      { error: (err as Error)?.message || "Internal server error" },
+      { error: (err as Error)?.message || "Внутренняя ошибка сервера при очистке" },
       { status: 500 },
     );
   }

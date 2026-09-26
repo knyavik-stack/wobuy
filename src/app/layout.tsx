@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Footer } from "@/components/layout/Footer";
 import { CookieConsentBanner } from "@/components/layout/CookieConsentBanner";
+import { AnalyticsScripts } from "@/components/seo/AnalyticsScripts";
 import { getSeoSettings, getCookieSettings, getLegalSettings } from "@/lib/admin/settings-store";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -147,6 +148,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <div className="flex-1">{children}</div>
         <Footer />
         <CookieConsentBanner initialSettings={cookieSettings} />
+        <AnalyticsScripts
+          yandexMetrikaId={seo.yandexMetrikaId}
+          yandexMetrikaWebvisor={seo.yandexMetrikaWebvisor}
+          yandexMetrikaEcommerce={seo.yandexMetrikaEcommerce}
+          googleAnalyticsId={seo.googleAnalyticsId}
+          googleTagManagerId={seo.googleTagManagerId}
+          topMailRuId={seo.topMailRuId}
+        />
       </body>
     </html>
   );

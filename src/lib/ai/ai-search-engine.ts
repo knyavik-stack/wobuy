@@ -67,8 +67,8 @@ export async function resolveMarketplaceSearchQuery(rawQuery: string): Promise<{
   ];
   const hasConversational = words.some((w) => conversationalKeywords.includes(w.toLowerCase()));
 
-  // Если это короткий точный товарный запрос (1-3 слова) без разговорных маркеров, оставляем как есть
-  if (!hasConversational && words.length <= 3) {
+  // Если это точный товарный запрос (1-6 слов) без разговорных маркеров, оставляем как есть без искажений
+  if (!hasConversational && words.length <= 6) {
     return { marketplaceQuery: trimmed, isConverted: false };
   }
 
