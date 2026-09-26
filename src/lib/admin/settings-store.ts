@@ -1,10 +1,21 @@
 import fs from "fs";
 import path from "path";
-import { FeatureFlags, SystemSettings, SeoSettings, AuditLogEntry, AnalyticsSummary } from "./types";
+import {
+  FeatureFlags,
+  SystemSettings,
+  SeoSettings,
+  LegalSettings,
+  CookieBannerSettings,
+  SemanticCluster,
+  AuditLogEntry,
+  AnalyticsSummary,
+} from "./types";
+import { DEFAULT_LEGAL_SETTINGS, DEFAULT_COOKIE_BANNER_SETTINGS, DEFAULT_ROBOTS_SETTINGS } from "@/lib/legal/legal-defaults";
+import { DEFAULT_SEMANTIC_CLUSTERS } from "@/lib/seo/semantic-core";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
-// Дефолтные флаги функций (все ключевые модули включены по умолчанию)
+// Дефолтные флаги функций
 const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   enableWildberriesParser: true,
   enableOzonParser: true,
@@ -44,17 +55,29 @@ export const DEFAULT_SEO_SETTINGS: SeoSettings = {
   robotsIndexing: "index, follow",
   sitemapEnabled: true,
   jsonLdEnabled: true,
+  enableBreadcrumbsJsonLd: true,
+  enableProductJsonLd: true,
+  enableWebSiteSearchBox: true,
+  enableOrganizationJsonLd: true,
   catalogTitlePattern: "{query} — купить по выгодной цене | wobuy.",
   productTitlePattern: "{title} — купить по честной цене со скидкой | wobuy.",
   yandexVerification: "",
   googleVerification: "",
+  bingVerification: "",
+  yandexHtmlVerificationFile: "",
+  googleHtmlVerificationFile: "",
   customHeadSnippet: "",
+  robotsSettings: { ...DEFAULT_ROBOTS_SETTINGS },
 };
 
-// In-memory состояние для сверхбыстрого доступа
+// In-memory состояние для быстрого доступа
 let cachedFeatureFlags: FeatureFlags = { ...DEFAULT_FEATURE_FLAGS };
 let cachedSystemSettings: SystemSettings = { ...DEFAULT_SYSTEM_SETTINGS };
 let cachedSeoSettings: SeoSettings = { ...DEFAULT_SEO_SETTINGS };
+let cachedLegalSettings: LegalSettings = { ...DEFAULT_LEGAL_SETTINGS };
+let cachedCookieSettings: CookieBannerSettings = { ...DEFAULT_COOKIE_BANNER_SETTINGS };
+let cachedSemanticClusters: SemanticCluster[] = [...DEFAULT_SEMANTIC_CLUSTERS];
+
 const auditLogsStore: AuditLogEntry[] = [];
 const searchAnalyticsStore: Array<{ query: string; timestamp: string; tookMs: number; resultsCount: number }> = [];
 
@@ -76,7 +99,23 @@ function loadPersistedSettings() {
         cachedSystemSettings = { ...DEFAULT_SYSTEM_SETTINGS, ...parsed.systemSettings };
       }
       if (parsed.seoSettings) {
-        cachedSeoSettings = { ...DEFAULT_SEO_SETTINGS, ...parsed.seoSettings };
+        cachedSeoSettings = {
+          ...DEFAULT_SEO_SETTINGS,
+          ...parsed.seoSettings,
+          robotsSettings: {
+            ...DEFAULT_ROBOTS_SETTINGS,
+            ...(parsed.seoSettings?.robotsSettings || {}),
+          },
+        };
+      }
+      if (parsed.legalSettings) {
+        cachedLegalSettings = { ...DEFAULT_LEGAL_SETTINGS, ...parsed.legalSettings };
+      }
+      if (parsed.cookieSettings) {
+        cachedCookieSettings = { ...DEFAULT_COOKIE_BANNER_SETTINGS, ...parsed.cookieSettings };
+      }
+      if (parsed.semanticClusters && Array.isArray(parsed.semanticClusters)) {
+        cachedSemanticClusters = parsed.semanticClusters;
       }
     }
   } catch (err) {
@@ -84,7 +123,7 @@ function loadPersistedSettings() {
   }
 }
 
-// Загружаем при инициализации модуля
+// Загружаем при инициализации
 loadPersistedSettings();
 
 /**
@@ -100,6 +139,9 @@ function persistSettingsToFile() {
       featureFlags: cachedFeatureFlags,
       systemSettings: cachedSystemSettings,
       seoSettings: cachedSeoSettings,
+      legalSettings: cachedLegalSettings,
+      cookieSettings: cachedCookieSettings,
+      semanticClusters: cachedSemanticClusters,
       updatedAt: new Date().toISOString(),
     };
     fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(payload, null, 2), "utf-8");
@@ -108,16 +150,11 @@ function persistSettingsToFile() {
   }
 }
 
-/**
- * Получить текущие флаги функций
- */
+// --- Флаги функций ---
 export function getFeatureFlags(): FeatureFlags {
   return { ...cachedFeatureFlags };
 }
 
-/**
- * Обновить флаги функций
- */
 export function updateFeatureFlags(updates: Partial<FeatureFlags>, adminUsername = "admin"): FeatureFlags {
   cachedFeatureFlags = { ...cachedFeatureFlags, ...updates };
   persistSettingsToFile();
@@ -133,16 +170,11 @@ export function updateFeatureFlags(updates: Partial<FeatureFlags>, adminUsername
   return { ...cachedFeatureFlags };
 }
 
-/**
- * Получить системные настройки
- */
+// --- Системные настройки ---
 export function getSystemSettings(): SystemSettings {
   return { ...cachedSystemSettings };
 }
 
-/**
- * Обновить системные настройки
- */
 export function updateSystemSettings(updates: Partial<SystemSettings>, adminUsername = "admin"): SystemSettings {
   cachedSystemSettings = { ...cachedSystemSettings, ...updates };
   persistSettingsToFile();
@@ -158,18 +190,22 @@ export function updateSystemSettings(updates: Partial<SystemSettings>, adminUser
   return { ...cachedSystemSettings };
 }
 
-/**
- * Получить настройки SEO
- */
+// --- SEO настройки ---
 export function getSeoSettings(): SeoSettings {
-  return { ...cachedSeoSettings };
+  return {
+    ...cachedSeoSettings,
+    robotsSettings: cachedSeoSettings.robotsSettings || { ...DEFAULT_ROBOTS_SETTINGS },
+  };
 }
 
-/**
- * Обновить настройки SEO
- */
 export function updateSeoSettings(updates: Partial<SeoSettings>, adminUsername = "admin"): SeoSettings {
-  cachedSeoSettings = { ...cachedSeoSettings, ...updates };
+  cachedSeoSettings = {
+    ...cachedSeoSettings,
+    ...updates,
+    robotsSettings: updates.robotsSettings
+      ? { ...(cachedSeoSettings.robotsSettings || DEFAULT_ROBOTS_SETTINGS), ...updates.robotsSettings }
+      : (cachedSeoSettings.robotsSettings || DEFAULT_ROBOTS_SETTINGS),
+  };
   persistSettingsToFile();
 
   addAuditLog({
@@ -180,133 +216,168 @@ export function updateSeoSettings(updates: Partial<SeoSettings>, adminUsername =
     status: "success",
   });
 
-  return { ...cachedSeoSettings };
+  return getSeoSettings();
 }
 
-/**
- * Записать действие в журнал аудита безопасности
- */
-export function addAuditLog(entry: Omit<AuditLogEntry, "id" | "timestamp">) {
-  const newLog: AuditLogEntry = {
-    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    timestamp: new Date().toISOString(),
-    ...entry,
-  };
-
-  auditLogsStore.unshift(newLog);
-
-  // Ограничиваем историю 500 последними записями
-  if (auditLogsStore.length > 500) {
-    auditLogsStore.length = 500;
-  }
+// --- Юридические настройки (152-ФЗ, Реквизиты, Оферта) ---
+export function getLegalSettings(): LegalSettings {
+  return { ...cachedLegalSettings };
 }
 
-/**
- * Получить записи журнала аудита
- */
-export function getAuditLogs(limit = 100): AuditLogEntry[] {
-  return auditLogsStore.slice(0, limit);
+export function updateLegalSettings(updates: Partial<LegalSettings>, adminUsername = "admin"): LegalSettings {
+  cachedLegalSettings = { ...cachedLegalSettings, ...updates };
+  persistSettingsToFile();
+
+  addAuditLog({
+    adminUsername,
+    action: "UPDATE_LEGAL_SETTINGS",
+    details: updates as Record<string, unknown>,
+    ipAddress: "internal",
+    status: "success",
+  });
+
+  return { ...cachedLegalSettings };
 }
 
-/**
- * Зарегистрировать поисковый запрос в аналитике
- */
+// --- Cookie баннер ---
+export function getCookieSettings(): CookieBannerSettings {
+  return { ...cachedCookieSettings };
+}
+
+export function updateCookieSettings(updates: Partial<CookieBannerSettings>, adminUsername = "admin"): CookieBannerSettings {
+  cachedCookieSettings = { ...cachedCookieSettings, ...updates };
+  persistSettingsToFile();
+
+  addAuditLog({
+    adminUsername,
+    action: "UPDATE_COOKIE_SETTINGS",
+    details: updates as Record<string, unknown>,
+    ipAddress: "internal",
+    status: "success",
+  });
+
+  return { ...cachedCookieSettings };
+}
+
+// --- Семантическое ядро ---
+export function getSemanticClusters(): SemanticCluster[] {
+  return [...cachedSemanticClusters];
+}
+
+export function updateSemanticClusters(clusters: SemanticCluster[], adminUsername = "admin"): SemanticCluster[] {
+  cachedSemanticClusters = [...clusters];
+  persistSettingsToFile();
+
+  addAuditLog({
+    adminUsername,
+    action: "UPDATE_SEMANTIC_CLUSTERS",
+    details: { totalClusters: clusters.length },
+    ipAddress: "internal",
+    status: "success",
+  });
+
+  return [...cachedSemanticClusters];
+}
+
+// --- Аналитика поиска ---
 export function recordSearchAnalytics(query: string, tookMs: number, resultsCount: number) {
-  const clean = query.trim();
-  if (!clean) return;
-
+  if (!query || query.trim().length === 0) return;
   searchAnalyticsStore.unshift({
-    query: clean,
+    query: query.trim(),
     timestamp: new Date().toISOString(),
     tookMs,
     resultsCount,
   });
 
-  if (searchAnalyticsStore.length > 1000) {
-    searchAnalyticsStore.length = 1000;
+  if (searchAnalyticsStore.length > 500) {
+    searchAnalyticsStore.length = 500;
   }
 }
 
-/**
- * Собрать сводную аналитику для панели администратора
- */
+// --- Журнал аудита ---
+export function addAuditLog(entry: Omit<AuditLogEntry, "id" | "timestamp">) {
+  const newLog: AuditLogEntry = {
+    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    timestamp: new Date().toISOString(),
+    ...entry,
+  };
+
+  auditLogsStore.unshift(newLog);
+  if (auditLogsStore.length > 300) {
+    auditLogsStore.length = 300;
+  }
+}
+
+export function getAuditLogs(limit?: number): AuditLogEntry[] {
+  if (limit && limit > 0) {
+    return auditLogsStore.slice(0, limit);
+  }
+  return [...auditLogsStore];
+}
+
+// --- Сводная статистика для аналитики ---
 export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
-  const supabase = getSupabaseAdmin();
+  let totalProducts = 0;
+  let activeProducts = 0;
+  let totalUsers = 0;
+  let dbStatus: "connected" | "disconnected" = "disconnected";
 
-  let totalProducts = 343;
-  let activeProducts = 343;
-  let totalRegisteredUsers = 2;
+  try {
+    const supabase = getSupabaseAdmin();
+    if (supabase) {
+      const { count: prodCount } = await supabase.from("products").select("*", { count: "exact", head: true });
+      const { count: activeCount } = await supabase.from("products").select("*", { count: "exact", head: true }).eq("is_active", true);
+      const { count: usersCount } = await supabase.from("user_profiles").select("*", { count: "exact", head: true });
 
-  if (supabase) {
-    try {
-      const [{ count: pCount }, { count: aCount }, usersResult] = await Promise.all([
-        supabase.from("products").select("*", { count: "exact", head: true }),
-        supabase.from("products").select("*", { count: "exact", head: true }).eq("is_active", true),
-        supabase.auth.admin.listUsers().catch(() => ({ data: { users: [] } })),
-      ]);
-
-      if (typeof pCount === "number") totalProducts = pCount;
-      if (typeof aCount === "number") activeProducts = aCount;
-      if (usersResult?.data?.users) totalRegisteredUsers = usersResult.data.users.length;
-    } catch (err) {
-      secureLogger.warn("[Analytics] Ошибка запроса к Supabase:", (err as Error)?.message);
+      totalProducts = prodCount || 0;
+      activeProducts = activeCount || 0;
+      totalUsers = usersCount || 0;
+      dbStatus = "connected";
     }
+  } catch {
+    dbStatus = "disconnected";
   }
 
-  // Расчет топ-запросов
-  const queryCounts = new Map<string, { count: number; lastSearched: string }>();
-  for (const item of searchAnalyticsStore) {
-    const qLower = item.query.toLowerCase();
-    const existing = queryCounts.get(qLower) || { count: 0, lastSearched: item.timestamp };
-    existing.count += 1;
-    queryCounts.set(qLower, existing);
-  }
+  const queryCounts: Record<string, { count: number; lastSearched: string }> = {};
+  searchAnalyticsStore.forEach((item) => {
+    if (!queryCounts[item.query]) {
+      queryCounts[item.query] = { count: 1, lastSearched: item.timestamp };
+    } else {
+      queryCounts[item.query].count += 1;
+      queryCounts[item.query].lastSearched = item.timestamp;
+    }
+  });
 
-  // Дефолтные популярные категории/запросы если база только стартовала
-  const topQueries = Array.from(queryCounts.entries())
-    .map(([query, data]) => ({ query, ...data }))
+  const topQueries = Object.entries(queryCounts)
+    .map(([query, data]) => ({ query, count: data.count, lastSearched: data.lastSearched }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  if (topQueries.length === 0) {
-    topQueries.push(
-      { query: "Веник для квартиры", count: 42, lastSearched: new Date().toISOString() },
-      { query: "Самокат детский", count: 31, lastSearched: new Date().toISOString() },
-      { query: "Кофемашина автоматическая", count: 28, lastSearched: new Date().toISOString() },
-      { query: "Беспроводные наушники", count: 24, lastSearched: new Date().toISOString() },
-      { query: "Робот-пылесос", count: 19, lastSearched: new Date().toISOString() },
-    );
-  }
-
-  const popularCategories = [
-    { category: "Щетки и веники для уборки", count: 18 },
-    { category: "Кофемашины и техника для кухни", count: 28 },
-    { category: "Беспроводные наушники и гаджеты", count: 22 },
-    { category: "Роботы-пылесосы", count: 15 },
-    { category: "Товары для туризма и палатки", count: 14 },
-    { category: "Детские самокаты", count: 12 },
-  ];
-
-  // Расчет среднего времени поиска
-  const avgSearchTimeMs = searchAnalyticsStore.length > 0
-    ? Math.round(searchAnalyticsStore.reduce((acc, s) => acc + s.tookMs, 0) / searchAnalyticsStore.length)
-    : 480;
+  const avgSearchTime = searchAnalyticsStore.length > 0
+    ? Math.round(searchAnalyticsStore.reduce((acc, curr) => acc + curr.tookMs, 0) / searchAnalyticsStore.length)
+    : 140;
 
   return {
     totalProducts,
     activeProducts,
-    totalRegisteredUsers,
-    totalSearchesToday: searchAnalyticsStore.length || 145,
-    avgSearchTimeMs,
-    wildberriesStatus: cachedFeatureFlags.enableWildberriesParser ? "operational" : "degraded",
-    ozonStatus: cachedFeatureFlags.enableOzonParser ? "proxy_active" : "disabled",
-    databaseStatus: supabase ? "connected" : "disconnected",
+    totalRegisteredUsers: totalUsers,
+    totalSearchesToday: searchAnalyticsStore.length,
+    avgSearchTimeMs: avgSearchTime,
+    wildberriesStatus: cachedFeatureFlags.enableWildberriesParser ? "operational" : "disabled",
+    ozonStatus: cachedFeatureFlags.enableOzonParser ? "operational" : "disabled",
+    databaseStatus: dbStatus,
     aiServiceStatus: cachedFeatureFlags.enableAiAgents ? "ready" : "fallback",
     topQueries,
-    popularCategories,
+    popularCategories: [
+      { category: "Смартфоны и гаджеты", count: 42 },
+      { category: "Ноутбуки и ПК", count: 28 },
+      { category: "Наушники и аудио", count: 35 },
+      { category: "Бытовая техника", count: 24 },
+      { category: "Смарт-часы", count: 19 },
+    ],
     marketplaceShare: {
-      wildberries: 78,
-      ozon: 22,
+      wildberries: 58,
+      ozon: 42,
     },
     recentSearches: searchAnalyticsStore.slice(0, 15),
   };

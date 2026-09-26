@@ -104,6 +104,7 @@ export function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [consent, setConsent] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -112,6 +113,11 @@ export function RegisterForm() {
     event.preventDefault();
     setError("");
     setSuccess("");
+
+    if (!consent) {
+      setError("Пожалуйста, подтвердите согласие на обработку персональных данных (152-ФЗ).");
+      return;
+    }
 
     if (password !== confirmation) {
       setError("Пароли не совпадают.");
@@ -187,6 +193,28 @@ export function RegisterForm() {
           minLength={6}
         />
       </div>
+
+      <div className="flex items-start gap-2.5 pt-1">
+        <input
+          type="checkbox"
+          id="reg-consent"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+        />
+        <label htmlFor="reg-consent" className="text-xs text-neutral-600 leading-snug">
+          Я согласен с{" "}
+          <Link href="/privacy" target="_blank" className="font-semibold text-neutral-900 underline">
+            Политикой конфиденциальности
+          </Link>{" "}
+          и даю{" "}
+          <Link href="/consent" target="_blank" className="font-semibold text-neutral-900 underline">
+            Согласие на обработку данных (152-ФЗ)
+          </Link>
+          .
+        </label>
+      </div>
+
       {error ? (
         <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}

@@ -14,6 +14,8 @@ import {
   ExternalLink,
   RefreshCw,
   Globe,
+  Layers,
+  Scale,
 } from "lucide-react";
 import { AdminUser } from "@/lib/admin/types";
 
@@ -45,7 +47,9 @@ export function AdminHeader({
     { id: "analytics", label: "Аналитика", icon: BarChart3 },
     { id: "users", label: "Пользователи", icon: Users },
     { id: "flags", label: "Функции сайта", icon: ToggleLeft },
-    { id: "seo", label: "SEO и Индексация", icon: Globe },
+    { id: "seo", label: "SEO & Robots", icon: Globe },
+    { id: "semantic", label: "Семантическое ядро", icon: Layers },
+    { id: "legal", label: "Юр. база & Cookie", icon: Scale },
     { id: "settings", label: "Настройки и Защита", icon: Sliders },
     { id: "logs", label: "Журнал аудита", icon: FileText },
   ];
@@ -129,7 +133,7 @@ export function AdminHeader({
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2.5 text-xs sm:text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium transition-all ${
                   isActive
                     ? "border-violet-500 text-white bg-violet-500/10 rounded-t-lg"
                     : "border-transparent text-slate-400 hover:border-slate-700 hover:text-slate-200"

@@ -7,6 +7,12 @@ import {
   updateSystemSettings,
   getSeoSettings,
   updateSeoSettings,
+  getLegalSettings,
+  updateLegalSettings,
+  getCookieSettings,
+  updateCookieSettings,
+  getSemanticClusters,
+  updateSemanticClusters,
 } from "@/lib/admin/settings-store";
 import { getOzonProxyInfo } from "@/lib/parsers/ozon";
 import { secureLogger } from "@/lib/utils/secure-logger";
@@ -20,6 +26,9 @@ export async function GET(req: NextRequest) {
   const featureFlags = getFeatureFlags();
   const systemSettings = getSystemSettings();
   const seoSettings = getSeoSettings();
+  const legalSettings = getLegalSettings();
+  const cookieSettings = getCookieSettings();
+  const semanticClusters = getSemanticClusters();
   const proxyInfo = getOzonProxyInfo();
 
   return NextResponse.json({
@@ -27,6 +36,9 @@ export async function GET(req: NextRequest) {
     featureFlags,
     systemSettings,
     seoSettings,
+    legalSettings,
+    cookieSettings,
+    semanticClusters,
     proxyInfo,
   });
 }
@@ -39,16 +51,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { type, updates } = body;
+    const { type, updates, clusters } = body;
 
-    if (!type || !updates || typeof updates !== "object") {
+    if (!type) {
       return NextResponse.json(
-        { error: "Некорректный формат данных для обновления." },
+        { error: "Не указан тип настроек." },
         { status: 400 },
       );
     }
 
-    if (type === "feature_flags") {
+    if (type === "feature_flags" && updates) {
       const updatedFlags = updateFeatureFlags(updates, admin.username);
       return NextResponse.json({
         success: true,
@@ -57,7 +69,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (type === "system_settings") {
+    if (type === "system_settings" && updates) {
       const updatedSettings = updateSystemSettings(updates, admin.username);
       return NextResponse.json({
         success: true,
@@ -66,7 +78,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (type === "seo_settings") {
+    if (type === "seo_settings" && updates) {
       const updatedSeo = updateSeoSettings(updates, admin.username);
       return NextResponse.json({
         success: true,
@@ -75,7 +87,35 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: "Неизвестный тип настроек." }, { status: 400 });
+    if (type === "legal_settings" && updates) {
+      const updatedLegal = updateLegalSettings(updates, admin.username);
+      return NextResponse.json({
+        success: true,
+        message: "Юридические настройки и реквизиты успешно сохранены.",
+        legalSettings: updatedLegal,
+      });
+    }
+
+    if (type === "cookie_settings" && updates) {
+      const updatedCookie = updateCookieSettings(updates, admin.username);
+      return NextResponse.json({
+        success: true,
+        message: "Настройки Cookie баннера успешно сохранены.",
+        cookieSettings: updatedCookie,
+      });
+    }
+
+    if (type === "semantic_clusters" && (clusters || updates)) {
+      const targetClusters = Array.isArray(clusters) ? clusters : Array.isArray(updates) ? updates : [];
+      const updatedClusters = updateSemanticClusters(targetClusters, admin.username);
+      return NextResponse.json({
+        success: true,
+        message: "Семантическое ядро успешно сохранено.",
+        semanticClusters: updatedClusters,
+      });
+    }
+
+    return NextResponse.json({ error: "Неизвестный тип настроек или отсутствуют данные." }, { status: 400 });
   } catch (err) {
     secureLogger.error("[Admin Settings POST] Ошибка:", err);
     return NextResponse.json({ error: "Ошибка при сохранении настроек." }, { status: 500 });

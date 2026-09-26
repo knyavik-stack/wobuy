@@ -7,6 +7,8 @@ import { AdminAnalyticsTab } from "@/components/admin/AdminAnalyticsTab";
 import { AdminUsersTab } from "@/components/admin/AdminUsersTab";
 import { AdminFeatureFlagsTab } from "@/components/admin/AdminFeatureFlagsTab";
 import { AdminSeoTab } from "@/components/admin/AdminSeoTab";
+import { AdminSemanticCoreTab } from "@/components/admin/AdminSemanticCoreTab";
+import { AdminLegalTab } from "@/components/admin/AdminLegalTab";
 import { AdminSettingsTab } from "@/components/admin/AdminSettingsTab";
 import { AdminAuditLogsTab } from "@/components/admin/AdminAuditLogsTab";
 import { AnalyticsSummary, AdminUser } from "@/lib/admin/types";
@@ -92,6 +94,10 @@ export default function AdminDashboardPage() {
         {currentTab === "flags" && <AdminFeatureFlagsTab />}
 
         {currentTab === "seo" && <AdminSeoTab />}
+
+        {currentTab === "semantic" && <AdminSemanticCoreTab />}
+
+        {currentTab === "legal" && <AdminLegalTab />}
 
         {currentTab === "settings" && <AdminSettingsTab />}
 

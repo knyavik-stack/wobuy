@@ -1,21 +1,21 @@
 import Link from "next/link";
 import { Metadata } from "next";
-import { Scale, ArrowLeft, ShieldAlert } from "lucide-react";
+import { Cookie, ArrowLeft, ShieldCheck } from "lucide-react";
 import { getLegalSettings, getSeoSettings } from "@/lib/admin/settings-store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = getSeoSettings();
   const canonicalUrl = seo.canonicalBaseUrl || "https://wobuy.ru";
   return {
-    title: "Пользовательское соглашение и правила сервиса | wobuy.",
-    description: "Условия использования сервиса wobuy, правила агрегации цен на маркетплейсах и правовой статус алгоритмов Анти-Фейк.",
+    title: "Политика использования файлов Cookie | wobuy.",
+    description: "Информация об использовании файлов cookie и метаданных на сайте wobuy.ru. Настройки безопасности и управление предпочтениями.",
     alternates: {
-      canonical: `${canonicalUrl}/terms`,
+      canonical: `${canonicalUrl}/legal/cookies`,
     },
   };
 }
 
-export default function TermsPage() {
+export default function CookiesPolicyPage() {
   const legal = getLegalSettings();
 
   return (
@@ -30,37 +30,27 @@ export default function TermsPage() {
             <span>Вернуться на главную</span>
           </Link>
           <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Scale className="h-4 w-4 text-cyan-400" />
-            <span>Правила сервиса</span>
+            <Cookie className="h-4 w-4 text-[#00FF87]" />
+            <span>Cookie & Web-Data</span>
           </div>
         </div>
 
         <div className="mt-8 space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300">
-            <Scale className="h-3.5 w-3.5" />
-            <span>Публичная оферта и регламент</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Безопасность и приватность</span>
           </div>
           <h1 className="text-2xl font-extrabold text-white md:text-3xl">
-            Пользовательское соглашение
+            Политика использования файлов Cookie
           </h1>
           <p className="text-xs text-slate-400">
-            Сервис: <strong className="text-white">wobuy.ru</strong> | Оператор: <strong className="text-white">{legal.companyName}</strong>
+            Регламент сервиса <strong className="text-white">wobuy.ru</strong> по сохранению технических параметров сессий и аналитики.
           </p>
         </div>
 
-        {/* Уведомление о маркетплейсах и рекламе */}
-        <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-200/90 leading-relaxed">
-          <div className="flex items-center gap-2 font-semibold text-amber-300 mb-1">
-            <ShieldAlert className="h-4 w-4 text-amber-400" />
-            <span>Статус агрегатора цен</span>
-          </div>
-          <p>{legal.partnerDisclaimer}</p>
-          <p className="mt-2 text-amber-300/80">{legal.eridNotice}</p>
-        </div>
-
-        {/* Текст соглашения */}
+        {/* Текст политики cookie */}
         <div className="mt-8 space-y-6 text-xs leading-relaxed text-slate-300 md:text-sm whitespace-pre-line">
-          {legal.termsOfServiceText}
+          {legal.cookiePolicyText}
         </div>
 
         {/* Дополнительные ссылки */}
@@ -71,11 +61,11 @@ export default function TermsPage() {
           <Link href="/consent" className="text-[#00FF87] hover:underline">
             Согласие на обработку данных →
           </Link>
-          <Link href="/legal/cookies" className="text-[#00FF87] hover:underline">
-            Политика Cookie →
+          <Link href="/terms" className="text-[#00FF87] hover:underline">
+            Пользовательское соглашение →
           </Link>
           <Link href="/contacts" className="text-[#00FF87] hover:underline">
-            Контакты →
+            Контакты оператора →
           </Link>
         </div>
       </article>

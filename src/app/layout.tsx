@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Footer } from "@/components/layout/Footer";
-import { getSeoSettings } from "@/lib/admin/settings-store";
+import { CookieConsentBanner } from "@/components/layout/CookieConsentBanner";
+import { getSeoSettings, getCookieSettings, getLegalSettings } from "@/lib/admin/settings-store";
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = getSeoSettings();
-  const canonicalUrl = seo.canonicalBaseUrl || "https://wobuy.ru";
+  const canonicalUrl = (seo.canonicalBaseUrl || "https://wobuy.ru").replace(/\/+$/, "");
 
   const isNoIndex = seo.robotsIndexing.includes("noindex");
   const isNoFollow = seo.robotsIndexing.includes("nofollow");
@@ -13,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const verification: Record<string, string> = {};
   if (seo.yandexVerification) verification.yandex = seo.yandexVerification;
   if (seo.googleVerification) verification.google = seo.googleVerification;
+  if (seo.bingVerification) (verification as Record<string, string>)["msvalidate.01"] = seo.bingVerification;
 
   return {
     metadataBase: new URL(canonicalUrl),
@@ -79,7 +81,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const seo = getSeoSettings();
-  const canonicalUrl = seo.canonicalBaseUrl || "https://wobuy.ru";
+  const legal = getLegalSettings();
+  const cookieSettings = getCookieSettings();
+  const canonicalUrl = (seo.canonicalBaseUrl || "https://wobuy.ru").replace(/\/+$/, "");
 
   const rootJsonLd = seo.jsonLdEnabled
     ? {
@@ -102,13 +106,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {
             "@type": "Organization",
             "@id": `${canonicalUrl}/#org`,
-            "name": seo.siteName,
+            "name": legal.companyName || seo.siteName,
+            "alternateName": seo.siteName,
             "url": canonicalUrl,
             "logo": `${canonicalUrl}/icon.svg`,
             "contactPoint": {
               "@type": "ContactPoint",
               "contactType": "customer support",
-              "email": "support@wobuy.ru",
+              "email": legal.supportEmail || "support@wobuy.ru",
+              "telephone": legal.supportPhone || "+7-800-555-35-35",
               "availableLanguage": ["Russian"],
             },
           },
@@ -119,7 +125,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             "name": seo.siteName,
             "potentialAction": {
               "@type": "SearchAction",
-              "target": `${canonicalUrl}/?q={search_term_string}`,
+              "target": `${canonicalUrl}/search?q={search_term_string}`,
               "query-input": "required name=search_term_string",
             },
           },
@@ -140,6 +146,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-screen flex flex-col overflow-x-hidden bg-[#0D0F14] text-slate-100">
         <div className="flex-1">{children}</div>
         <Footer />
+        <CookieConsentBanner initialSettings={cookieSettings} />
       </body>
     </html>
   );

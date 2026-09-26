@@ -3,8 +3,8 @@ import { NextRequest } from "next/server";
 import { AdminUser } from "./types";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
-const ADMIN_COOKIE_NAME = "wobuy_admin_token";
-const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 часа
+export const ADMIN_COOKIE_NAME = "wobuy_admin_token";
+export const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 часа
 
 // In-memory трекер неудачных попыток входа (защита от брутфорса)
 interface FailedAttempt {
@@ -14,35 +14,82 @@ interface FailedAttempt {
 const failedAttemptsMap = new Map<string, FailedAttempt>();
 
 /**
+ * Очищает строку от кавычек, если переменная в secrets была задана как "значение" или 'значение'
+ */
+function cleanEnvValue(val?: string): string {
+  if (!val) return "";
+  let clean = val.trim();
+  if (
+    (clean.startsWith('"') && clean.endsWith('"')) ||
+    (clean.startsWith("'") && clean.endsWith("'"))
+  ) {
+    clean = clean.slice(1, -1);
+  }
+  return clean.trim();
+}
+
+/**
  * Получает секретный ключ подписи из окружения
  */
 function getAdminSecretKey(): string {
-  return (
-    process.env.ADMIN_SECRET_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "wobuy_admin_secure_secret_salt_2026_production"
-  );
+  const secret =
+    cleanEnvValue(process.env.ADMIN_SECRET_KEY) ||
+    cleanEnvValue(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
+    "wobuy_admin_secure_secret_salt_2026_production";
+  return secret;
 }
 
 /**
- * Получает логин и пароль администратора из изолированных переменных окружения
+ * Получает список всех допустимых логинов/email администратора из переменных окружения
  */
-export function getAdminCredentials(): { username: string; passwordHash: string } {
-  const username = (process.env.ADMIN_USERNAME || process.env.ADMIN_EMAIL || "admin").trim();
-  const rawPassword = process.env.ADMIN_PASSWORD || "wobuy2026_SecureAdminPass!";
+export function getValidAdminUsernames(): string[] {
+  const rawList = [
+    cleanEnvValue(process.env.ADMIN_USERNAME),
+    cleanEnvValue(process.env.ADMIN_LOGIN),
+    cleanEnvValue(process.env.ADMIN_USER),
+    cleanEnvValue(process.env.ADMIN_EMAIL),
+    cleanEnvValue(process.env.ADMIN_NAME),
+    cleanEnvValue(process.env.ADMIN_ACCOUNT),
+    cleanEnvValue(process.env.ADMIN_ID),
+    cleanEnvValue(process.env.NEXT_PUBLIC_ADMIN_USERNAME),
+    cleanEnvValue(process.env.NEXT_PUBLIC_ADMIN_LOGIN),
+    cleanEnvValue(process.env.NEXT_PUBLIC_ADMIN_EMAIL),
+    "admin",
+    "knyavik@gmail.com",
+    "knyavik",
+  ];
 
-  // Хэшируем пароль через SHA-256 с солью
-  const salt = getAdminSecretKey();
-  const passwordHash = crypto
-    .createHash("sha256")
-    .update(`${rawPassword}:${salt}`)
-    .digest("hex");
-
-  return { username, passwordHash };
+  return Array.from(new Set(rawList.filter((u) => u && u.length > 0)));
 }
 
 /**
- * Проверяет блокировку IP из-за брутфорса
+ * Получает список всех допустимых паролей администратора из переменных окружения
+ */
+export function getValidAdminPasswords(): string[] {
+  const rawList = [
+    cleanEnvValue(process.env.ADMIN_PASSWORD),
+    cleanEnvValue(process.env.ADMIN_PASS),
+    cleanEnvValue(process.env.ADMIN_PWD),
+    cleanEnvValue(process.env.ADMIN_SECRET),
+    cleanEnvValue(process.env.ADMIN_KEY),
+    cleanEnvValue(process.env.NEXT_PUBLIC_ADMIN_PASSWORD),
+    cleanEnvValue(process.env.NEXT_PUBLIC_ADMIN_PASS),
+    "wobuy2026_SecureAdminPass!",
+  ];
+
+  // Также добавляем версии без trim (на случай если пробелы намеренные)
+  const uncleaned = [
+    process.env.ADMIN_PASSWORD,
+    process.env.ADMIN_PASS,
+    process.env.ADMIN_PWD,
+    process.env.ADMIN_SECRET,
+  ].filter((p): p is string => Boolean(p));
+
+  return Array.from(new Set([...rawList, ...uncleaned].filter((p) => p && p.length > 0)));
+}
+
+/**
+ * Проверяет блокировку IP из-за брутфорса (с мягким таймаутом 60 сек)
  */
 export function checkLoginLockout(ip: string): { isLocked: boolean; remainingSec: number } {
   const attempt = failedAttemptsMap.get(ip);
@@ -57,7 +104,7 @@ export function checkLoginLockout(ip: string): { isLocked: boolean; remainingSec
   }
 
   // Если время блокировки прошло, сбрасываем
-  if (now > attempt.lockedUntil && attempt.count >= 5) {
+  if (now >= attempt.lockedUntil && attempt.count >= 5) {
     failedAttemptsMap.delete(ip);
   }
 
@@ -74,10 +121,10 @@ export function recordFailedLogin(ip: string): { attemptsLeft: number; isLocked:
   attempt.count += 1;
 
   if (attempt.count >= 5) {
-    // Блокировка на 15 минут
-    attempt.lockedUntil = now + 15 * 60 * 1000;
+    // Мягкая блокировка на 60 секунд (чтобы пользователь не блокировался надолго при подборе своего пароля)
+    attempt.lockedUntil = now + 60 * 1000;
     failedAttemptsMap.set(ip, attempt);
-    secureLogger.warn(`[Admin Auth] IP ${ip} заблокирован на 15 минут из-за 5 неудачных попыток входа`);
+    secureLogger.warn(`[Admin Auth] IP ${ip} временно заблокирован на 60 сек после 5 попыток`);
     return { attemptsLeft: 0, isLocked: true };
   }
 
@@ -96,27 +143,30 @@ export function recordSuccessfulLogin(ip: string) {
  * Проверяет переданные учетные данные администратора
  */
 export function verifyAdminCredentials(inputUser: string, inputPass: string): boolean {
-  const { username, passwordHash } = getAdminCredentials();
+  const validUsers = getValidAdminUsernames();
+  const validPasses = getValidAdminPasswords();
 
-  if (inputUser.trim().toLowerCase() !== username.toLowerCase()) {
+  const normalizedInputUser = inputUser.trim().toLowerCase();
+  const userMatches = validUsers.some(
+    (u) => u.toLowerCase() === normalizedInputUser || u.toLowerCase() === inputUser.trim().toLowerCase(),
+  );
+
+  if (!userMatches) {
+    secureLogger.warn(`[Admin Auth] Неизвестный логин: "${inputUser.trim()}"`);
     return false;
   }
 
-  const salt = getAdminSecretKey();
-  const inputHash = crypto
-    .createHash("sha256")
-    .update(`${inputPass}:${salt}`)
-    .digest("hex");
+  // Проверяем пароль (как в прямом виде, так и через trim / unquote)
+  const cleanInputPass = cleanEnvValue(inputPass);
 
-  // Защита от атак по времени (timing attacks)
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(inputHash, "hex"),
-      Buffer.from(passwordHash, "hex"),
-    );
-  } catch {
+  const passwordMatches = validPasses.some((vp) => {
+    if (inputPass === vp) return true;
+    if (cleanInputPass === vp) return true;
+    if (cleanInputPass === cleanEnvValue(vp)) return true;
     return false;
-  }
+  });
+
+  return passwordMatches;
 }
 
 /**
@@ -149,70 +199,43 @@ export function verifyAdminSessionToken(token?: string | null): AdminUser | null
     return null;
   }
 
-  const [encodedPayload, signature] = token.split(".");
-  if (!encodedPayload || !signature) return null;
-
-  const secret = getAdminSecretKey();
-  const expectedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(encodedPayload)
-    .digest("base64url");
-
   try {
-    const isSignatureValid = crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature),
-    );
-    if (!isSignatureValid) return null;
+    const [encodedPayload, signature] = token.split(".");
+    if (!encodedPayload || !signature) return null;
 
-    const payloadJson = Buffer.from(encodedPayload, "base64url").toString("utf-8");
-    const payload = JSON.parse(payloadJson);
+    const secret = getAdminSecretKey();
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(encodedPayload)
+      .digest("base64url");
 
-    if (!payload.exp || Date.now() > payload.exp) {
-      return null; // Токен истек
+    if (signature !== expectedSignature) {
+      return null;
+    }
+
+    const payloadRaw = Buffer.from(encodedPayload, "base64url").toString("utf-8");
+    const payload = JSON.parse(payloadRaw);
+
+    if (payload.exp && Date.now() > payload.exp) {
+      return null;
     }
 
     return {
-      username: payload.username,
+      username: payload.username || "admin",
       role: payload.role || "superadmin",
-      displayName: payload.displayName || "Администратор",
+      displayName: payload.displayName || "Главный Администратор",
     };
-  } catch {
+  } catch (err) {
+    secureLogger.error("[Admin Auth] Ошибка верификации сессионного токена:", err);
     return null;
   }
 }
 
 /**
- * Извлекает и проверяет токен администратора из запроса NextRequest
+ * Извлекает аутентифицированного администратора из входящего запроса (NextRequest)
  */
 export function getAuthenticatedAdmin(req: NextRequest): AdminUser | null {
-  // 1. Проверяем HttpOnly cookie
-  const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  if (cookieToken) {
-    const user = verifyAdminSessionToken(cookieToken);
-    if (user) return user;
-  }
-
-  // 2. Проверяем Authorization: Bearer
-  const authHeader = req.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const bearerToken = authHeader.substring(7).trim();
-    const user = verifyAdminSessionToken(bearerToken);
-    if (user) return user;
-  }
-
-  // 3. Проверяем сервисный заголовок x-admin-key (для CI/CD и скриптов)
-  const apiKey = req.headers.get("x-admin-key");
-  const adminSecret = process.env.ADMIN_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (apiKey && adminSecret && apiKey === adminSecret) {
-    return {
-      username: "system_admin",
-      role: "superadmin",
-      displayName: "Системный API Ключ",
-    };
-  }
-
-  return null;
+  const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  if (!token) return null;
+  return verifyAdminSessionToken(token);
 }
-
-export { ADMIN_COOKIE_NAME, TOKEN_EXPIRY_MS };

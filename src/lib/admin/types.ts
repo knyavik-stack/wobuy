@@ -30,6 +30,14 @@ export interface SystemSettings {
   contactSupportEmail: string;
 }
 
+export interface RobotsSettings {
+  disallowPaths: string[];
+  allowPaths: string[];
+  customRules: string;
+  hostUrl: string;
+  crawlDelay?: number;
+}
+
 export interface SeoSettings {
   siteName: string;
   defaultTitle: string;
@@ -46,7 +54,59 @@ export interface SeoSettings {
   productTitlePattern: string;
   yandexVerification: string;
   googleVerification: string;
+  bingVerification?: string;
+  yandexHtmlVerificationFile?: string;
+  googleHtmlVerificationFile?: string;
   customHeadSnippet?: string;
+  robotsSettings?: RobotsSettings;
+  enableBreadcrumbsJsonLd?: boolean;
+  enableProductJsonLd?: boolean;
+  enableWebSiteSearchBox?: boolean;
+  enableOrganizationJsonLd?: boolean;
+}
+
+export interface LegalSettings {
+  companyName: string;
+  brandName: string;
+  inn: string;
+  ogrn: string;
+  legalAddress: string;
+  supportEmail: string;
+  supportPhone: string;
+  workHours: string;
+  privacyPolicyText: string;
+  consentText: string;
+  termsOfServiceText: string;
+  cookiePolicyText: string;
+  partnerDisclaimer: string;
+  eridNotice: string;
+}
+
+export interface CookieBannerSettings {
+  enabled: boolean;
+  bannerTitle: string;
+  bannerText: string;
+  acceptButtonText: string;
+  declineButtonText: string;
+  customizeButtonText: string;
+  allowDecline: boolean;
+}
+
+export interface SemanticQueryItem {
+  query: string;
+  anchorText: string;
+  priority: number;
+  tags: string[];
+}
+
+export interface SemanticCluster {
+  id: string;
+  category: string;
+  slug: string;
+  h1Title: string;
+  metaDescription: string;
+  keywords: string[];
+  popularQueries: SemanticQueryItem[];
 }
 
 export interface AuditLogEntry {
@@ -66,7 +126,7 @@ export interface AnalyticsSummary {
   totalRegisteredUsers: number;
   totalSearchesToday: number;
   avgSearchTimeMs: number;
-  wildberriesStatus: "operational" | "degraded" | "error";
+  wildberriesStatus: "operational" | "degraded" | "error" | "disabled";
   ozonStatus: "operational" | "proxy_active" | "challenge" | "disabled";
   databaseStatus: "connected" | "disconnected";
   aiServiceStatus: "ready" | "fallback" | "unavailable";

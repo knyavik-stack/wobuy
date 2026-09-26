@@ -4,7 +4,6 @@ import { getSeoSettings } from "@/lib/admin/settings-store";
 export default function robots(): MetadataRoute.Robots {
   const seo = getSeoSettings();
   const baseUrl = (seo.canonicalBaseUrl || "https://wobuy.ru").replace(/\/+$/, "");
-
   const isNoIndex = seo.robotsIndexing.includes("noindex");
 
   if (isNoIndex) {
@@ -17,22 +16,36 @@ export default function robots(): MetadataRoute.Robots {
     };
   }
 
+  const robotsConfig = seo.robotsSettings;
+  const disallow = robotsConfig?.disallowPaths && robotsConfig.disallowPaths.length > 0
+    ? robotsConfig.disallowPaths
+    : ["/admin", "/admin/*", "/api/*", "/dashboard", "/dashboard/*", "/login", "/register", "/cart"];
+
+  const allow = robotsConfig?.allowPaths && robotsConfig.allowPaths.length > 0
+    ? robotsConfig.allowPaths
+    : ["/", "/catalog", "/catalog/*", "/product/*", "/search", "/privacy", "/consent", "/terms", "/contacts", "/legal/cookies"];
+
+  const crawlDelay = robotsConfig?.crawlDelay && robotsConfig.crawlDelay > 0 ? robotsConfig.crawlDelay : undefined;
+
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/catalog", "/product/"],
-        disallow: ["/admin", "/admin/*", "/api/*", "/dashboard", "/dashboard/*", "/login", "/register"],
+        allow,
+        disallow,
+        crawlDelay,
       },
       {
         userAgent: "Yandex",
-        allow: ["/", "/catalog", "/product/"],
-        disallow: ["/admin", "/admin/*", "/api/*", "/dashboard", "/dashboard/*"],
+        allow,
+        disallow,
+        crawlDelay,
       },
       {
         userAgent: "Googlebot",
-        allow: ["/", "/catalog", "/product/"],
-        disallow: ["/admin", "/admin/*", "/api/*", "/dashboard", "/dashboard/*"],
+        allow,
+        disallow,
+        crawlDelay,
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
