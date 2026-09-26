@@ -5,7 +5,6 @@ import http from "http";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { RawMarketplaceOffer } from "./types";
-import { buildOzonProductUrl } from "@/lib/marketplace-links";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
 export const OZON_DEFAULT_HEADERS: Record<string, string> = {
@@ -247,6 +246,13 @@ export async function searchOzon(
 
       if (res.ok) {
         const workerData = await res.json();
+        // Блокируем старый синтетический генератор ozon-worker-stream
+        if (workerData?.source === "ozon-worker-stream") {
+          secureLogger.warn(
+            "[Ozon Worker] Отклонен синтетический ответ ozon-worker-stream (требуется реальный DOM/API скрапер)",
+          );
+          return [];
+        }
         if (Array.isArray(workerData?.products) && workerData.products.length > 0) {
           const directOffers: RawMarketplaceOffer[] = workerData.products.map(
             (p: Record<string, unknown>) => {
@@ -283,14 +289,14 @@ export async function searchOzon(
             },
           );
 
-          const authenticOffers = directOffers.filter((o) => isRealOzonOffer(o, cleanQuery));
+          const authenticOffers = directOffers.filter((o) => isRealOzonOffer(o));
           if (authenticOffers.length > 0) {
             return authenticOffers.slice(0, limit);
           }
         }
 
         const parsedOffers = parseOzonWidgetStates(workerData, cleanQuery, limit);
-        const authenticParsedOffers = parsedOffers.filter((o) => isRealOzonOffer(o, cleanQuery));
+        const authenticParsedOffers = parsedOffers.filter((o) => isRealOzonOffer(o));
         if (authenticParsedOffers.length > 0) {
           return authenticParsedOffers.slice(0, limit);
         }
@@ -314,7 +320,7 @@ export async function searchOzon(
       try {
         const data = JSON.parse(response.body) as Record<string, unknown>;
         const offers = parseOzonWidgetStates(data, cleanQuery, limit);
-        const authenticOffers = offers.filter((o) => isRealOzonOffer(o, cleanQuery));
+        const authenticOffers = offers.filter((o) => isRealOzonOffer(o));
         if (authenticOffers.length > 0) {
           return authenticOffers.slice(0, limit);
         }
@@ -334,14 +340,19 @@ export async function searchOzon(
 /**
  * Валидатор подлинности товара Ozon
  */
-function isRealOzonOffer(offer: RawMarketplaceOffer, cleanQuery: string): boolean {
-  if (!offer.externalId || offer.externalId.length < 3) return false;
-  if (!offer.url || !offer.url.includes("/product/") || offer.url.includes("/search/"))
+function isRealOzonOffer(offer: RawMarketplaceOffer): boolean {
+  if (!offer.externalId || !/^\d{5,14}$/.test(offer.externalId)) return false;
+  if (!offer.title || offer.title.trim().length < 2) return false;
+  if (
+    !offer.imageUrl ||
+    !offer.imageUrl.startsWith("http") ||
+    offer.imageUrl.includes("default.jpg") ||
+    offer.imageUrl.includes("unsplash") ||
+    offer.imageUrl.includes("picsum") ||
+    offer.imageUrl.includes(`/${offer.externalId}.jpg`)
+  ) {
     return false;
-  const trimmedTitle = offer.title.trim().toLowerCase();
-  const trimmedQuery = cleanQuery.trim().toLowerCase();
-  if (trimmedTitle === trimmedQuery && trimmedTitle.length < 20) return false;
-  if (!offer.imageUrl || offer.imageUrl.includes("default.jpg")) return false;
+  }
   if (!offer.price || offer.price <= 0) return false;
   return true;
 }
@@ -372,16 +383,17 @@ function parseOzonWidgetStates(
         const state = typeof stateStr === "string" ? JSON.parse(stateStr) : stateStr;
         const items = state?.items || state?.products || [];
         for (const item of items) {
-          const sku =
-            item?.sku ||
-            item?.id ||
-            item?.itemId ||
-            Math.abs(
-              cleanQuery.split("").reduce((a, b) => a + b.charCodeAt(0), 0) + results.length,
-            );
+          const rawSku = item?.sku || item?.id || item?.itemId;
+          const sku = rawSku ? String(rawSku).replace(/\D/g, "") : "";
+          if (!sku || sku.length < 5) continue;
 
-          const title =
-            item?.title || item?.name || item?.cellTrackingInfo?.product?.title || cleanQuery;
+          const title = (
+            item?.title ||
+            item?.name ||
+            item?.cellTrackingInfo?.product?.title ||
+            ""
+          ).trim();
+          if (!title) continue;
 
           const priceStr =
             item?.price?.price ||
@@ -393,6 +405,7 @@ function parseOzonWidgetStates(
             typeof priceStr === "number"
               ? priceStr
               : parseInt(String(priceStr).replace(/\D/g, ""), 10) || 0;
+          if (price <= 0) continue;
 
           const origPriceStr = item?.price?.original || item?.price?.old || item?.oldPrice;
           const origPrice = origPriceStr
@@ -410,22 +423,24 @@ function parseOzonWidgetStates(
           if (imageUrl && !imageUrl.startsWith("http")) {
             imageUrl = `https:${imageUrl.startsWith("//") ? "" : "//"}${imageUrl}`;
           }
+          if (!imageUrl || imageUrl.includes("default.jpg")) continue;
 
           const rawLink = item?.action?.link || item?.link || item?.url || item?.pageUrl || "";
 
-          const productUrl = rawLink
-            ? rawLink.startsWith("http")
+          let productUrl = `https://www.ozon.ru/product/${sku}/`;
+          if (rawLink && (rawLink.includes("/product/") || rawLink.includes("/context/detail/"))) {
+            productUrl = rawLink.startsWith("http")
               ? rawLink
-              : `https://www.ozon.ru${rawLink.startsWith("/") ? "" : "/"}${rawLink}`
-            : buildOzonProductUrl(title, sku);
+              : `https://www.ozon.ru${rawLink.startsWith("/") ? "" : "/"}${rawLink}`;
+          }
 
           results.push({
             id: `ozon-${sku}`,
             marketplace: "ozon" as const,
-            externalId: String(sku),
+            externalId: sku,
             title,
-            brand: item?.brand || item?.cellTrackingInfo?.product?.brand || "Ozon Seller",
-            price: price || 2500,
+            brand: item?.brand || item?.cellTrackingInfo?.product?.brand || "Ozon",
+            price,
             originalPrice: origPrice || price,
             discountPercent:
               origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0,
@@ -437,7 +452,7 @@ function parseOzonWidgetStates(
             deliveryDays: 2,
             deliveryText: "1-2 дня (со склада Ozon)",
             availability: "В наличии",
-            sellerName: item?.seller?.name || item?.sellerName || "Ozon Retail",
+            sellerName: item?.seller?.name || item?.sellerName || "Продавец Ozon",
           });
         }
       } catch {}

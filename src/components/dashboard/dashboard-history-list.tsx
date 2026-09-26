@@ -55,6 +55,7 @@ export function DashboardHistoryList({ initialHistory }: { initialHistory: Histo
                 <img
                   src={item.imageUrl}
                   alt={item.name}
+                  referrerPolicy="no-referrer"
                   className="h-10 w-10 shrink-0 rounded-lg border border-white/10 object-contain bg-[#0D0F14]"
                   loading="lazy"
                 />

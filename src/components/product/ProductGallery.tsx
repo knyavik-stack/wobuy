@@ -91,6 +91,7 @@ export function ProductGallery({
             <img
               src={activeImage}
               alt={title}
+              referrerPolicy="no-referrer"
               onError={handleImageError}
               className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover/gallery:scale-105"
               loading="lazy"
@@ -171,6 +172,7 @@ export function ProductGallery({
             <img
               src={activeImage}
               alt={title}
+              referrerPolicy="no-referrer"
               onError={handleImageError}
               className="max-h-full max-w-full object-contain"
             />
@@ -243,6 +245,7 @@ export function ProductGallery({
               <img
                 src={img}
                 alt={`${title} - фото ${idx + 1}`}
+                referrerPolicy="no-referrer"
                 className="h-full w-full object-contain"
                 loading="lazy"
               />

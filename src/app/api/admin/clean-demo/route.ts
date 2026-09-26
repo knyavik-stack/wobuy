@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/utils/rate-limiter";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
 export async function POST(req: NextRequest) {
-  // Проверка авторизации администратора: сверка ключа или заголовка
+  const rateLimit = checkRateLimit(req, { limit: 5, windowMs: 60_000 }, "admin-clean-demo");
+  if (!rateLimit.allowed && rateLimit.response) {
+    return rateLimit.response;
+  }
+
+  // Строгая fail-closed проверка авторизации администратора
   const adminSecret = process.env.ADMIN_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   const authHeader =
     req.headers.get("x-admin-key") || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-  if (adminSecret && authHeader !== adminSecret) {
+  if (!adminSecret || !authHeader || authHeader !== adminSecret) {
     secureLogger.warn("Несанкционированная попытка доступа к /api/admin/clean-demo");
     return NextResponse.json(
       { error: "Доступ запрещён: неверный или отсутствующий ключ администратора." },

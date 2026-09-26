@@ -80,7 +80,8 @@ export function buildOzonProductUrl(title: string, skuOrUrl?: string | number): 
 
 /**
  * Формирование НАДЕЖНОЙ ПРЯМОЙ ссылки на конкретный товар Wildberries:
- * Всегда ведет на конкретную карточку товара /catalog/${sku}/detail.aspx
+ * Ведет на конкретную карточку товара /catalog/${sku}/detail.aspx при наличии реального артикула,
+ * либо на страницу поиска товара на Wildberries (исключает попадание на чужой случайный артикул).
  */
 export function buildWildberriesProductUrl(skuOrUrl?: string | number, fallbackTitle = ""): string {
   const raw = String(skuOrUrl || "").trim();
@@ -94,15 +95,15 @@ export function buildWildberriesProductUrl(skuOrUrl?: string | number, fallbackT
     return raw;
   }
 
-  // 2. Извлекаем числовой артикул
+  // 2. Извлекаем подтвержденный числовой артикул WB (6-11 цифр)
   const digits = raw.replace(/[^\d]/g, "");
   if (digits && digits.length >= 6 && digits.length <= 11) {
     return `https://www.wildberries.ru/catalog/${digits}/detail.aspx`;
   }
 
-  // 3. Стабильный числовой артикул для карточки товара WB
-  const fallbackSku = hashTitleToSku(fallbackTitle, 190000000, 80000000);
-  return `https://www.wildberries.ru/catalog/${fallbackSku}/detail.aspx`;
+  // 3. Если реальный числовой артикул отсутствует — ведем на честный поиск по названию на WB
+  // Никаких выдуманных артикулов из хэша, чтобы не открывались чужие случайные товары!
+  return buildWildberriesSearchUrl(fallbackTitle);
 }
 
 /**

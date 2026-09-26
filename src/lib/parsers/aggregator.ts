@@ -2,7 +2,6 @@ import { RawMarketplaceOffer, CanonicalProductData } from "./types";
 import { searchWildberries, getWildberriesProductDetail } from "./wildberries";
 import { searchOzon } from "./ozon";
 import { clusterAndDeduplicateOffers } from "./deduplicator";
-import { searchWithAiMarketEngine } from "@/lib/ai/ai-search-engine";
 import { secureLogger } from "@/lib/utils/secure-logger";
 
 // In-memory cache с временем жизни 10 минут для снижения нагрузки на маркетплейсы
@@ -83,15 +82,7 @@ export async function aggregateMarketplaceSearch(
     const combinedOffers = [...wbOffers, ...ozonOffers];
 
     if (!combinedOffers.length) {
-      // Если прямые HTTP-запросы к маркетплейсам заблокированы (429/403), используем ИИ-движок подбора
-      const aiProducts = await searchWithAiMarketEngine(cleanQuery, options.limit || 8);
-      if (aiProducts.length > 0) {
-        SEARCH_CACHE.set(cacheKey, {
-          timestamp: now,
-          data: aiProducts,
-        });
-        return aiProducts;
-      }
+      // Честный возврат пустого списка реальных предложений: никаких фейковых товаров с Unsplash
       return [];
     }
 

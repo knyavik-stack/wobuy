@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchWildberries, getWildberriesProductDetail } from "@/lib/parsers/wildberries";
+import { checkRateLimit } from "@/lib/utils/rate-limiter";
+import { secureLogger } from "@/lib/utils/secure-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -8,11 +10,21 @@ export const dynamic = "force-dynamic";
  * GET /api/parse/wb?query=...&article=...&debug=1
  */
 export async function GET(req: NextRequest) {
+  const rateLimit = checkRateLimit(req, { limit: 40, windowMs: 60_000 }, "parse-wb");
+  if (!rateLimit.allowed && rateLimit.response) {
+    secureLogger.warn("Превышен лимит запросов к парсеру Wildberries");
+    return rateLimit.response;
+  }
+
   const { searchParams } = new URL(req.url);
-  const query = searchParams.get("query") || searchParams.get("q") || "";
-  const article = searchParams.get("article") || searchParams.get("id") || "";
-  const limit = parseInt(searchParams.get("limit") || "10", 10);
+  const rawQuery = searchParams.get("query") || searchParams.get("q") || "";
+  const rawArticle = searchParams.get("article") || searchParams.get("id") || "";
+  const rawLimit = parseInt(searchParams.get("limit") || "10", 10);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(1, rawLimit), 30) : 10;
   const debug = searchParams.get("debug") === "1";
+
+  const query = rawQuery.trim().slice(0, 150).replace(/[<>]/g, "");
+  const article = rawArticle.trim().replace(/\D/g, "").slice(0, 12);
 
   const startTime = Date.now();
 

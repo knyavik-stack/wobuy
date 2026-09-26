@@ -64,6 +64,7 @@ export function DashboardFavoritesList({ initialFavorites }: { initialFavorites:
                 <img
                   src={item.imageUrl}
                   alt={item.name}
+                  referrerPolicy="no-referrer"
                   className="h-full w-full object-contain transition group-hover:scale-105"
                   loading="lazy"
                 />

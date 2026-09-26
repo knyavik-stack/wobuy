@@ -25,6 +25,15 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
   },
+  {
+    key: "X-Permitted-Cross-Domain-Policies",
+    value: "none",
+  },
+  {
+    key: "Content-Security-Policy",
+    value:
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.wbbasket.ru https://*.wildberries.ru https://*.ozone.ru https://*.ozon.ru; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.wbbasket.ru https://*.wildberries.ru https://*.ozon.ru https://*.ozone.ru; frame-ancestors *;",
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -55,14 +64,6 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "cdn1.ozone.ru",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      {
-        protocol: "https",
-        hostname: "picsum.photos",
       },
     ],
   },
