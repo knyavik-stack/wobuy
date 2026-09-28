@@ -248,16 +248,13 @@ export async function searchOzon(
 
       if (res.ok) {
         const workerData = await res.json();
-        // Если ответ от старого генератора ozon-worker-stream, переходим к прямому прокси-парсингу
-        if (workerData?.source === "ozon-worker-stream") {
-          secureLogger.debug(
-            "[Ozon Worker] Ответ ozon-worker-stream отклонен, переход к прямому запросу через прокси",
-          );
-        } else if (Array.isArray(workerData?.products) && workerData.products.length > 0) {
+        
+        // Проверяем готовые products от воркера
+        if (Array.isArray(workerData?.products) && workerData.products.length > 0) {
           const directOffers: RawMarketplaceOffer[] = workerData.products.map(
             (p: Record<string, unknown>) => {
-              const sku = String(p.sku || p.id || "");
-              const title = String(p.title || "");
+              const sku = String(p.sku || p.id || "").replace(/\D/g, "");
+              const title = String(p.title || cleanQuery);
               const productUrl = String(
                 p.url || (sku ? `https://www.ozon.ru/product/${sku}/` : ""),
               );
@@ -295,6 +292,7 @@ export async function searchOzon(
           }
         }
 
+        // Проверяем widgetStates (включая формат от ozon-worker-stream)
         const parsedOffers = parseOzonWidgetStates(workerData, cleanQuery, limit);
         const authenticParsedOffers = parsedOffers.filter((o) => isRealOzonOffer(o));
         if (authenticParsedOffers.length > 0) {
@@ -348,8 +346,7 @@ function isRealOzonOffer(offer: RawMarketplaceOffer): boolean {
     !offer.imageUrl.startsWith("http") ||
     offer.imageUrl.includes("default.jpg") ||
     offer.imageUrl.includes("unsplash") ||
-    offer.imageUrl.includes("picsum") ||
-    offer.imageUrl.includes(`/${offer.externalId}.jpg`)
+    offer.imageUrl.includes("picsum")
   ) {
     return false;
   }

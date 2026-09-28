@@ -253,11 +253,23 @@ export function buildHybridMatrix2x2(
   };
 
   // 1. Поиск кандидатов с маркетплейсов
-  const wbCandidates = screenedPool
+  const wbPool = screenedPool.some((p) =>
+    p.offers.some((o) => o.marketplace.toLowerCase().includes("wildberries")),
+  )
+    ? screenedPool
+    : validProducts;
+
+  const ozonPool = screenedPool.some((p) =>
+    p.offers.some((o) => o.marketplace.toLowerCase().includes("ozon")),
+  )
+    ? screenedPool
+    : validProducts;
+
+  const wbCandidates = wbPool
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("wildberries")))
     .sort((a, b) => scoreOffer(b, "wildberries") - scoreOffer(a, "wildberries"));
 
-  const ozonCandidates = screenedPool
+  const ozonCandidates = ozonPool
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("ozon")))
     .sort((a, b) => scoreOffer(b, "ozon") - scoreOffer(a, "ozon"));
 
