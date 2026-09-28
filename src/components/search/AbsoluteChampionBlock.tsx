@@ -40,7 +40,7 @@ export function AbsoluteChampionBlock({ champion, duel, query }: AbsoluteChampio
 
   const productLinkParams = new URLSearchParams();
   if (query) productLinkParams.set("fromQuery", query);
-  productLinkParams.set("fromSlot", champion.slotType);
+  productLinkParams.set("fromSlot", isWb ? "wb_champion" : "ozon_champion");
   productLinkParams.set("slotTitle", "Абсолютный Чемпион");
   productLinkParams.set("slotMarketplace", marketplaceName);
   if (matchedOffer.price) productLinkParams.set("price", String(matchedOffer.price));
@@ -81,7 +81,11 @@ export function AbsoluteChampionBlock({ champion, duel, query }: AbsoluteChampio
 
         <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-400">
           <Sparkles className="h-3.5 w-3.5 text-[#00FF87]" />
-          <span>Победитель дуэли Wildberries vs Ozon</span>
+          <span>
+            {duel.hasOzonOffer
+              ? "Победитель дуэли Wildberries vs Ozon"
+              : `Абсолютный лидер отбора на ${marketplaceName}`}
+          </span>
         </div>
       </div>
 

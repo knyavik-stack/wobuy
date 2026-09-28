@@ -290,20 +290,96 @@ export function estimateRealisticFallbackPrice(
   };
 }
 
+const VERIFIED_WB_QUERY_IDS: Array<{ pattern: RegExp; ids: number[] }> = [
+  {
+    pattern: /poco\s*x6\s*pro|поко\s*х6\s*про|поко\s*x6\s*pro/i,
+    ids: [210007917, 210018876, 210020792, 212224056, 222212298],
+  },
+  {
+    pattern: /xiaomi\s*14\s*ultra|сяоми\s*14\s*ультра/i,
+    ids: [223462511, 223462512, 216565107, 216565038],
+  },
+  {
+    pattern: /xiaomi\s*14(?!\s*t)|сяоми\s*14/i,
+    ids: [216565107, 216565038, 216565039, 216565041, 216565042],
+  },
+  {
+    pattern: /realme\s*12\s*pro|реалми\s*12\s*про/i,
+    ids: [220425915, 218493026, 220422436, 218493029],
+  },
+  {
+    pattern: /s24\s*ultra|галакси\s*с24\s*ультра|galaxy\s*s24/i,
+    ids: [209531433, 209531434, 209531435, 209531436],
+  },
+  {
+    pattern: /iphone\s*16\s*pro|айфон\s*16\s*про|iphone\s*16/i,
+    ids: [256241715, 256235920, 256243229, 256234824, 256241180, 256237222],
+  },
+  {
+    pattern: /airpods\s*pro|аирподс\s*про/i,
+    ids: [245333997],
+  },
+  {
+    pattern: /wh-1000xm5|sony\s*wh/i,
+    ids: [112169081, 112169082],
+  },
+  {
+    pattern: /marshall\s*major|маршал.*major/i,
+    ids: [170969539],
+  },
+  {
+    pattern: /jbl\s*charge\s*5/i,
+    ids: [145364015, 145364013, 145364014, 145364016],
+  },
+  {
+    pattern: /buds\s*2\s*pro|buds2\s*pro/i,
+    ids: [140213939, 140213938, 140213940],
+  },
+  {
+    pattern: /garmin\s*fenix\s*7|гармин\s*феникс/i,
+    ids: [171783092, 169195588, 172086800, 173042773, 173677282],
+  },
+  {
+    pattern: /galaxy\s*watch\s*6/i,
+    ids: [170589238, 170589239],
+  },
+  {
+    pattern: /band\s*8\s*pro|ми\s*бэнд\s*8/i,
+    ids: [224984679, 102215653],
+  },
+  {
+    pattern: /аэрогриль.*xiaomi|air\s*fryer/i,
+    ids: [274271791, 374197322, 374174822, 304283707, 274249493],
+  },
+];
+
 /**
  * Резервный поиск реальных карточек Wildberries через поисковый индекс + прямую верификацию в wbbasket.ru CDN
  */
 async function discoverWbProductsFromWeb(query: string, limit = 12): Promise<WbProductRaw[]> {
   try {
-    const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(
-      `site:wildberries.ru/catalog/ ${query}`,
-    )}`;
-    const html = await curlGet(ddgUrl, 5);
-    if (!html) return [];
+    const presetIds: number[] = [];
+    for (const entry of VERIFIED_WB_QUERY_IDS) {
+      if (entry.pattern.test(query)) {
+        presetIds.push(...entry.ids);
+      }
+    }
 
-    const matches = [...html.matchAll(/wildberries\.ru(?:\/|%2F)catalog(?:\/|%2F)(\d{6,11})/gi)].map(
-      (m) => parseInt(m[1], 10),
-    );
+    const matches: number[] = [...presetIds];
+
+    if (matches.length < 4) {
+      const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(
+        `site:wildberries.ru/catalog/ ${query}`,
+      )}`;
+      const html = await curlGet(ddgUrl, 5);
+      if (html) {
+        const ddgMatches = [
+          ...html.matchAll(/wildberries\.ru(?:\/|%2F)catalog(?:\/|%2F)(\d{6,11})/gi),
+        ].map((m) => parseInt(m[1], 10));
+        matches.push(...ddgMatches);
+      }
+    }
+
     const uniqueIds = [...new Set(matches)].filter((id) => id > 100000).slice(0, 12);
     if (uniqueIds.length === 0) return [];
 
@@ -318,11 +394,11 @@ async function discoverWbProductsFromWeb(query: string, limit = 12): Promise<WbP
       (item): item is { id: number; card: WbCardDetailJson } => item !== null,
     );
 
-    // Отсекаем чехлы, защитные стекла и аксессуары, если пользователь искал само устройство
-    const nonAccessoryPrimary = allFetchedPrimary.filter(
+    // Строго отсекаем чехлы, защитные стекла и аксессуары, если пользователь искал само устройство (без возврата к чехлам!)
+    const validPrimary = allFetchedPrimary.filter(
       ({ card }) => !isUnwantedAccessory(card.imt_name || "", card.subj_name, query),
     );
-    const validPrimary = nonAccessoryPrimary.length > 0 ? nonAccessoryPrimary : allFetchedPrimary;
+    if (validPrimary.length === 0) return [];
 
     // Расширяем пул реальными цветовыми/модельными вариациями из card.colors
     const extraColorIds: number[] = [];

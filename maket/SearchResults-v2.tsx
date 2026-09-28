@@ -366,12 +366,14 @@ export default function SearchResults({
                   query={query}
                 />
 
-                {/* ЛИДЕРЫ ДВУХ ГЛАВНЫХ МАРКЕТПЛЕЙСОВ (WILDBERRIES VS OZON) */}
+                {/* ЛИДЕРЫ ОТБОРА (WILDBERRIES VS OZON ИЛИ ТОП-1 И ТОП-2 WILDBERRIES) */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-                        Лидеры двух главных маркетплейсов: Wildberries и Ozon
+                        {matrix.hasOzonOffer
+                          ? "Лидеры двух главных маркетплейсов: Wildberries и Ozon"
+                          : "Главные финалисты отбора ИИ на Wildberries (Топ-1 и Топ-2)"}
                       </span>
                     </div>
                   </div>
@@ -516,55 +518,84 @@ export default function SearchResults({
                   </div>
                 </div>
 
-                <div
-                  className={
-                    view === "grid" ? "grid grid-cols-1 gap-5 md:grid-cols-2" : "space-y-4"
-                  }
-                >
-                  {matrix.ozonAlternatives.map((p, idx) => {
-                    const ozonOffer =
-                      p.offers.find((o) => o.marketplace.toLowerCase().includes("ozon")) ||
-                      p.offers[0];
+                {matrix.ozonAlternatives.length === 0 ? (
+                  <div className="rounded-3xl border border-white/10 bg-[#12151B] p-8 text-center">
+                    <p className="text-sm font-bold text-white">
+                      По запросу «{query}» подтвержденные прямые карточки отобраны на Wildberries
+                    </p>
+                    <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-slate-400">
+                      Система безопасности wobuy. исключает неподтвержденные или недоступные ссылки. В
+                      данный момент по этому запросу верифицированы прямые предложения со складов FBO
+                      Wildberries.
+                    </p>
+                    <div className="mt-5 flex flex-wrap justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setActiveMode("matrix")}
+                        className="rounded-full bg-[#00FF87] px-5 py-2 text-xs font-black text-black transition hover:bg-[#00E576]"
+                      >
+                        Смотреть финалистов Матрицы 2+2
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveMode("wb")}
+                        className="rounded-full border border-purple-500/40 bg-purple-950/50 px-5 py-2 text-xs font-bold text-purple-300 transition hover:bg-purple-900/60"
+                      >
+                        Смотреть предложения Wildberries
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className={
+                      view === "grid" ? "grid grid-cols-1 gap-5 md:grid-cols-2" : "space-y-4"
+                    }
+                  >
+                    {matrix.ozonAlternatives.map((p, idx) => {
+                      const ozonOffer =
+                        p.offers.find((o) => o.marketplace.toLowerCase().includes("ozon")) ||
+                        p.offers[0];
 
-                    const mockSlot: MatrixSlot = {
-                      slotType: "ozon_champion",
-                      badgeTitle:
-                        idx === 0
-                          ? "№1 Выбор Ozon"
-                          : idx === 1
-                            ? "Экономный Ozon"
-                            : idx === 2
-                              ? "Срочный Ozon"
-                              : "Премиум Ozon",
-                      badgeSubtitle: "Проверено на Ozon",
-                      badgeTag: "Ozon",
-                      badgeColor: "text-blue-300",
-                      badgeBg: "bg-blue-950/70",
-                      badgeBorder: "border-blue-500/50",
-                      product: p,
-                      matchedOffer: ozonOffer,
-                      tcoPrice: ozonOffer.price || 1950,
-                      deliverySpeedLabel: ozonOffer.deliveryText || "2-3 дня (Ozon Express)",
-                      aiVerdict: `Выгодная цена с Ozon Картой и надежная упаковка.`,
-                      pros: [
-                        `Честная цена с учетом Ozon Карты`,
-                        "Быстрый и удобный возврат в ПВЗ Ozon (до 30 дней)",
-                        "Высокий индекс оригинальности товара",
-                      ],
-                      cons: ["Требуется авторизация в Ozon для получения карты"],
-                      antiFakePercent: p.antiFakePercent || 95,
-                      fakeReviewsDetected: 6,
-                      tcoBreakdown: {
-                        basePrice: ozonOffer.price || 1950,
-                        deliveryCost: 0,
-                        loyaltyDiscount: Math.round((ozonOffer.price || 1950) * 0.05),
-                        defectRiskFactor: Math.round((ozonOffer.price || 1950) * 0.02),
-                      },
-                    };
+                      const mockSlot: MatrixSlot = {
+                        slotType: "ozon_champion",
+                        badgeTitle:
+                          idx === 0
+                            ? "№1 Выбор Ozon"
+                            : idx === 1
+                              ? "Экономный Ozon"
+                              : idx === 2
+                                ? "Срочный Ozon"
+                                : "Премиум Ozon",
+                        badgeSubtitle: "Проверено на Ozon",
+                        badgeTag: "Ozon",
+                        badgeColor: "text-blue-300",
+                        badgeBg: "bg-blue-950/70",
+                        badgeBorder: "border-blue-500/50",
+                        product: p,
+                        matchedOffer: ozonOffer,
+                        tcoPrice: ozonOffer.price || 1950,
+                        deliverySpeedLabel: ozonOffer.deliveryText || "2-3 дня (Ozon Express)",
+                        aiVerdict: `Выгодная цена с Ozon Картой и надежная упаковка.`,
+                        pros: [
+                          `Честная цена с учетом Ozon Карты`,
+                          "Быстрый и удобный возврат в ПВЗ Ozon (до 30 дней)",
+                          "Высокий индекс оригинальности товара",
+                        ],
+                        cons: ["Требуется авторизация в Ozon для получения карты"],
+                        antiFakePercent: p.antiFakePercent || 95,
+                        fakeReviewsDetected: 6,
+                        tcoBreakdown: {
+                          basePrice: ozonOffer.price || 1950,
+                          deliveryCost: 0,
+                          loyaltyDiscount: Math.round((ozonOffer.price || 1950) * 0.05),
+                          defectRiskFactor: Math.round((ozonOffer.price || 1950) * 0.02),
+                        },
+                      };
 
-                    return <MatrixSlotCard key={p.id} slot={mockSlot} view={view} query={query} />;
-                  })}
-                </div>
+                      return <MatrixSlotCard key={p.id} slot={mockSlot} view={view} query={query} />;
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -45,9 +45,9 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
     tcoBreakdown,
   } = slot;
 
-  const marketplaceName = matchedOffer.marketplace.toLowerCase().includes("wildberries")
-    ? "Wildberries"
-    : "Ozon";
+  const isOzon = matchedOffer.marketplace.toLowerCase().includes("ozon");
+  const marketplaceName = isOzon ? "Ozon" : "Wildberries";
+  const effectiveSlotType = !isOzon && slotType === "ozon_champion" ? "wb_champion" : slotType;
 
   const safeOfferUrl = sanitizeMarketplaceOfferUrl(
     matchedOffer.marketplace,
@@ -57,7 +57,7 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
 
   const productLinkParams = new URLSearchParams();
   if (query) productLinkParams.set("fromQuery", query);
-  productLinkParams.set("fromSlot", slotType);
+  productLinkParams.set("fromSlot", effectiveSlotType);
   productLinkParams.set("slotTitle", badgeTitle);
   productLinkParams.set("slotMarketplace", marketplaceName);
   if (matchedOffer.price) productLinkParams.set("price", String(matchedOffer.price));
@@ -67,11 +67,11 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
 
   const aiScore = product.aiScore || 9.4;
   const scoreGlow =
-    slotType === "wb_champion"
+    effectiveSlotType === "wb_champion"
       ? "purple"
-      : slotType === "ozon_champion"
+      : effectiveSlotType === "ozon_champion"
         ? "blue"
-        : slotType === "express"
+        : effectiveSlotType === "express"
           ? "amber"
           : "emerald";
 
@@ -87,10 +87,10 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
           <div
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black uppercase tracking-wider ${badgeBorder} ${badgeBg} ${badgeColor}`}
           >
-            {slotType === "wb_champion" && <span>🟣</span>}
-            {slotType === "ozon_champion" && <span>🔵</span>}
-            {slotType === "economist" && <span>🏷️</span>}
-            {slotType === "express" && <span>⚡</span>}
+            {effectiveSlotType === "wb_champion" && <span>🟣</span>}
+            {effectiveSlotType === "ozon_champion" && <span>🔵</span>}
+            {effectiveSlotType === "economist" && <span>🏷️</span>}
+            {effectiveSlotType === "express" && <span>⚡</span>}
             <span>{badgeTitle}</span>
           </div>
 

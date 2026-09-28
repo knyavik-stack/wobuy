@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-28 (Дополнение 19: Исправление путаницы WB / Ozon при анализе и ссылках + точная выдача по запросу «POCO X6 Pro 5G»)
+
+- **Устранение подмены маркетплейса Wildberries на Ozon в матрице 2x2 и ИИ-анализе (`src/lib/catalog/duel-matrix.ts`, `src/components/search/DuelArbitrationCard.tsx`, `src/components/search/MatrixSlotCard.tsx`, `src/components/search/AbsoluteChampionBlock.tsx`, `maket/SearchResults-v2.tsx`)**:
+  - Исправлена логическая ошибка в `buildHybridMatrix2x2`, из-за которой при отсутствии оффера Ozon второй товар с Wildberries записывался в слот с типом `ozon_champion` (`slotMarketplace = "ozon"`), а блок арбитража называл его предложением Ozon и генерировал для него ссылку на `ozon.ru`.
+  - Теперь при наличии офферов только с Wildberries Слот 2 получает корректный статус «Главная Альтернатива WB» (`wb_champion`), блок дуэльного арбитража сравнивает «Лидер WB vs Альтернатива WB» без ложного упоминания Ozon, а обе кнопки в вердикте ведут строго на соответствующие прямые карточки Wildberries (`/catalog/{nmId}/detail.aspx`).
+  - Во вкладке «🔵 Только Ozon» при отсутствии прямых карточек Ozon добавлено информативное пояснение с кнопкой мгновенного переключения на проверенные карточки Wildberries.
+- **Честная привязка маркетплейса и ссылок на детальной странице товара (`src/app/product/[id]/page.tsx`, `src/lib/ai/analyzer.ts`)**:
+  - На странице товара `targetMarketplace` теперь строго определяется по реальным офферам карточки (товар с Wildberries никогда не переключается в режим Ozon из-за параметров URL).
+  - Исключена мутация глобального кэша офферов и перезапись ссылки Wildberries ссылкой Ozon.
+  - В `generateProductAnalysis` и `buildMarketplaceComparison` запрещена генерация вымышленных цен Ozon для товаров Wildberries: основная рекомендация, диалоги 4 ИИ-агентов, TCO и зеленая кнопка покупки всегда соответствуют реальному маркетплейсу карточки, а для второй площадки без прямого артикула честно отображается статус «Прямой артикул не найден».
+- **Исключение чехлов и пополнение базы смартфонов для «POCO X6 Pro 5G» (`src/lib/parsers/wb-client.ts`)**:
+  - В `discoverWbProductsFromWeb` удален fallback на отфильтрованные аксессуары (`allFetchedPrimary`), из-за которого при поиске `POCO X6 Pro 5G` в выдачу попадали чехлы.
+  - Добавлен реестр проверенных артикулов `VERIFIED_WB_QUERY_IDS` и выполнено пополнение базы Supabase 46 реальными карточками смартфонов и электроники с CDN `wbbasket.ru` (включая 5 модификаций `POCO X6 Pro 5G` 8/256 ГБ и 12/512 ГБ).
+
 ## 2026-09-26 (Дополнение 18: Точный поиск моделей, адаптивный каталог, FAQPage, Яндекс.Метрика, GA4 и IndexNow)
 
 - **Точность поиска по моделям и брендам (`src/lib/catalog/search.ts`, `src/lib/ai/ai-search-engine.ts`, `src/lib/parsers/wb-client.ts`, `src/lib/parsers/deduplicator.ts`)**:

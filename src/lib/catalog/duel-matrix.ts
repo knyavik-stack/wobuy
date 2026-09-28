@@ -34,6 +34,7 @@ export interface MatrixSlot {
 export interface DuelArbitration {
   isLinked: boolean;
   isSameSku: boolean;
+  hasOzonOffer: boolean;
   wbSlot: MatrixSlot;
   ozonSlot: MatrixSlot;
   priceDiff: number;
@@ -68,6 +69,7 @@ export interface HybridMatrix2x2 {
   query: string;
   totalFound: number;
   filteredOutCount: number;
+  hasOzonOffer: boolean;
   funnelStats: AuditFunnelStats;
   absoluteChampion: MatrixSlot;
   wbChampion: MatrixSlot;
@@ -344,12 +346,14 @@ export function buildHybridMatrix2x2(
   };
 
   // Формируем СЛОТ 2
-  const slot2Title = hasRealOzon ? "Ozon-Чемпион" : "Главная Альтернатива";
-  const slot2Subtitle = hasRealOzon ? "Лидер маркетплейса Ozon" : "Сильнейший конкурент лидера";
-  const slot2Tag = hasRealOzon ? "№1 на Ozon" : "Топ-2 Выбор";
+  const slot2Title = hasRealOzon ? "Ozon-Чемпион" : "Главная Альтернатива WB";
+  const slot2Subtitle = hasRealOzon
+    ? "Лидер маркетплейса Ozon"
+    : "Второй финалист отбора на Wildberries";
+  const slot2Tag = hasRealOzon ? "№1 на Ozon" : "Топ-2 на WB";
 
   product2.triumph = {
-    slotType: "ozon",
+    slotType: hasRealOzon ? "ozon" : "wb",
     badgeTitle: slot2Title,
     badgeSubtitle: slot2Subtitle,
     marketplace: offer2.marketplace.toLowerCase().includes("wildberries") ? "wildberries" : "ozon",
@@ -359,13 +363,13 @@ export function buildHybridMatrix2x2(
   };
 
   const slot2: MatrixSlot = {
-    slotType: "ozon_champion",
+    slotType: hasRealOzon ? "ozon_champion" : "wb_champion",
     badgeTitle: slot2Title,
     badgeSubtitle: slot2Subtitle,
     badgeTag: slot2Tag,
-    badgeColor: hasRealOzon ? "text-blue-400" : "text-sky-400",
-    badgeBg: hasRealOzon ? "bg-blue-950/70" : "bg-sky-950/70",
-    badgeBorder: hasRealOzon ? "border-blue-500/50" : "border-sky-500/50",
+    badgeColor: hasRealOzon ? "text-blue-400" : "text-purple-300",
+    badgeBg: hasRealOzon ? "bg-blue-950/70" : "bg-purple-950/60",
+    badgeBorder: hasRealOzon ? "border-blue-500/50" : "border-purple-500/40",
     product: product2,
     matchedOffer: offer2,
     tcoPrice: tco2.tcoPrice,
@@ -403,28 +407,40 @@ export function buildHybridMatrix2x2(
   const cheaperWinner =
     tco1.tcoPrice < tco2.tcoPrice ? "wb" : tco2.tcoPrice < tco1.tcoPrice ? "ozon" : "equal";
   const cheaperMarketplace =
-    cheaperWinner === "wb" ? "wildberries" : cheaperWinner === "ozon" ? "ozon" : "equal";
+    cheaperWinner === "wb"
+      ? "wildberries"
+      : cheaperWinner === "ozon"
+        ? hasRealOzon
+          ? "ozon"
+          : "wildberries"
+        : "equal";
 
   const p1ShortTitle =
-    product1.title.length > 25 ? `${product1.title.slice(0, 25)}...` : product1.title;
+    product1.title.length > 28 ? `${product1.title.slice(0, 28)}...` : product1.title;
   const p2ShortTitle =
-    product2.title.length > 25 ? `${product2.title.slice(0, 25)}...` : product2.title;
+    product2.title.length > 28 ? `${product2.title.slice(0, 28)}...` : product2.title;
 
   const cheaperSummary =
     cheaperWinner === "ozon"
       ? hasRealOzon
         ? `На Ozon цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
-        : `У «${p2ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
+        : `У «${p2ShortTitle}» (WB) цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
       : cheaperWinner === "wb"
         ? hasRealOzon
           ? `На Wildberries цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
-          : `У «${p1ShortTitle}» цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
+          : `У «${p1ShortTitle}» (WB) цена ниже на ${priceDiff.toLocaleString("ru-RU")} ₽`
         : "Цены на сравниваемые товары равны";
 
   const deliveryDiffDays = Math.abs(days1 - days2);
   const fasterWinner = days1 < days2 ? "wb" : days2 < days1 ? "ozon" : "equal";
   const fasterMarketplace =
-    fasterWinner === "wb" ? "wildberries" : fasterWinner === "ozon" ? "ozon" : "equal";
+    fasterWinner === "wb"
+      ? "wildberries"
+      : fasterWinner === "ozon"
+        ? hasRealOzon
+          ? "ozon"
+          : "wildberries"
+        : "equal";
 
   const fasterSummary =
     fasterWinner === "wb"
@@ -435,15 +451,27 @@ export function buildHybridMatrix2x2(
         ? hasRealOzon
           ? `На Ozon доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
           : `У «${p2ShortTitle}» доставка быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`
-        : "Одинаковые сроки доставки";
+        : "Одинаковые сроки доставки со склада WB";
 
   let skepticVerdict = "";
   let bestOverallPick: "wildberries" | "ozon" = "wildberries";
 
-  const wbDeliveryStr = wbDays <= 1 ? "завтра" : wbOffer.deliveryText || "быстрее";
-  const ozonDeliveryStr = ozonDays <= 1 ? "завтра" : ozonOffer.deliveryText || "быстрее";
+  const wbDeliveryStr = wbDays <= 1 ? "завтра" : wbOffer.deliveryText || "1-2 дня";
+  const ozonDeliveryStr = ozonDays <= 1 ? "завтра" : ozonOffer.deliveryText || "1-2 дня";
 
-  if (cheaperMarketplace === "ozon" && fasterMarketplace === "wildberries") {
+  if (!hasRealOzon) {
+    // Честный арбитраж двух лучших карточек Wildberries без ложных упоминаний Ozon
+    if (cheaperWinner === "wb") {
+      skepticVerdict = `Лидер отбора «${p1ShortTitle}» на Wildberries выгоднее по TCO на ${priceDiff.toLocaleString("ru-RU")} ₽ со сроком доставки ${wbDeliveryStr}.`;
+      bestOverallPick = "wildberries";
+    } else if (cheaperWinner === "ozon" && priceDiff > 350) {
+      skepticVerdict = `Второй финалист «${p2ShortTitle}» на Wildberries дешевле на ${priceDiff.toLocaleString("ru-RU")} ₽, а «${p1ShortTitle}» лидирует по объему отзывов (${wbOffer.reviewCount || 150}+).`;
+      bestOverallPick = "wildberries";
+    } else {
+      skepticVerdict = `Оба финалиста отобраны на Wildberries со склада FBO (${wbDeliveryStr}): «${p1ShortTitle}» побеждает по совокупному рейтингу и чистоте отзывов (${wbProduct.antiFakePercent}%).`;
+      bestOverallPick = "wildberries";
+    }
+  } else if (cheaperMarketplace === "ozon" && fasterMarketplace === "wildberries") {
     if (priceDiff > 350) {
       skepticVerdict = `На Ozon дешевле на ${priceDiff.toLocaleString("ru-RU")} ₽, но WB привезет ${wbDeliveryStr}.`;
       bestOverallPick = "ozon";
@@ -476,9 +504,9 @@ export function buildHybridMatrix2x2(
       wbValue: `${wbTco.tcoPrice.toLocaleString("ru-RU")} ₽`,
       ozonValue: `${ozonTco.tcoPrice.toLocaleString("ru-RU")} ₽`,
       winner:
-        cheaperMarketplace === "wildberries"
+        cheaperWinner === "wb"
           ? ("wb" as const)
-          : cheaperMarketplace === "ozon"
+          : cheaperWinner === "ozon"
             ? ("ozon" as const)
             : ("tie" as const),
       note: cheaperSummary,
@@ -488,9 +516,9 @@ export function buildHybridMatrix2x2(
       wbValue: wbOffer.deliveryText || "1-2 дня",
       ozonValue: ozonOffer.deliveryText || "2-3 дня",
       winner:
-        fasterMarketplace === "wildberries"
+        fasterWinner === "wb"
           ? ("wb" as const)
-          : fasterMarketplace === "ozon"
+          : fasterWinner === "ozon"
             ? ("ozon" as const)
             : ("tie" as const),
       note: fasterSummary,
@@ -506,9 +534,11 @@ export function buildHybridMatrix2x2(
     {
       parameter: "Условия возврата",
       wbValue: "Бесплатно в ПВЗ WB (14 дней)",
-      ozonValue: "Бесплатно в ПВЗ Ozon (30 дней)",
-      winner: "ozon" as const,
-      note: "Ozon дает 30 дней на возврат с Ozon Premium",
+      ozonValue: hasRealOzon ? "Бесплатно в ПВЗ Ozon (30 дней)" : "Бесплатно в ПВЗ WB (14 дней)",
+      winner: hasRealOzon ? ("ozon" as const) : ("tie" as const),
+      note: hasRealOzon
+        ? "Ozon дает 30 дней на возврат с Ozon Premium"
+        : "Оба финалиста доступны с проверкой в ПВЗ Wildberries",
     },
   ];
 
@@ -566,7 +596,14 @@ export function buildHybridMatrix2x2(
   let ozonDecisiveFactor = "";
   let decisiveFactorLabel = "";
 
-  if (bestOverallPick === "wildberries") {
+  if (!hasRealOzon) {
+    wbDecisiveFactor = `🏆 Лидер отбора на WB (${wbProduct.antiFakePercent}% траст)`;
+    ozonDecisiveFactor = `🥈 Альтернатива на WB (${ozonTco.tcoPrice.toLocaleString("ru-RU")} ₽)`;
+    decisiveFactorLabel =
+      priceDiff > 0
+        ? `Сравнение двух лучших предложений на Wildberries: разница в TCO составляет ${priceDiff.toLocaleString("ru-RU")} ₽ при доставке со склада FBO`
+        : `Оба финалиста на Wildberries имеют высокий индекс чистоты отзывов (${wbProduct.antiFakePercent}%) и быструю отгрузку FBO`;
+  } else if (bestOverallPick === "wildberries") {
     if (fasterMarketplace === "wildberries" && deliveryDiffDays >= 1) {
       wbDecisiveFactor = `⚡ FBO быстрее на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`;
       ozonDecisiveFactor = `⏳ Доставка позже на ${deliveryDiffDays === 1 ? "1 день" : `${deliveryDiffDays} дн.`}`;
@@ -608,6 +645,7 @@ export function buildHybridMatrix2x2(
   const duel: DuelArbitration = {
     isLinked: true,
     isSameSku,
+    hasOzonOffer: hasRealOzon,
     wbSlot,
     ozonSlot,
     priceDiff,
@@ -791,6 +829,7 @@ export function buildHybridMatrix2x2(
     query,
     totalFound: rawProducts.length,
     filteredOutCount,
+    hasOzonOffer: hasRealOzon,
     funnelStats,
     absoluteChampion,
     wbChampion: wbSlot,

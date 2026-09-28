@@ -127,20 +127,54 @@ export default async function ProductPage({
     notFound();
   }
 
-  // Синхронизируем цены офферов с ценой из поиска, чтобы исключить любое расхождение
-  if (urlPrice && urlPrice > 0 && resolved.offers && resolved.offers.length > 0) {
-    const slotMp = (sParams.slotMarketplace || "").toLowerCase();
-    const matchedOffer = resolved.offers.find((o) =>
-      slotMp.includes("ozon")
-        ? o.marketplace.toLowerCase().includes("ozon")
-        : o.marketplace.toLowerCase().includes("wildberries"),
-    );
-    if (matchedOffer) {
-      matchedOffer.price = urlPrice;
-      if (urlOfferUrl) matchedOffer.url = urlOfferUrl;
-    } else {
-      resolved.offers[0].price = urlPrice;
-      if (urlOfferUrl) resolved.offers[0].url = urlOfferUrl;
+  // Клонируем офферы, чтобы не мутировать глобальный кэш, и синхронизируем цену строго в рамках совпадающего маркетплейса
+  const offers = (resolved.offers || []).map((o) => ({ ...o }));
+  const hasWbOffer = offers.some(
+    (o) =>
+      o.marketplace.toLowerCase().includes("wildberries") ||
+      o.marketplace.toLowerCase().includes("wb"),
+  );
+  const hasOzonOffer = offers.some((o) => o.marketplace.toLowerCase().includes("ozon"));
+
+  // Строго определяем маркетплейс конкретного товара на основе РЕАЛЬНЫХ офферов карточки
+  const explicitMp = (sParams.slotMarketplace || "").toLowerCase();
+  const targetMarketplace: "wildberries" | "ozon" =
+    hasWbOffer && !hasOzonOffer
+      ? "wildberries"
+      : hasOzonOffer && !hasWbOffer
+        ? "ozon"
+        : explicitMp.includes("wildberries") ||
+            explicitMp === "wb" ||
+            sParams.fromSlot === "wb_champion" ||
+            sParams.fromSlot === "wb"
+          ? "wildberries"
+          : explicitMp.includes("ozon") ||
+              sParams.fromSlot === "ozon_champion" ||
+              sParams.fromSlot === "ozon"
+            ? "ozon"
+            : offers[0]?.marketplace?.toLowerCase().includes("ozon")
+              ? "ozon"
+              : "wildberries";
+  const targetMarketplaceName = targetMarketplace === "wildberries" ? "Wildberries" : "Ozon";
+
+  const isUrlOfferValidForTarget = Boolean(
+    urlOfferUrl &&
+      ((targetMarketplace === "wildberries" && urlOfferUrl.includes("wildberries.ru")) ||
+        (targetMarketplace === "ozon" && urlOfferUrl.includes("ozon.ru"))),
+  );
+
+  if (urlPrice && urlPrice > 0 && offers.length > 0) {
+    const matchedOffer =
+      offers.find((o) =>
+        targetMarketplace === "ozon"
+          ? o.marketplace.toLowerCase().includes("ozon")
+          : o.marketplace.toLowerCase().includes("wildberries") ||
+            o.marketplace.toLowerCase().includes("wb"),
+      ) || offers[0];
+
+    matchedOffer.price = urlPrice;
+    if (isUrlOfferValidForTarget && urlOfferUrl) {
+      matchedOffer.url = urlOfferUrl;
     }
   }
 
@@ -170,11 +204,16 @@ export default async function ProductPage({
     console.warn("[ProductPage] Auth check error:", err);
   }
 
-  const offers = resolved.offers || [];
   const sortedOffers = [...offers].sort(
     (a, b) => (a.price ?? Number.MAX_SAFE_INTEGER) - (b.price ?? Number.MAX_SAFE_INTEGER),
   );
-  const bestOffer = sortedOffers[0];
+  const bestOffer =
+    offers.find((o) =>
+      targetMarketplace === "ozon"
+        ? o.marketplace.toLowerCase().includes("ozon")
+        : o.marketplace.toLowerCase().includes("wildberries") ||
+          o.marketplace.toLowerCase().includes("wb"),
+    ) || sortedOffers[0];
   const bestPrice = (urlPrice || bestOffer?.price) ?? null;
   const currency = bestOffer?.currency || "RUB";
 
@@ -224,59 +263,54 @@ export default async function ProductPage({
       }
     : null;
 
-  // Считываем контекст триумфатора из модели товара или параметров URL
-  const triumphData =
+  // Считываем контекст триумфатора и строго синхронизируем его с реальным маркетплейсом товара
+  const rawTriumph =
     resolved.triumph ||
     (sParams.fromSlot
       ? {
           slotType: (sParams.fromSlot === "wb_champion"
             ? "wb"
             : sParams.fromSlot === "ozon_champion"
-              ? "ozon"
+              ? targetMarketplace === "ozon"
+                ? "ozon"
+                : "wb"
               : sParams.fromSlot) as "wb" | "ozon" | "economist" | "express",
           badgeTitle:
-            sParams.slotTitle ||
-            (sParams.fromSlot === "express"
-              ? "Триумф Срочного"
-              : sParams.fromSlot === "economist"
-                ? "Триумф Экономного"
-                : "Победитель"),
+            sParams.slotTitle &&
+            !(targetMarketplace === "wildberries" && sParams.slotTitle.toLowerCase().includes("ozon"))
+              ? sParams.slotTitle
+              : sParams.fromSlot === "express"
+                ? "Триумф Срочного"
+                : sParams.fromSlot === "economist"
+                  ? "Триумф Экономного"
+                  : `Лидер отбора на ${targetMarketplaceName}`,
           badgeSubtitle:
             sParams.fromSlot === "express"
               ? "Экспресс-доставка FBO"
               : sParams.fromSlot === "economist"
                 ? "Минимальная цена на рынке"
-                : "Лидер маркетплейса",
-          marketplace:
-            sParams.slotMarketplace ||
-            (bestOffer?.marketplace?.toLowerCase().includes("wildberries")
-              ? "wildberries"
-              : "ozon"),
+                : `Проверенное предложение ${targetMarketplaceName}`,
+          marketplace: targetMarketplace,
           verdict:
             sParams.fromSlot === "express"
-              ? "wobuy. выбрал этот товар за лучшую скорость логистики со склада FBO."
+              ? `wobuy. выбрал этот товар на ${targetMarketplaceName} за лучшую скорость логистики со склада FBO.`
               : sParams.fromSlot === "economist"
-                ? "wobuy. выбрал этот товар за минимальную подтвержденную цену в категории."
-                : "wobuy. выбрал этот товар как абсолютного лидера категории.",
+                ? `wobuy. выбрал этот товар на ${targetMarketplaceName} за минимальную подтвержденную цену в категории.`
+                : `wobuy. выбрал этот товар на ${targetMarketplaceName} как лидера категории по соотношению цены и качества.`,
         }
       : null);
 
-  // Строго определяем маркетплейс конкретного товара, для которого произошел результат поиска
-  const explicitMp = (sParams.slotMarketplace || "").toLowerCase();
-  const targetMarketplace: "wildberries" | "ozon" =
-    explicitMp.includes("ozon") ||
-    sParams.fromSlot === "ozon_champion" ||
-    sParams.fromSlot === "ozon"
-      ? "ozon"
-      : explicitMp.includes("wildberries") ||
-          explicitMp === "wb" ||
-          sParams.fromSlot === "wb_champion" ||
-          sParams.fromSlot === "wb"
-        ? "wildberries"
-        : bestOffer?.marketplace?.toLowerCase().includes("ozon")
-          ? "ozon"
-          : "wildberries";
-  const targetMarketplaceName = targetMarketplace === "wildberries" ? "Wildberries" : "Ozon";
+  const triumphData = rawTriumph
+    ? {
+        ...rawTriumph,
+        marketplace: targetMarketplace,
+        badgeTitle:
+          targetMarketplace === "wildberries" &&
+          rawTriumph.badgeTitle?.toLowerCase().includes("ozon")
+            ? "Финалист отбора WB"
+            : rawTriumph.badgeTitle,
+      }
+    : null;
 
   // Выполняем генерацию полного вердикта мультиагентного анализа wobuy. строго для конкретного маркетплейса
   const analysis = await generateProductAnalysis(
@@ -343,7 +377,10 @@ export default async function ProductPage({
   const winnerMarketplaceName = targetMarketplaceName;
   const winnerUrl = sanitizeMarketplaceOfferUrl(
     winnerMarketplaceName,
-    urlOfferUrl || matchedTargetOffer?.url || marketplaceList[0]?.url || "",
+    (isUrlOfferValidForTarget && urlOfferUrl) ||
+      matchedTargetOffer?.url ||
+      marketplaceList[0]?.url ||
+      "",
     resolved.title,
   );
 
@@ -423,7 +460,7 @@ export default async function ProductPage({
             <ProductGallery
               images={productImages}
               title={resolved.title}
-              marketplace={bestOffer?.marketplace}
+              marketplace={targetMarketplace}
             />
           </div>
 
@@ -496,8 +533,7 @@ export default async function ProductPage({
                   <div className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-bold text-white">
                     <span className="text-slate-400">Отобран на:</span>
                     <span className="font-extrabold text-[#00FF87]">
-                      {triumphData.marketplace.toLowerCase().includes("wildberries") ||
-                      triumphData.marketplace === "wb"
+                      {triumphData.marketplace === "wildberries"
                         ? "Wildberries"
                         : "Ozon"}
                     </span>

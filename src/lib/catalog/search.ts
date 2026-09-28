@@ -694,14 +694,23 @@ export async function searchProducts(query: string): Promise<SearchProduct[]> {
 
       if (liveResults.length > 0) {
         const seenIds = new Set(dbResults.map((p) => p.id));
+        const seenUrls = new Set(
+          dbResults.flatMap((p) => p.offers.map((o) => o.url.toLowerCase())),
+        );
         const combined = [...dbResults];
         for (const prod of liveResults) {
           LIVE_PRODUCTS_STORE.set(prod.id, prod);
           for (const off of prod.offers) {
             LIVE_PRODUCTS_STORE.set(off.id, prod);
           }
-          if (!seenIds.has(prod.id)) {
+          const hasDuplicateUrl = prod.offers.some((o) =>
+            seenUrls.has(o.url.toLowerCase()),
+          );
+          if (!seenIds.has(prod.id) && !hasDuplicateUrl) {
             seenIds.add(prod.id);
+            for (const off of prod.offers) {
+              seenUrls.add(off.url.toLowerCase());
+            }
             combined.push(prod);
           }
         }

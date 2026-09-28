@@ -138,17 +138,31 @@ export async function generateProductAnalysis(
   triumphContext?: TriumphContext,
   targetMarketplace?: "wildberries" | "ozon",
 ): Promise<AiAnalysisResult | null> {
+  const hasWb = offers.some(
+    (o) =>
+      o.marketplace.toLowerCase().includes("wildberries") ||
+      o.marketplace.toLowerCase().includes("wb"),
+  );
+  const hasOzon = offers.some((o) => o.marketplace.toLowerCase().includes("ozon"));
+  const effectiveTargetMp: "wildberries" | "ozon" =
+    hasWb && !hasOzon
+      ? "wildberries"
+      : hasOzon && !hasWb
+        ? "ozon"
+        : targetMarketplace || "wildberries";
+  const effectiveMpName = effectiveTargetMp === "wildberries" ? "Wildberries" : "Ozon";
+
   const systemPrompt = `Ты — аналитический центр 4 независимых ИИ-агентов платформы wobuy. (сервис честного выбора товаров).
 Сформируй исчерпывающий, профессиональный и честный аудит товара на русском языке.
 Обязательно включи как объективные плюсы, так и РЕАЛЬНЫЕ минусы/предостережения от каждого агента (никаких пустых похвал без доказательств!).
-Также оцени дуэль между 2 главными маркетплейсами (Wildberries и Ozon): укажи честный рейтинг для каждого, почему на выбранном маркетплейсе брать лучше всего, а на другом — дороже, дольше или нет в наличии.
+ВАЖНО: Данная карточка товара представлена на маркетплейсе ${effectiveMpName}. В полях summary и wobuyDecision анализируй покупку строго на ${effectiveMpName} (НЕ называй товар с Wildberries товаром Ozon и наоборот!).
 
 Формат ответа — строго валидный JSON:
 {
-  "summary": "Краткое заключение (2-3 предложения) о товаре и его реальном качестве.",
+  "summary": "Краткое заключение (2-3 предложения) о товаре и его реальном качестве на ${effectiveMpName}.",
   "antiFakePercent": 96,
   "verdict": "Рекомендовано к покупке",
-  "wobuyDecision": "Четкий ответ на вопрос 'Какое решение принять покупателю?': укажи конкретный маркетплейс, где брать выгоднее всего, почему именно там, и когда стоит предпочесть другой.",
+  "wobuyDecision": "Четкий ответ на вопрос 'Какое решение принять покупателю?': почему этот вариант на ${effectiveMpName} выгоден по цене и доставке, и на что обратить внимание при проверке в ПВЗ ${effectiveMpName}.",
   "agents": {
     "perfectionist": {
       "score": 9.6,
@@ -188,8 +202,8 @@ export async function generateProductAnalysis(
   ]
 }`;
 
-  const userPrompt = `Товар: "${productTitle}", Бренд: "${brand}", Категория: "${category}", Базовая цена: ${price} ₽.
-Доступные предложения с маркетплейсов: ${JSON.stringify(offers)}`;
+  const userPrompt = `Товар: "${productTitle}", Бренд: "${brand}", Категория: "${category}", Маркетплейс карточки: ${effectiveMpName}, Базовая цена: ${price} ₽.
+Доступные предложения: ${JSON.stringify(offers)}`;
 
   // 1. Быстрый Groq: (openai/gpt-oss-120b / openai/gpt-oss-20b)
   if (process.env.GROQ_API_KEY) {
@@ -230,7 +244,7 @@ export async function generateProductAnalysis(
             price,
             offers,
             triumphContext,
-            targetMarketplace,
+            effectiveTargetMp,
           );
         }
       }
@@ -262,7 +276,7 @@ export async function generateProductAnalysis(
           price,
           offers,
           triumphContext,
-          targetMarketplace,
+          effectiveTargetMp,
         );
       }
     } catch (err) {
@@ -278,7 +292,7 @@ export async function generateProductAnalysis(
     price,
     offers,
     triumphContext,
-    targetMarketplace,
+    effectiveTargetMp,
   );
 }
 
@@ -297,9 +311,12 @@ function buildMarketplaceComparison(
   targetMarketplace?: "wildberries" | "ozon",
 ): MarketplaceComparisonItem[] {
   const wbOffer = offers.find(
-    (o) => o.marketplace === "wildberries" || o.marketplace.includes("wb"),
+    (o) =>
+      o.marketplace.toLowerCase() === "wildberries" || o.marketplace.toLowerCase().includes("wb"),
   );
-  const ozonOffer = offers.find((o) => o.marketplace === "ozon" && o.price && o.price > 0);
+  const ozonOffer = offers.find(
+    (o) => o.marketplace.toLowerCase().includes("ozon") && o.price && o.price > 0,
+  );
 
   const baseWbPrice = wbOffer?.price || price || 2400;
   const wbDelivery = wbOffer?.deliveryText || "1-2 дня (со склада WB)";
@@ -322,7 +339,12 @@ function buildMarketplaceComparison(
     url: wbOffer?.url || buildMarketplaceDeepLink("wildberries", productTitle),
   };
 
-  const ozonPrice = ozonOffer?.price || Math.round(baseWbPrice * 0.98);
+  // Если товар представлен только на Wildberries или явно запрошен Wildberries — возвращаем строго Wildberries (никаких выдуманных карточек Ozon!)
+  if (targetMarketplace === "wildberries" || (!ozonOffer && wbOffer)) {
+    return [wbItem];
+  }
+
+  const ozonPrice = ozonOffer?.price || price || 2400;
   const ozonDelivery = ozonOffer?.deliveryText || "1-2 дня (со склада Ozon)";
   const ozonItem: MarketplaceComparisonItem = {
     marketplace: "ozon",
@@ -340,23 +362,18 @@ function buildMarketplaceComparison(
     url: ozonOffer?.url || buildMarketplaceDeepLink("ozon", productTitle),
   };
 
-  // Если явно указан маркетплейс, возвращаем строго только его
-  if (targetMarketplace === "wildberries") {
-    return [wbItem];
-  }
-  if (targetMarketplace === "ozon") {
+  if (targetMarketplace === "ozon" || (!wbOffer && ozonOffer)) {
     return [ozonItem];
   }
 
-  // Дефолтно возвращаем 2 маркетплейса
-  if (ozonOffer && ozonOffer.price) {
+  if (ozonOffer && ozonOffer.price && wbOffer && wbOffer.price) {
     const isOzonBest = ozonPrice < baseWbPrice;
     wbItem.isRecommended = !isOzonBest;
     ozonItem.isRecommended = isOzonBest;
     return [wbItem, ozonItem];
   }
 
-  return [wbItem, ozonItem];
+  return [wbItem];
 }
 
 function generateDeterministicAnalysis(
@@ -540,20 +557,18 @@ function generateDeterministicAnalysis(
       { label: "Объем отзывов", value: `${totalReviews} проверенных` },
       { label: "Аудит подлинности", value: `Пройден на ${antiFakePercent}%` },
     ],
-    // Блок 2. Межплощадочный мост сравнения (Блок «Дуэль»)
+    // Блок 2. Межплощадочный мост сравнения (Блок «Дуэль» только при наличии реального оффера второй площадки)
     duelData: (() => {
       const isCurrentWb = bestMkt.marketplace === "wildberries";
       const altPlatform = isCurrentWb ? ("Ozon" as const) : ("Wildberries" as const);
       const altOffer = comparison.find((c) =>
         isCurrentWb ? c.marketplace === "ozon" : c.marketplace === "wildberries",
       );
+      if (!altOffer?.price || altOffer.price <= 0) {
+        return null;
+      }
       const currentPrice = bestMkt.price || price || 2500;
-      const altPrice =
-        altOffer?.price && altOffer.price > 0
-          ? altOffer.price
-          : isCurrentWb
-            ? Math.round(currentPrice * 1.04)
-            : Math.round(currentPrice * 0.97);
+      const altPrice = altOffer.price;
       const priceDiff = altPrice - currentPrice;
       const deliveryDiffDays = isCurrentWb ? 2 : -2;
 
@@ -579,9 +594,7 @@ function generateDeterministicAnalysis(
         priceDifference: priceDiff,
         deliveryDifferenceDays: deliveryDiffDays,
         verdict: duelVerdict,
-        url:
-          altOffer?.url ||
-          buildMarketplaceDeepLink(isCurrentWb ? "ozon" : "wildberries", productTitle),
+        url: altOffer.url,
       };
     })(),
     // Блок 3. Калькулятор реальной стоимости (TCO)
@@ -875,20 +888,18 @@ function formatAnalysisResult(
       { label: "Гарантия", value: "Официальная гарантия 12 месяцев" },
       { label: "Условия возврата", value: "Бесплатно в течение 14 дней в любом ПВЗ" },
     ],
-    // Блок 2. Межплощадочный мост сравнения (Блок «Дуэль»)
+    // Блок 2. Межплощадочный мост сравнения (Блок «Дуэль» только при наличии реального оффера второй площадки)
     duelData: (() => {
       const isCurrentWb = bestMkt.marketplace === "wildberries";
       const altPlatform = isCurrentWb ? ("Ozon" as const) : ("Wildberries" as const);
       const altOffer = comparison.find((c) =>
         isCurrentWb ? c.marketplace === "ozon" : c.marketplace === "wildberries",
       );
+      if (!altOffer?.price || altOffer.price <= 0) {
+        return null;
+      }
       const currentPrice = bestMkt.price || price || 2500;
-      const altPrice =
-        altOffer?.price && altOffer.price > 0
-          ? altOffer.price
-          : isCurrentWb
-            ? Math.round(currentPrice * 1.04)
-            : Math.round(currentPrice * 0.97);
+      const altPrice = altOffer.price;
       const priceDiff = altPrice - currentPrice;
       const deliveryDiffDays = isCurrentWb ? 2 : -2;
 
@@ -914,9 +925,7 @@ function formatAnalysisResult(
         priceDifference: priceDiff,
         deliveryDifferenceDays: deliveryDiffDays,
         verdict: duelVerdict,
-        url:
-          altOffer?.url ||
-          buildMarketplaceDeepLink(isCurrentWb ? "ozon" : "wildberries", productTitle),
+        url: altOffer.url,
       };
     })(),
     // Блок 3. Калькулятор реальной стоимости (TCO)
