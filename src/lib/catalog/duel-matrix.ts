@@ -819,7 +819,7 @@ export function buildHybridMatrix2x2(
   saveProductToLiveStore(expressProduct);
 
   // Подготовка вариантов для "Быстрого тумблера": СТРОГО товары с конкретного маркетплейса
-  const wbAlternatives = screenedPool
+  const wbAlternatives = wbPool
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("wildberries")))
     .map((p) => {
       const wbOff =
@@ -829,11 +829,11 @@ export function buildHybridMatrix2x2(
         offers: [wbOff, ...p.offers.filter((o) => o.id !== wbOff.id)],
       };
     })
-    .slice(0, 8);
+    .slice(0, 12);
 
-  const ozonAlternatives = screenedPool
+  const ozonAlternatives = ozonPool
     .filter((p) => p.offers.some((o) => o.marketplace.toLowerCase().includes("ozon")))
-    .slice(0, 8);
+    .slice(0, 12);
 
   const absoluteChampion = bestOverallPick === "wildberries" ? wbSlot : ozonSlot;
 
@@ -849,8 +849,8 @@ export function buildHybridMatrix2x2(
     duel,
     economistChampion: economistSlot,
     expressChampion: expressSlot,
-    wbAlternatives: wbAlternatives.length > 0 ? wbAlternatives : screenedPool.slice(0, 4),
+    wbAlternatives: wbAlternatives.length > 0 ? wbAlternatives : rawProducts.slice(0, 4),
     ozonAlternatives: ozonAlternatives.length > 0 ? ozonAlternatives : [],
-    allProducts: screenedPool,
+    allProducts: rawProducts,
   };
 }

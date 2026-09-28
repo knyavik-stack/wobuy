@@ -215,6 +215,9 @@ async function fetchOzonHttp(
   return null;
 }
 
+// In-memory cache для мгновенного ответа на повторные запросы
+const OZON_SEARCH_CACHE = new Map<string, { timestamp: number; offers: RawMarketplaceOffer[] }>();
+
 /**
  * Парсер поиска Ozon.
  * 1. Проверяет наличие выделенного скрапера (OZON_SCRAPER_WORKER_URL)
@@ -225,9 +228,15 @@ export async function searchOzon(
   query: string,
   options: { page?: number; limit?: number; timeoutMs?: number } = {},
 ): Promise<RawMarketplaceOffer[]> {
-  const { page = 1, limit = 15, timeoutMs = 12000 } = options;
+  const { page = 1, limit = 15, timeoutMs = 6000 } = options;
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
+
+  const cacheKey = `${cleanQuery.toLowerCase()}_p${page}`;
+  const cached = OZON_SEARCH_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000 && cached.offers.length > 0) {
+    return cached.offers.slice(0, limit);
+  }
 
   const workerUrl =
     process.env.OZON_SCRAPER_WORKER_URL ||
@@ -243,7 +252,7 @@ export async function searchOzon(
 
       const res = await fetch(workerSearchUrl, {
         method: "GET",
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(Math.min(timeoutMs, 4000)),
       });
 
       if (res.ok) {
@@ -288,6 +297,7 @@ export async function searchOzon(
 
           const authenticOffers = directOffers.filter((o) => isRealOzonOffer(o));
           if (authenticOffers.length > 0) {
+            OZON_SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), offers: authenticOffers });
             return authenticOffers.slice(0, limit);
           }
         }
@@ -296,6 +306,7 @@ export async function searchOzon(
         const parsedOffers = parseOzonWidgetStates(workerData, cleanQuery, limit);
         const authenticParsedOffers = parsedOffers.filter((o) => isRealOzonOffer(o));
         if (authenticParsedOffers.length > 0) {
+          OZON_SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), offers: authenticParsedOffers });
           return authenticParsedOffers.slice(0, limit);
         }
       }
@@ -313,13 +324,14 @@ export async function searchOzon(
       `/search/?text=${encodeURIComponent(cleanQuery)}&page=${page}`,
     )}`;
 
-    const response = await fetchOzonHttp(searchUrl, { timeoutMs });
+    const response = await fetchOzonHttp(searchUrl, { timeoutMs: Math.min(timeoutMs, 4000) });
     if (response && response.status === 200 && response.body) {
       try {
         const data = JSON.parse(response.body) as Record<string, unknown>;
         const offers = parseOzonWidgetStates(data, cleanQuery, limit);
         const authenticOffers = offers.filter((o) => isRealOzonOffer(o));
         if (authenticOffers.length > 0) {
+          OZON_SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), offers: authenticOffers });
           return authenticOffers.slice(0, limit);
         }
       } catch {}
@@ -331,7 +343,6 @@ export async function searchOzon(
     );
   }
 
-  // Честный результат: при активной защите WAF без сессии возвращаем пустой список
   return [];
 }
 
