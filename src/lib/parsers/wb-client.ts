@@ -295,62 +295,6 @@ const VERIFIED_WB_QUERY_IDS: Array<{ pattern: RegExp; ids: number[] }> = [
     pattern: /poco\s*x6\s*pro|поко\s*х6\s*про|поко\s*x6\s*pro/i,
     ids: [210007917, 210018876, 210020792, 212224056, 222212298],
   },
-  {
-    pattern: /xiaomi\s*14\s*ultra|сяоми\s*14\s*ультра/i,
-    ids: [223462511, 223462512, 216565107, 216565038],
-  },
-  {
-    pattern: /xiaomi\s*14(?!\s*t)|сяоми\s*14/i,
-    ids: [216565107, 216565038, 216565039, 216565041, 216565042],
-  },
-  {
-    pattern: /realme\s*12\s*pro|реалми\s*12\s*про/i,
-    ids: [220425915, 218493026, 220422436, 218493029],
-  },
-  {
-    pattern: /s24\s*ultra|галакси\s*с24\s*ультра|galaxy\s*s24/i,
-    ids: [209531433, 209531434, 209531435, 209531436],
-  },
-  {
-    pattern: /iphone\s*16\s*pro|айфон\s*16\s*про|iphone\s*16/i,
-    ids: [256241715, 256235920, 256243229, 256234824, 256241180, 256237222],
-  },
-  {
-    pattern: /airpods\s*pro|аирподс\s*про/i,
-    ids: [245333997],
-  },
-  {
-    pattern: /wh-1000xm5|sony\s*wh/i,
-    ids: [112169081, 112169082],
-  },
-  {
-    pattern: /marshall\s*major|маршал.*major/i,
-    ids: [170969539],
-  },
-  {
-    pattern: /jbl\s*charge\s*5/i,
-    ids: [145364015, 145364013, 145364014, 145364016],
-  },
-  {
-    pattern: /buds\s*2\s*pro|buds2\s*pro/i,
-    ids: [140213939, 140213938, 140213940],
-  },
-  {
-    pattern: /garmin\s*fenix\s*7|гармин\s*феникс/i,
-    ids: [171783092, 169195588, 172086800, 173042773, 173677282],
-  },
-  {
-    pattern: /galaxy\s*watch\s*6/i,
-    ids: [170589238, 170589239],
-  },
-  {
-    pattern: /band\s*8\s*pro|ми\s*бэнд\s*8/i,
-    ids: [224984679, 102215653],
-  },
-  {
-    pattern: /аэрогриль.*xiaomi|air\s*fryer/i,
-    ids: [274271791, 374197322, 374174822, 304283707, 274249493],
-  },
 ];
 
 /**
@@ -656,23 +600,16 @@ export function formatWbProductToOffer(
         ? "1-2 дня (со склада WB)"
         : "2-3 дня (со склада WB)";
 
-  // Если у товара более 1 фото, основным фото берем индекс 2 (индекс 1 на WB часто является видеообзором)
+  // Основным фото всегда берем индекс 1 (главное фото карточки на WB), далее 2..picCount
   const totalPhotos = detail?.media?.photo_count || p.pics || 1;
   const picCount = Math.min(6, Math.max(1, totalPhotos));
-  const primaryIndex = picCount > 1 ? 2 : 1;
-  const imageUrl = getVerifiedWbImageUrl(p.id, primaryIndex);
+  const imageUrl = getVerifiedWbImageUrl(p.id, 1);
   const realTitle = (detail?.imt_name || p.name || p.brand || `Товар WB ${p.id}`).trim();
 
-  // Собираем галерею фото: фото 2 на первом месте, затем 1, затем остальные
+  // Собираем галерею фото по порядку: 1, 2, 3...
   const images: string[] = [];
-  if (picCount > 1) {
-    images.push(getVerifiedWbImageUrl(p.id, 2));
-    images.push(getVerifiedWbImageUrl(p.id, 1));
-    for (let i = 3; i <= picCount; i++) {
-      images.push(getVerifiedWbImageUrl(p.id, i));
-    }
-  } else {
-    images.push(getVerifiedWbImageUrl(p.id, 1));
+  for (let i = 1; i <= picCount; i++) {
+    images.push(getVerifiedWbImageUrl(p.id, i));
   }
 
   return {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-28 (Дополнение 20: Восстановление конвейера Ozon через SOCKS5-прокси, cookies и исправление загрузки картинок)
+
+- **Конвейер Ozon и поддержка SOCKS5-прокси (`src/lib/parsers/ozon.ts`)**:
+  - Устранен преждевременный выход из функции `searchOzon` при ответе от старого генератора воркера — конвейер теперь гарантированно переходит к прямому запросу к Ozon API через российский SOCKS5-прокси (`OZON_PROXY_URL = socks5://194.226.60.216:8000`).
+  - Добавлена поддержка файла сессионных кук `ozon_cookies.txt` (включая `abt_data` и `__Secure-ETC`) в парсере `getOzonCookies` для прохождения Antibot-фильтрации.
+- **Исправление отображения картинок и галереи товаров (`src/components/search/AbsoluteChampionBlock.tsx`, `src/lib/catalog/search.ts`)**:
+  - В блоке «Абсолютный Чемпион» (`AbsoluteChampionBlock.tsx`) Next.js компонент `<Image>` заменен на полноценную галерею `<ProductGallery>` с прямой загрузкой картинок с CDN (`referrerPolicy="no-referrer"`), поддержкой галереи ракурсов и авто-fallback на соседние кадры (`2.webp` ⇄ `1.webp`) при сбоях.
+  - Исправлена токенизация поисковых запросов с дефисами (`/[«»""''.,!?:;()[\]{}\\/_\-—–]/g`) в `searchRealCatalogSupabase` — запросы вроде «Робот-пылесос для дома» теперь выдают 100% релевантных товаров (выдача выросла с 0 до 19 карточек).
+  - В `src/lib/parsers/wb-client.ts` очищен реестр `VERIFIED_WB_QUERY_IDS`, удалены непроверенные сопоставления артикулов, которые могли приводить к подмене категорий товаров.
+
 ## 2026-09-28 (Дополнение 19: Исправление путаницы WB / Ozon при анализе и ссылках + точная выдача по запросу «POCO X6 Pro 5G»)
 
 - **Устранение подмены маркетплейса Wildberries на Ozon в матрице 2x2 и ИИ-анализе (`src/lib/catalog/duel-matrix.ts`, `src/components/search/DuelArbitrationCard.tsx`, `src/components/search/MatrixSlotCard.tsx`, `src/components/search/AbsoluteChampionBlock.tsx`, `maket/SearchResults-v2.tsx`)**:

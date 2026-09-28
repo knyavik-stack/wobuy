@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   ExternalLink,
   ShieldCheck,
@@ -18,7 +17,7 @@ import type { MatrixSlot, DuelArbitration } from "@/lib/catalog/duel-matrix";
 import { NeonScoreCircle } from "@/components/ui/NeonScoreCircle";
 import { NeonDot } from "@/components/brand/WobuyDot";
 import { sanitizeMarketplaceOfferUrl } from "@/lib/marketplace-links";
-import { MarketplaceBadge } from "@/components/ui/MarketplaceBadge";
+import { ProductGallery } from "@/components/product/ProductGallery";
 
 interface AbsoluteChampionBlockProps {
   champion: MatrixSlot;
@@ -91,26 +90,19 @@ export function AbsoluteChampionBlock({ champion, duel, query }: AbsoluteChampio
 
       {/* Основной контентный монолит */}
       <div className="relative z-10 mt-5 grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
-        {/* Фото товара и бейдж маркетплейса */}
+        {/* Фото товара и галерея */}
         <div className="relative flex justify-center lg:col-span-4">
-          <div className="relative h-60 w-full max-w-sm sm:h-72 overflow-hidden rounded-2xl border border-white/10 bg-[#0A0D12] shadow-xl">
-            <Image
-              src={imageSrc}
-              alt={product.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 350px"
-              className="object-contain p-3 transition duration-500 hover:scale-105"
-              referrerPolicy="no-referrer"
-              priority
+          <div className="relative h-60 w-full max-w-sm sm:h-72 overflow-hidden rounded-2xl border border-white/10 bg-[#0A0D12] shadow-xl p-1">
+            <ProductGallery
+              images={product.images && product.images.length > 0 ? product.images : [imageSrc]}
+              title={product.title}
+              marketplace={matchedOffer.marketplace}
+              isCompact={false}
+              className="h-full w-full"
             />
 
-            {/* Маркетплейс-бейдж на фото */}
-            <div className="absolute left-3 top-3">
-              <MarketplaceBadge marketplace={matchedOffer.marketplace} size="md" showLabel={true} />
-            </div>
-
             {/* Бейдж траста на фото */}
-            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full border border-purple-500/40 bg-purple-950/80 px-2.5 py-1 text-[11px] font-extrabold text-purple-300 backdrop-blur-md">
+            <div className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full border border-purple-500/40 bg-purple-950/80 px-2.5 py-1 text-[11px] font-extrabold text-purple-300 backdrop-blur-md">
               <ShieldCheck className="h-3.5 w-3.5 text-purple-400" />
               <span>{antiFakePercent}% траст</span>
             </div>

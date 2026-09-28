@@ -35,16 +35,20 @@ export function ProductGallery({
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget;
-    // Если упала картинка 1.webp с WB (часто видеообзор), переключаем на 2.webp
+    if (target.dataset.fallbackApplied === "true") {
+      return;
+    }
+    target.dataset.fallbackApplied = "true";
+    // Если упала картинка 2.webp / 3.webp (например у товара только 1 фото), переключаем на 1.webp
+    if (/\/images\/big\/[2-9]\.webp/.test(target.src)) {
+      target.src = target.src.replace(/\/images\/big\/[2-9]\.webp/, "/images/big/1.webp");
+      return;
+    }
+    // Если упала 1.webp, пробуем 2.webp
     if (target.src.includes("/images/big/1.webp")) {
       target.src = target.src.replace("/images/big/1.webp", "/images/big/2.webp");
       return;
     }
-    if (target.src.includes("/1.webp")) {
-      target.src = target.src.replace("/1.webp", "/2.webp");
-      return;
-    }
-    // Если в галерее есть следующее фото, пробуем его
     if (galleryImages.length > 1 && currentIndex === 0) {
       setCurrentIndex(1);
     }

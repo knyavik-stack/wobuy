@@ -85,26 +85,28 @@ function getOzonCookies(): string {
     return process.env.OZON_COOKIE.trim();
   }
 
-  // 2. Проверяем файл cookie.txt
-  try {
-    const cookiePath = path.resolve(process.cwd(), "cookie.txt");
-    if (fs.existsSync(cookiePath)) {
-      const content = fs.readFileSync(cookiePath, "utf-8");
-      const pairs: string[] = [];
-      for (const rawLine of content.split("\n")) {
-        let line = rawLine.trim();
-        if (!line || (line.startsWith("#") && !line.startsWith("#HttpOnly_"))) continue;
-        if (line.startsWith("#HttpOnly_")) {
-          line = line.substring("#HttpOnly_".length);
+  // 2. Проверяем файлы cookie.txt и ozon_cookies.txt
+  for (const filename of ["cookie.txt", "ozon_cookies.txt"]) {
+    try {
+      const cookiePath = path.resolve(process.cwd(), filename);
+      if (fs.existsSync(cookiePath)) {
+        const content = fs.readFileSync(cookiePath, "utf-8");
+        const pairs: string[] = [];
+        for (const rawLine of content.split("\n")) {
+          let line = rawLine.trim();
+          if (!line || (line.startsWith("#") && !line.startsWith("#HttpOnly_"))) continue;
+          if (line.startsWith("#HttpOnly_")) {
+            line = line.substring("#HttpOnly_".length);
+          }
+          const parts = line.split("\t");
+          if (parts.length >= 7) {
+            pairs.push(`${parts[5]}=${parts[6]}`);
+          }
         }
-        const parts = line.split("\t");
-        if (parts.length >= 7) {
-          pairs.push(`${parts[5]}=${parts[6]}`);
-        }
+        if (pairs.length > 0) return pairs.join("; ");
       }
-      if (pairs.length > 0) return pairs.join("; ");
-    }
-  } catch {}
+    } catch {}
+  }
   return "";
 }
 
@@ -246,14 +248,12 @@ export async function searchOzon(
 
       if (res.ok) {
         const workerData = await res.json();
-        // Блокируем старый синтетический генератор ozon-worker-stream
+        // Если ответ от старого генератора ozon-worker-stream, переходим к прямому прокси-парсингу
         if (workerData?.source === "ozon-worker-stream") {
-          secureLogger.warn(
-            "[Ozon Worker] Отклонен синтетический ответ ozon-worker-stream (требуется реальный DOM/API скрапер)",
+          secureLogger.debug(
+            "[Ozon Worker] Ответ ozon-worker-stream отклонен, переход к прямому запросу через прокси",
           );
-          return [];
-        }
-        if (Array.isArray(workerData?.products) && workerData.products.length > 0) {
+        } else if (Array.isArray(workerData?.products) && workerData.products.length > 0) {
           const directOffers: RawMarketplaceOffer[] = workerData.products.map(
             (p: Record<string, unknown>) => {
               const sku = String(p.sku || p.id || "");

@@ -157,14 +157,26 @@ function mapProduct(product: {
     finalOffers,
   );
 
+  const rawImageUrl = normalize(product.image_url);
+  const primaryImageUrl = rawImageUrl.includes(".wbbasket.ru/")
+    ? rawImageUrl.replace(/\/images\/big\/\d+\.webp/, "/images/big/1.webp")
+    : rawImageUrl;
+  const galleryImages = primaryImageUrl.includes("/images/big/1.webp")
+    ? [
+        primaryImageUrl,
+        primaryImageUrl.replace("/images/big/1.webp", "/images/big/2.webp"),
+        primaryImageUrl.replace("/images/big/1.webp", "/images/big/3.webp"),
+      ]
+    : [primaryImageUrl];
+
   return {
     id: product.id,
     title: normalize(product.canonical_name) || "Товар без названия",
     brand: normalize(product.brand) || "Бренд не указан",
     category: normalize(product.category),
     description: normalize(product.description),
-    imageUrl: normalize(product.image_url),
-    images: [normalize(product.image_url)],
+    imageUrl: primaryImageUrl,
+    images: galleryImages,
     aiScore: metrics.aiScore,
     antiFakePercent: metrics.antiFakePercent,
     aiTags: metrics.aiTags,
@@ -398,7 +410,7 @@ export async function searchRealCatalogSupabase(query: string, limit = 20): Prom
   ]);
 
   const allTokens = rawClean
-    .replace(/[«»""''.,!?:;()[\]{}\\/]/g, " ")
+    .replace(/[«»""''.,!?:;()[\]{}\\/_\-—–]/g, " ")
     .split(/\s+/)
     .map((w) => w.trim())
     .filter((w) => w.length >= 2 && !stopWords.has(w));
