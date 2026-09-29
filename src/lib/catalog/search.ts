@@ -628,7 +628,6 @@ async function enrichWithOzonOffers(
         }
 
         if (bestOffer) {
-          matchedOzonIds.add(bestOffer.id);
           const mappedOffer: SearchProduct["offers"][0] = {
             id: bestOffer.id,
             marketplace: "ozon",
@@ -648,9 +647,8 @@ async function enrichWithOzonOffers(
       }
     }
 
-    // Не сопоставленные предложения Ozon добавляем как отдельные карточки
+    // Всегда добавляем предложения Ozon как самостоятельные карточки товаров Ozon
     for (const off of ozonOffers) {
-      if (matchedOzonIds.has(off.id)) continue;
       const ozonProd: SearchProduct = {
         id: off.id,
         title: off.title,

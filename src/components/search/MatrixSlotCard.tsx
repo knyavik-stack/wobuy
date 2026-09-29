@@ -187,6 +187,37 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
                 ) : null}
               </div>
 
+              {/* Мульти-офферы (если товар представлен на Wildberries и Ozon) */}
+              {product.offers && product.offers.length > 1 && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-white/5 pt-2">
+                  {product.offers.map((off, oIdx) => {
+                    const offIsOzon = off.marketplace.toLowerCase().includes("ozon");
+                    const isCurrent = off.id === matchedOffer.id || (offIsOzon === isOzon);
+                    const offSafeUrl = sanitizeMarketplaceOfferUrl(off.marketplace, off.url, product.title);
+                    return (
+                      <a
+                        key={off.id || oIdx}
+                        href={offSafeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition ${
+                          offIsOzon
+                            ? isCurrent
+                              ? "bg-blue-600/30 text-blue-300 border border-blue-500/40"
+                              : "bg-blue-950/40 text-slate-300 hover:text-blue-300 border border-white/10"
+                            : isCurrent
+                              ? "bg-purple-600/30 text-purple-300 border border-purple-500/40"
+                              : "bg-purple-950/40 text-slate-300 hover:text-purple-300 border border-white/10"
+                        }`}
+                      >
+                        <span>{offIsOzon ? "🔵 Ozon:" : "🟣 WB:"}</span>
+                        <span>{off.price ? `${off.price.toLocaleString("ru-RU")} ₽` : "В наличии"}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-300">
                 <Clock className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
                 <span className="font-semibold text-white">{deliverySpeedLabel}</span>
@@ -271,18 +302,51 @@ export function MatrixSlotCard({ slot, view = "grid", query }: MatrixSlotCardPro
           view === "list" ? "md:mt-0 md:w-2/5 md:border-l md:border-t-0 md:pl-6 md:pt-0" : ""
         }`}
       >
-        <div className="flex gap-2">
-          {/* Переход на маркетплейс */}
+        <div className="flex flex-wrap gap-2">
+          {/* Переход на маркетплейс карточки */}
           <a
             href={safeOfferUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 py-3 text-xs font-bold text-white transition hover:border-white/20 hover:bg-white/10"
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl border py-3 text-xs font-bold text-white transition ${
+              isOzon
+                ? "border-blue-500/40 bg-blue-950/40 hover:bg-blue-900/60"
+                : "border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60"
+            }`}
           >
             <ShoppingBag className="h-3.5 w-3.5 text-slate-400" />
             <span>На {marketplaceName}</span>
             <ExternalLink className="h-3 w-3 opacity-60" />
           </a>
+
+          {/* Дополнительная кнопка на альтернативный маркетплейс */}
+          {product.offers &&
+            product.offers.length > 1 &&
+            (() => {
+              const alt = product.offers.find((o) =>
+                isOzon
+                  ? o.marketplace.toLowerCase().includes("wildberries")
+                  : o.marketplace.toLowerCase().includes("ozon"),
+              );
+              if (!alt) return null;
+              const altIsOzon = alt.marketplace.toLowerCase().includes("ozon");
+              const altUrl = sanitizeMarketplaceOfferUrl(alt.marketplace, alt.url, product.title);
+              return (
+                <a
+                  href={altUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center justify-center gap-1 rounded-2xl border px-3 py-3 text-xs font-bold text-white transition ${
+                    altIsOzon
+                      ? "border-blue-500/40 bg-blue-950/40 hover:bg-blue-900/60 text-blue-300"
+                      : "border-purple-500/40 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300"
+                  }`}
+                >
+                  <span>{altIsOzon ? "🔵 Ozon" : "🟣 WB"}</span>
+                  <ExternalLink className="h-3 w-3 opacity-60" />
+                </a>
+              );
+            })()}
 
           {/* Фирменная кнопка wobuy. */}
           <Link
